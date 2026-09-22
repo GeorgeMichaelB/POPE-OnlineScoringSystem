@@ -3,6 +3,7 @@ import type {
   DarsKtabRecord,
   Mal3abRecord,
   SummerClubRecord,
+  ConfessionRecord,
   CustomEvent,
   CustomPointEntry,
   PointSettings,
@@ -29,7 +30,8 @@ export function calculateAttendanceStats(
   darsKtabRecords: DarsKtabRecord[] = [],
   customEvents: CustomEvent[] = [],
   mal3abRecords: Mal3abRecord[] = [],
-  summerClubRecords: SummerClubRecord[] = []
+  summerClubRecords: SummerClubRecord[] = [],
+  confessionRecords: ConfessionRecord[] = []
 ) {
   // Friday Attendance
   const uniqueFridayDates = Array.from(new Set(fridayRecords.map((r) => r.date)));
@@ -72,7 +74,11 @@ export function calculateAttendanceStats(
   const eventsAttended = customEvents.filter((ev) => ev.attendeeIds.includes(studentId)).length;
   const eventsPercent = totalCustomEvents > 0 ? Math.round((eventsAttended / totalCustomEvents) * 100) : 0;
 
-  return {
+    // Monthly Confession stats
+  const studentConfessions = confessionRecords.filter((r) => r.studentId === studentId && r.attended);
+  const confessionAttendedCount = studentConfessions.length;
+
+return {
     totalSessions: totalFridaySessions,
     sundaySchoolPresent: fridayPresent,
     sundaySchoolPercent: fridayPercent,
@@ -98,6 +104,8 @@ export function calculateAttendanceStats(
     totalCustomEvents,
     eventsAttended,
     eventsPercent,
+    confessionAttendedCount,
+    studentConfessions,
   };
 }
 
@@ -110,7 +118,8 @@ export function calculateStudentScore(
   customPointEntries: CustomPointEntry[],
   settings: PointSettings,
   mal3abRecords: Mal3abRecord[] = [],
-  summerClubRecords: SummerClubRecord[] = []
+  summerClubRecords: SummerClubRecord[] = [],
+  confessionRecords: ConfessionRecord[] = []
 ) {
   // Friday Class points
   const fridayCount = fridayRecords.filter((r) => r.studentId === studentId && r.sundaySchool).length;
@@ -140,6 +149,11 @@ export function calculateStudentScore(
   const summerClubActivityCount = summerClubRecords.filter((r) => r.studentId === studentId && r.activity).length;
   const summerClubActivityPoints = summerClubActivityCount * (settings.summerClubActivityPoints ?? 5);
 
+  // Monthly Confession points (سر ومتابعة الاعتراف الشهري)
+  const studentConfessions = confessionRecords.filter((r) => r.studentId === studentId && r.attended);
+  const confessionCount = studentConfessions.length;
+  const confessionPoints = confessionCount * (settings.confessionPoints ?? 20);
+
   // Custom Events points
   const eventCount = customEvents.filter((e) => e.attendeeIds.includes(studentId)).length;
   const eventPoints = eventCount * (settings.customEventPoints || 0);
@@ -158,6 +172,7 @@ export function calculateStudentScore(
     summerClubPoints +
     summerClubActivityPoints +
     eventPoints +
+    confessionPoints +
     customPointsTotal;
 
   return {
@@ -178,6 +193,9 @@ export function calculateStudentScore(
     summerClubAttendedCount,
     summerClubActivityPoints,
     summerClubActivityCount,
+    confessionPoints,
+    confessionCount,
+    confessionRecords: studentConfessions,
     eventPoints,
     eventCount,
     customPointsTotal,
@@ -461,4 +479,47 @@ export function formatFriendlyDate(dateStr: string): string {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+// --- Month & Confession Helper Utilities ---
+
+export function getCurrentMonthString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+export function formatMonthYear(monthStr: string, lang: 'en' | 'ar' = 'en'): string {
+  if (!monthStr) return '';
+  const parts = monthStr.split('-');
+  if (parts.length < 2) return monthStr;
+  const year = Number(parts[0]);
+  const monthNum = Number(parts[1]); // 1-12
+
+  const enMonths = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const arMonths = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+
+  const mName = lang === 'ar' ? arMonths[monthNum - 1] : enMonths[monthNum - 1];
+  return `${mName} ${year}`;
+}
+
+export function getRecentMonthsList(countPast = 5, countFuture = 1): string[] {
+  const list: string[] = [];
+  const now = new Date();
+
+  for (let i = -countPast; i <= countFuture; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    list.push(`${year}-${month}`);
+  }
+
+  return list.reverse(); // Newest first
 }

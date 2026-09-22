@@ -20,6 +20,7 @@ import type {
   Mal3abRecord,
   SummerClubRecord,
   SummerClubSettings,
+  ConfessionRecord,
   CustomEvent,
   CustomPointEntry,
   PointSettings,
@@ -89,7 +90,9 @@ export const App: React.FC = () => {
     mal3abMatchPoints: 5,
     summerClubPoints: 10,
     summerClubActivityPoints: 5,
+    confessionPoints: 20,
   });
+  const [confessions, setConfessions] = useState<ConfessionRecord[]>([]);
   const [customPoints, setCustomPoints] = useState<CustomPointEntry[]>([]);
   const [classHeroes, setClassHeroes] = useState<ClassHero[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
@@ -158,7 +161,7 @@ export const App: React.FC = () => {
   // Load initial data
   const loadAllData = async () => {
     try {
-      const [stu, att, dk, ml3, sc, scCfg, evts, vis, ptsCfg, pts, heroes, logs] = await Promise.all([
+      const [stu, att, dk, ml3, sc, scCfg, evts, vis, ptsCfg, pts, heroes, logs, confs] = await Promise.all([
         db.getStudents(),
         db.getAttendance(),
         db.getDarsKtabAttendance(),
@@ -171,6 +174,7 @@ export const App: React.FC = () => {
         db.getCustomPoints(),
         db.getClassHeroes(),
         db.getAuditLogs(),
+        db.getConfessionRecords(),
       ]);
       setStudents(stu);
       setAttendance(att);
@@ -189,6 +193,7 @@ export const App: React.FC = () => {
       setCustomPoints(pts);
       setClassHeroes(heroes);
       setAuditLogs(logs);
+      setConfessions(confs);
 
       // Trigger 3-day advance notification if permission is already granted
       const urgent = getUrgentBirthdayAlerts(stu);
@@ -555,6 +560,46 @@ export const App: React.FC = () => {
     setAuditLogs(updatedLogs);
   };
 
+  // Confession Handlers (متابعة سر الاعتراف الشهري)
+  const handleToggleConfession = async (
+    studentId: string,
+    month: string,
+    attended: boolean,
+    scheduledDay?: number,
+    confessionDate?: string,
+    confessionFather?: string,
+    notes?: string
+  ) => {
+    const student = students.find((s) => s.id === studentId);
+    await db.recordConfession(
+      studentId,
+      month,
+      attended,
+      scheduledDay,
+      confessionDate,
+      confessionFather || student?.confessionFather,
+      notes
+    );
+    const updated = await db.getConfessionRecords();
+    setConfessions(updated);
+
+    await db.addLogEntry({
+      username: currentUser?.username || '@servant',
+      servantName: currentUser?.name || currentServantName,
+      action: attended ? 'CONFESSION_LOGGED' : 'CONFESSION_UNCHECKED',
+      details: `${attended ? 'Recorded monthly confession' : 'Unchecked monthly confession'} for ${student?.name || studentId} for month ${month} (+${pointSettings.confessionPoints ?? 20} pts)`,
+      category: 'scoring',
+    });
+    const updatedLogs = await db.getAuditLogs();
+    setAuditLogs(updatedLogs);
+  };
+
+  const handleUpdateStudentConfessionSchedule = async (studentId: string, day: number, confessionFather?: string) => {
+    await db.updateStudentConfessionSchedule(studentId, day, confessionFather);
+    const updatedStudents = await db.getStudents();
+    setStudents(updatedStudents);
+  };
+
   // 5. Student CRUD
   const handleSaveStudent = async (student: Student) => {
     await db.saveStudent(student);
@@ -872,6 +917,9 @@ export const App: React.FC = () => {
             customEvents={customEvents}
             pointSettings={pointSettings}
             customPoints={customPoints}
+            mal3ab={mal3ab}
+            summerClub={summerClub}
+            confessions={confessions}
             classHeroes={classHeroes}
             onOpenManageHeroes={() => setIsManageHeroesOpen(true)}
             onOpenStudentDetail={(student) => setSelectedStudentForDetail(student)}
@@ -973,12 +1021,17 @@ export const App: React.FC = () => {
             students={students}
             attendance={attendance}
             darsKtab={darsKtab}
+            mal3ab={mal3ab}
+            summerClub={summerClub}
+            confessions={confessions}
             customEvents={customEvents}
             customPoints={customPoints}
             pointSettings={pointSettings}
             onSavePointSettings={handleSavePointSettings}
             onAddCustomPoints={handleAddCustomPoints}
             onDeleteCustomPoint={handleDeleteCustomPoint}
+            onToggleConfession={handleToggleConfession}
+            onUpdateStudentConfessionDay={handleUpdateStudentConfessionSchedule}
             onSelectStudent={(student) => setSelectedStudentForDetail(student)}
             currentServantName={currentServantName}
           />
@@ -1005,6 +1058,9 @@ export const App: React.FC = () => {
             students={students}
             attendance={attendance}
             darsKtab={darsKtab}
+            mal3ab={mal3ab}
+            summerClub={summerClub}
+            confessions={confessions}
             customEvents={customEvents}
             customPoints={customPoints}
             pointSettings={pointSettings}
@@ -1165,6 +1221,7 @@ export const App: React.FC = () => {
           darsKtab={darsKtab}
           mal3ab={mal3ab}
           summerClub={summerClub}
+          confessions={confessions}
           customEvents={customEvents}
           customPoints={customPoints}
           pointSettings={pointSettings}

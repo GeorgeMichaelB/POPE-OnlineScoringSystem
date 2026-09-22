@@ -13,7 +13,8 @@ import {
   Sparkles,
   KeyRound,
   Flame,
-  Sun
+  Sun,
+  Church
 } from 'lucide-react';
 import type { AuditLogEntry, LogCategory } from '../types';
 
@@ -50,6 +51,12 @@ const CATEGORY_CONFIG: Record<
     color: '#ea580c',
     bg: 'rgba(234, 88, 12, 0.12)',
     icon: <Sun size={15} color="#ea580c" />,
+  },
+  confession: {
+    label: 'Confession (سر الاعتراف)',
+    color: '#86198f',
+    bg: 'rgba(192, 38, 211, 0.12)',
+    icon: <Church size={15} color="#86198f" />,
   },
   scoring: {
     label: 'Scoring & Points (نقاط وتشجيع)',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Calendar, MapPin, School, Phone, Heart, ShieldAlert, Sparkles, FileText, Camera } from 'lucide-react';
+import { X, Save, User, Calendar, MapPin, School, Phone, Heart, ShieldAlert, Sparkles, FileText, Camera, Church } from 'lucide-react';
 import type { Student, LoveLanguage } from '../types';
 import { calculateAge, getTodayDateString } from '../utils/helpers';
 
@@ -41,6 +41,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     weakPoints: '',
     hobbies: '',
     notes: '',
+    confessionFather: '',
+    confessionMonthlyDay: 15,
     photoUrl: '',
     createdAt: new Date().toISOString(),
   });
@@ -63,13 +65,15 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         weakPoints: '',
         hobbies: '',
         notes: '',
+        confessionFather: '',
+        confessionMonthlyDay: 15,
         photoUrl: '',
         createdAt: new Date().toISOString(),
       });
     }
   }, [existingStudent, initialQrCode, isOpen]);
 
-  const handleChange = (field: keyof Student, value: string) => {
+  const handleChange = <K extends keyof Student>(field: K, value: Student[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -283,6 +287,55 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                   onChange={(e) => handleChange('momPhone', e.target.value)}
                   className="form-input"
                 />
+              </div>
+            </div>
+
+            {/* Spiritual Care: Confession Father & Monthly Confession Day */}
+            <div className="form-grid-2" style={{ background: '#fdf4ff', padding: '0.85rem', borderRadius: 'var(--radius-sm)', border: '1px solid #f0abfc', marginBottom: '1rem' }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#86198f', fontWeight: 700 }}>
+                  <Church size={14} color="#a21caf" /> أب الاعتراف (Father of Confession)
+                </label>
+                <input
+                  type="text"
+                  list="priests-list"
+                  placeholder="e.g. أبونا بولا / أبونا تادرس"
+                  value={formData.confessionFather || ''}
+                  onChange={(e) => handleChange('confessionFather', e.target.value)}
+                  className="form-input"
+                  style={{ background: 'white' }}
+                />
+                <datalist id="priests-list">
+                  <option value="أبونا بولا" />
+                  <option value="أبونا تادرس" />
+                  <option value="أبونا لوقا" />
+                  <option value="أبونا يوحنا" />
+                  <option value="أبونا مينا" />
+                </datalist>
+                <span style={{ fontSize: '0.72rem', color: '#a21caf', marginTop: '2px', display: 'block' }}>
+                  كاهن الاعتراف الخاص بالولد للمتابعة الروحية
+                </span>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#86198f', fontWeight: 700 }}>
+                  <Calendar size={14} color="#a21caf" /> يوم الاعتراف الشهري (Monthly Day)
+                </label>
+                <select
+                  value={formData.confessionMonthlyDay || 15}
+                  onChange={(e) => handleChange('confessionMonthlyDay', Number(e.target.value))}
+                  className="form-select"
+                  style={{ background: 'white' }}
+                >
+                  {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                    <option key={day} value={day}>
+                      يوم {day} من كل شهر (Day {day} of month)
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.72rem', color: '#a21caf', marginTop: '2px', display: 'block' }}>
+                  اليوم المحدد شهرياً للاعتراف واحتساب النقاط
+                </span>
               </div>
             </div>
 

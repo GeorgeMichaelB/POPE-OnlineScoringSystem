@@ -20,6 +20,8 @@ export interface Student {
   weakPoints: string; // Areas needing spiritual & behavioral pastoral care
   hobbies: string; // Interests, talents, sports ("hoppies")
   notes: string; // General servant notes
+  confessionFather?: string; // اب الاعتراف - Confession Father / Priest
+  confessionMonthlyDay?: number; // Chosen monthly confession day of month (1-31)
   photoUrl?: string; // Profile picture (base64 or URL)
   createdAt: string;
 }
@@ -82,6 +84,19 @@ export interface CustomEvent {
   createdAt: string;
 }
 
+// Monthly Confession Record (سر ومتابعة الاعتراف الشهري)
+export interface ConfessionRecord {
+  id: string; // `${studentId}_${month}` e.g. "PASSPORT-101_2026-09"
+  studentId: string;
+  month: string; // YYYY-MM (e.g. "2026-09")
+  attended: boolean; // Attended confession this month (حضر / راح الاعتراف)
+  scheduledDay?: number; // Chosen day of the month (1-31)
+  confessionDate?: string; // Exact date attended (YYYY-MM-DD)
+  confessionFather?: string; // Priest name (أب الاعتراف)
+  notes?: string; // General notes
+  timestamp: string;
+}
+
 // Scoring System Rules (Points automatically awarded for attendance activities)
 export interface PointSettings {
   fridayClassPoints: number; // e.g. 10 pts
@@ -93,6 +108,7 @@ export interface PointSettings {
   mal3abMatchPoints?: number; // e.g. 5 pts
   summerClubPoints?: number; // e.g. 10 pts
   summerClubActivityPoints?: number; // e.g. 5 pts
+  confessionPoints?: number; // e.g. 20 pts (حضور سر الاعتراف الشهري)
 }
 
 // Manual or Custom Point Additions/Deductions entered by the servant
@@ -150,7 +166,7 @@ export interface UserAccount {
 }
 
 // Activity Audit Log
-export type LogCategory = 'auth' | 'attendance' | 'scoring' | 'heroes' | 'events' | 'visits' | 'students' | 'mal3ab' | 'summer_club';
+export type LogCategory = 'auth' | 'attendance' | 'scoring' | 'heroes' | 'events' | 'visits' | 'students' | 'mal3ab' | 'summer_club' | 'confession';
 
 export interface AuditLogEntry {
   id: string;

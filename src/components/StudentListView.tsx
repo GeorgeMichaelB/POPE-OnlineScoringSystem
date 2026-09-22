@@ -9,12 +9,18 @@ import {
   AlertTriangle,
   QrCode,
   FileText,
-  Trophy
+  Trophy,
+  Church,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import type {
   Student,
   AttendanceRecord,
   DarsKtabRecord,
+  Mal3abRecord,
+  SummerClubRecord,
+  ConfessionRecord,
   CustomEvent,
   CustomPointEntry,
   PointSettings,
@@ -24,13 +30,17 @@ import {
   calculateAge,
   calculateAttendanceStats,
   calculateStudentScore,
-  getStudentVisits
+  getStudentVisits,
+  getCurrentMonthString
 } from '../utils/helpers';
 
 interface StudentListViewProps {
   students: Student[];
   attendance: AttendanceRecord[];
   darsKtab?: DarsKtabRecord[];
+  mal3ab?: Mal3abRecord[];
+  summerClub?: SummerClubRecord[];
+  confessions?: ConfessionRecord[];
   customEvents?: CustomEvent[];
   customPoints?: CustomPointEntry[];
   pointSettings?: PointSettings;
@@ -45,6 +55,9 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
   students,
   attendance,
   darsKtab = [],
+  mal3ab = [],
+  summerClub = [],
+  confessions = [],
   customEvents = [],
   customPoints = [],
   pointSettings = {
@@ -61,14 +74,25 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
   onStartVisit,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPriestFilter, setSelectedPriestFilter] = useState('ALL');
+
+  const currentMonth = getCurrentMonthString();
+  const uniquePriests = Array.from(
+    new Set(students.map((s) => s.confessionFather).filter(Boolean) as string[])
+  );
 
   const filteredStudents = students.filter((s) => {
     const matchesQuery =
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.school.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.address.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesQuery;
+      s.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      Boolean(s.confessionFather && s.confessionFather.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    const matchesPriest =
+      selectedPriestFilter === 'ALL' || s.confessionFather === selectedPriestFilter;
+
+    return matchesQuery && matchesPriest;
   });
 
   const getWhatsAppLink = (phone: string) => {
@@ -117,21 +141,39 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div style={{ position: 'relative', maxWidth: 360 }}>
-        <Search
-          size={16}
-          color="var(--text-muted)"
-          style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}
-        />
-        <input
-          type="text"
-          placeholder="Search boys by name, passport, school, address..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="form-input"
-          style={{ paddingLeft: '2.2rem' }}
-        />
+      {/* Search & Priest Filter Bar */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: 360, minWidth: 220 }}>
+          <Search
+            size={16}
+            color="var(--text-muted)"
+            style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)' }}
+          />
+          <input
+            type="text"
+            placeholder="Search boys by name, passport, confession father..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="form-input"
+            style={{ paddingLeft: '2.2rem' }}
+          />
+        </div>
+
+        {uniquePriests.length > 0 && (
+          <select
+            value={selectedPriestFilter}
+            onChange={(e) => setSelectedPriestFilter(e.target.value)}
+            className="form-select"
+            style={{ width: 'auto', minWidth: 170, fontSize: '0.85rem' }}
+          >
+            <option value="ALL">كل آباء الاعتراف (All Priests)</option>
+            {uniquePriests.map((priest) => (
+              <option key={priest} value={priest}>
+                {priest}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Grid of Student Cards */}
@@ -149,15 +191,19 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
         >
           {filteredStudents.map((student) => {
             const age = calculateAge(student.dob);
-            const stats = calculateAttendanceStats(student.id, attendance, darsKtab, customEvents);
+            const stats = calculateAttendanceStats(student.id, attendance, darsKtab, customEvents, mal3ab, summerClub, confessions);
             const scoreData = calculateStudentScore(
               student.id,
               attendance,
               darsKtab,
               customEvents,
               customPoints,
-              pointSettings
+              pointSettings,
+              mal3ab,
+              summerClub,
+              confessions
             );
+            const thisMonthConfession = confessions.find((c) => c.studentId === student.id && c.month === currentMonth);
             const visitsInfo = getStudentVisits(student.id, visits);
 
             return (
@@ -281,6 +327,52 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
                   {visitsInfo.needsEftekad && (
                     <span className="badge badge-danger" style={{ fontSize: '0.7rem' }}>
                       <AlertTriangle size={11} /> Needs Visit
+                    </span>
+                  )}
+                </div>
+
+                {/* Confession Father & Monthly Schedule Badge */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.45rem 0.65rem',
+                    background: '#fdf4ff',
+                    border: '1px solid #f0abfc',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#86198f', fontWeight: 700 }}>
+                    <Church size={13} color="#a21caf" />
+                    <span>أب الاعتراف: {student.confessionFather || 'لم يحدد'}</span>
+                  </div>
+
+                  {thisMonthConfession?.attended ? (
+                    <span
+                      style={{
+                        color: '#059669',
+                        fontWeight: 700,
+                        fontSize: '0.72rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                      }}
+                    >
+                      <CheckCircle2 size={12} /> تم الاعتراف (+{pointSettings.confessionPoints ?? 20}p)
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        color: '#a21caf',
+                        fontSize: '0.72rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.2rem',
+                      }}
+                    >
+                      <Clock size={12} /> ميعاده: {student.confessionMonthlyDay ? `يوم ${student.confessionMonthlyDay}` : 'يوم 15'}
                     </span>
                   )}
                 </div>

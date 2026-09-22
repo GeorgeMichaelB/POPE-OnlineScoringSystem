@@ -6,6 +6,7 @@ import type {
   Mal3abRecord,
   SummerClubRecord,
   SummerClubSettings,
+  ConfessionRecord,
   CustomEvent,
   VisitRecord,
   PointSettings,
@@ -22,6 +23,7 @@ const STORAGE_KEYS = {
   MAL3AB: 'pss_mal3ab_v1',
   SUMMER_CLUB: 'pss_summer_club_v1',
   SUMMER_CLUB_SETTINGS: 'pss_summer_club_settings_v1',
+  CONFESSIONS: 'pss_confessions_v1',
   CUSTOM_EVENTS: 'pss_custom_events_v1',
   VISITS: 'pss_visits_v1',
   POINT_SETTINGS: 'pss_point_settings_v1',
@@ -48,6 +50,7 @@ const DEFAULT_POINT_SETTINGS: PointSettings = {
   mal3abMatchPoints: 5,
   summerClubPoints: 10,
   summerClubActivityPoints: 5,
+  confessionPoints: 20,
 };
 
 const INITIAL_CUSTOM_POINTS: CustomPointEntry[] = [
@@ -176,6 +179,8 @@ const INITIAL_STUDENTS: Student[] = [
     weakPoints: 'Shy in class discussions, gets distracted easily during hymns, needs encouragement to read Bible daily.',
     hobbies: 'Plays football (striker), loves sketching church icons, learning Coptic Alhan.',
     notes: 'Very kind boy. Responds wonderfully to praise. Father travels frequently for work; David appreciates spiritual follow-up.',
+    confessionFather: 'أبونا بولا',
+    confessionMonthlyDay: 12,
     photoUrl: '/avatars/david.jpg',
     createdAt: '2026-01-10T10:00:00Z',
   },
@@ -192,6 +197,8 @@ const INITIAL_STUDENTS: Student[] = [
     weakPoints: 'Quick tempered when playing games with peers, tends to arrive late to Sunday school.',
     hobbies: 'Loves robotics, chess, reading history and lives of martyrs.',
     notes: 'Active and enthusiastic. Great deacon potential. Needs calm one-on-one time to open up about school pressure.',
+    confessionFather: 'أبونا تادرس',
+    confessionMonthlyDay: 18,
     photoUrl: '/avatars/mark.jpg',
     createdAt: '2026-01-12T11:00:00Z',
   },
@@ -208,6 +215,8 @@ const INITIAL_STUDENTS: Student[] = [
     weakPoints: 'Struggles with regular fasting on Wednesdays and Fridays, needs encouragement in personal prayer.',
     hobbies: 'Plays piano, swimming, collects saint holy cards.',
     notes: 'Always helpful setting up the classroom. Very attached to his grandmother who is currently recovering from surgery.',
+    confessionFather: 'أبونا لوقا',
+    confessionMonthlyDay: 5,
     photoUrl: '/avatars/youssef.jpg',
     createdAt: '2026-01-15T09:30:00Z',
   },
@@ -224,6 +233,8 @@ const INITIAL_STUDENTS: Student[] = [
     weakPoints: 'Sometimes feels overlooked when quieter, anxious about upcoming math exams.',
     hobbies: 'Karate green belt, church choir member, drawing comic books.',
     notes: 'Has a warm heart and loves serving others. Remind him to bring his Agpeya to class.',
+    confessionFather: 'أبونا بولا',
+    confessionMonthlyDay: 22,
     photoUrl: '/avatars/kyrollos.jpg',
     createdAt: '2026-01-20T10:15:00Z',
   },
@@ -273,6 +284,51 @@ const INITIAL_SUMMER_CLUB: SummerClubRecord[] = [
   { id: 'PASSPORT-103_day1_2026-09-15', studentId: 'PASSPORT-103', subpage: 'day1', date: '2026-09-15', attended: true, activity: true, timestamp: '2026-09-15T10:00:00Z' },
   { id: 'PASSPORT-101_day2_2026-09-17', studentId: 'PASSPORT-101', subpage: 'day2', date: '2026-09-17', attended: true, activity: true, timestamp: '2026-09-17T10:00:00Z' },
   { id: 'PASSPORT-103_day2_2026-09-17', studentId: 'PASSPORT-103', subpage: 'day2', date: '2026-09-17', attended: true, activity: true, timestamp: '2026-09-17T10:00:00Z' },
+];
+
+const INITIAL_CONFESSIONS: ConfessionRecord[] = [
+  {
+    id: 'PASSPORT-101_2026-09',
+    studentId: 'PASSPORT-101',
+    month: '2026-09',
+    attended: true,
+    scheduledDay: 12,
+    confessionDate: '2026-09-12',
+    confessionFather: 'أبونا بولا',
+    notes: 'اعترف وتناول في كنيسة العذراء مريم',
+    timestamp: '2026-09-12T19:00:00Z',
+  },
+  {
+    id: 'PASSPORT-102_2026-09',
+    studentId: 'PASSPORT-102',
+    month: '2026-09',
+    attended: false,
+    scheduledDay: 18,
+    confessionFather: 'أبونا تادرس',
+    notes: 'محدد يوم 18 من كل شهر',
+    timestamp: '2026-09-01T10:00:00Z',
+  },
+  {
+    id: 'PASSPORT-103_2026-09',
+    studentId: 'PASSPORT-103',
+    month: '2026-09',
+    attended: true,
+    scheduledDay: 5,
+    confessionDate: '2026-09-05',
+    confessionFather: 'أبونا لوقا',
+    notes: 'جلسة اعتراف ممتازة وتشجيع على صلاة الأجبية',
+    timestamp: '2026-09-05T18:30:00Z',
+  },
+  {
+    id: 'PASSPORT-104_2026-09',
+    studentId: 'PASSPORT-104',
+    month: '2026-09',
+    attended: false,
+    scheduledDay: 22,
+    confessionFather: 'أبونا بولا',
+    notes: 'ميعاده الشهري يوم 22',
+    timestamp: '2026-09-01T10:00:00Z',
+  },
 ];
 
 const INITIAL_CUSTOM_EVENTS: CustomEvent[] = [
@@ -637,6 +693,7 @@ class DatabaseService {
         }
       }
       await this.saveSummerClubSettings(DEFAULT_SUMMER_CLUB_SETTINGS);
+    await this.saveAllConfessionRecords(INITIAL_CONFESSIONS);
       return DEFAULT_SUMMER_CLUB_SETTINGS;
     } catch (e) {
       console.warn('Error fetching Summer Club settings:', e);
@@ -651,6 +708,90 @@ class DatabaseService {
       localStorage.setItem(STORAGE_KEYS.SUMMER_CLUB_SETTINGS, JSON.stringify(settings));
     } catch (e) {
       console.error('Error saving Summer Club settings:', e);
+    }
+  }
+
+  // --- Monthly Confession Attendance (سر ومتابعة الاعتراف الشهري) ---
+  async getConfessionRecords(): Promise<ConfessionRecord[]> {
+    if (!this.isBrowser()) return INITIAL_CONFESSIONS;
+    try {
+      const stored = await get<ConfessionRecord[]>(STORAGE_KEYS.CONFESSIONS);
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        return stored;
+      }
+      const local = localStorage.getItem(STORAGE_KEYS.CONFESSIONS);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      await this.saveAllConfessionRecords(INITIAL_CONFESSIONS);
+      return INITIAL_CONFESSIONS;
+    } catch (e) {
+      console.warn('Error fetching Confession records:', e);
+      return INITIAL_CONFESSIONS;
+    }
+  }
+
+  async saveAllConfessionRecords(records: ConfessionRecord[]): Promise<void> {
+    if (!this.isBrowser()) return;
+    try {
+      await set(STORAGE_KEYS.CONFESSIONS, records);
+      localStorage.setItem(STORAGE_KEYS.CONFESSIONS, JSON.stringify(records));
+    } catch (e) {
+      console.error('Error saving Confession records:', e);
+    }
+  }
+
+  async recordConfession(
+    studentId: string,
+    month: string,
+    attended: boolean,
+    scheduledDay?: number,
+    confessionDate?: string,
+    confessionFather?: string,
+    notes?: string
+  ): Promise<ConfessionRecord> {
+    const records = await this.getConfessionRecords();
+    const recordId = `${studentId}_${month}`;
+    const existingIndex = records.findIndex(
+      (r) => r.id === recordId || (r.studentId === studentId && r.month === month)
+    );
+
+    const newRecord: ConfessionRecord = {
+      id: recordId,
+      studentId,
+      month,
+      attended,
+      scheduledDay: scheduledDay ?? records[existingIndex]?.scheduledDay,
+      confessionDate: attended ? (confessionDate || `${month}-${String(scheduledDay || new Date().getDate()).padStart(2, '0')}`) : undefined,
+      confessionFather: confessionFather ?? records[existingIndex]?.confessionFather,
+      notes: notes !== undefined ? notes : records[existingIndex]?.notes,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      records[existingIndex] = newRecord;
+    } else {
+      records.push(newRecord);
+    }
+
+    await this.saveAllConfessionRecords(records);
+    return newRecord;
+  }
+
+  async updateStudentConfessionSchedule(
+    studentId: string,
+    scheduledDay: number,
+    confessionFather?: string
+  ): Promise<void> {
+    const students = await this.getStudents();
+    const student = students.find((s) => s.id === studentId);
+    if (student) {
+      student.confessionMonthlyDay = scheduledDay;
+      if (confessionFather !== undefined) {
+        student.confessionFather = confessionFather;
+      }
+      await this.saveStudents(students);
     }
   }
 
@@ -1024,6 +1165,7 @@ class DatabaseService {
     const darsKtab = await this.getDarsKtabAttendance();
     const mal3ab = await this.getMal3abAttendance();
     const summerClub = await this.getSummerClubAttendance();
+    const confessions = await this.getConfessionRecords();
     const summerClubSettings = await this.getSummerClubSettings();
     const customEvents = await this.getCustomEvents();
     const visits = await this.getVisits();
@@ -1043,6 +1185,7 @@ class DatabaseService {
       mal3ab,
       summerClub,
       summerClubSettings,
+      confessions,
       customEvents,
       visits,
       pointSettings,
@@ -1065,6 +1208,7 @@ class DatabaseService {
       if (Array.isArray(data.darsKtab)) await this.saveAllDarsKtab(data.darsKtab);
       if (Array.isArray(data.mal3ab)) await this.saveAllMal3ab(data.mal3ab);
       if (Array.isArray(data.summerClub)) await this.saveAllSummerClub(data.summerClub);
+      if (Array.isArray(data.confessions)) await this.saveAllConfessionRecords(data.confessions);
       if (data.summerClubSettings) await this.saveSummerClubSettings(data.summerClubSettings);
       if (Array.isArray(data.customEvents)) await this.saveAllCustomEvents(data.customEvents);
       if (Array.isArray(data.visits)) await this.saveAllVisits(data.visits);

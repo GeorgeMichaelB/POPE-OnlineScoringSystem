@@ -28,6 +28,7 @@ import type {
   DarsKtabRecord,
   Mal3abRecord,
   SummerClubRecord,
+  ConfessionRecord,
   CustomEvent,
   CustomPointEntry,
   PointSettings,
@@ -47,6 +48,7 @@ interface StudentDetailModalProps {
   darsKtab?: DarsKtabRecord[];
   mal3ab?: Mal3abRecord[];
   summerClub?: SummerClubRecord[];
+  confessions?: ConfessionRecord[];
   customEvents?: CustomEvent[];
   customPoints?: CustomPointEntry[];
   pointSettings?: PointSettings;
@@ -64,6 +66,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   darsKtab = [],
   mal3ab = [],
   summerClub = [],
+  confessions = [],
   customEvents = [],
   customPoints = [],
   pointSettings = {
@@ -90,7 +93,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   if (!isOpen) return null;
 
   const age = calculateAge(student.dob);
-  const attendanceStats = calculateAttendanceStats(student.id, attendance, darsKtab, customEvents, mal3ab, summerClub);
+  const attendanceStats = calculateAttendanceStats(student.id, attendance, darsKtab, customEvents, mal3ab, summerClub, confessions);
   const scoreData = calculateStudentScore(
     student.id,
     attendance,
@@ -99,7 +102,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     customPoints,
     pointSettings,
     mal3ab,
-    summerClub
+    summerClub,
+    confessions
   );
   const visitStats = getStudentVisits(student.id, visits);
 
@@ -383,6 +387,19 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   </div>
                 </div>
               </div>
+
+                              {/* Father of Confession & Monthly Day */}
+                <div style={{ padding: '0.75rem', background: '#fdf4ff', borderRadius: 'var(--radius-sm)', border: '1px solid #f0abfc' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#a21caf', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}>
+                    <Church size={13} color="#a21caf" /> أب الاعتراف (CONFESSION FATHER)
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#86198f', marginTop: '2px' }}>
+                    {student.confessionFather || 'غير مسجل'}
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#a21caf', marginTop: '2px' }}>
+                    {student.confessionMonthlyDay ? `يوم ${student.confessionMonthlyDay} من كل شهر` : 'اليوم 15 من كل شهر'}
+                  </div>
+                </div>
 
               {/* Pastoral Insights: Weak Points, Hobbies, Notes */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
@@ -866,6 +883,12 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   <div>
                     <strong>Servant Notes:</strong> {student.notes || 'None recorded'}
                   </div>
+                  <div>
+                    <strong>Father of Confession (أب الاعتراف):</strong> {student.confessionFather || 'None recorded'} (Monthly Day: {student.confessionMonthlyDay ? `Day ${student.confessionMonthlyDay}` : 'Day 15'})
+                  </div>
+                  <div>
+                    <strong>Confession Attendance:</strong> {scoreData.confessionCount} sessions (+{scoreData.confessionPoints} points)
+                  </div>
                 </div>
               </div>
 
@@ -955,6 +978,26 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   </div>
                   <div style={{ fontSize: '0.7rem', color: '#b45309' }}>
                     {attendanceStats.ashyaPresent}/{attendanceStats.totalSaturdaySessions}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    border: '1px solid #d946ef',
+                    background: '#fdf4ff',
+                    padding: '0.65rem',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                  }}
+                >
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#a21caf' }}>
+                    CONFESSION (الاعتراف)
+                  </div>
+                  <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#86198f' }}>
+                    {scoreData.confessionCount}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: '#a21caf' }}>
+                    +{scoreData.confessionPoints} pts ({scoreData.confessionCount} attended)
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import {
   Star,
   Cross,
   Shield,
+  Church,
   Sparkles,
   Search,
   Maximize2,
@@ -20,6 +21,9 @@ import type {
   DarsKtabRecord,
   CustomEvent,
   PointSettings,
+  Mal3abRecord,
+  SummerClubRecord,
+  ConfessionRecord,
   CustomPointEntry,
   ClassHero,
   HeroBadgeIcon
@@ -31,6 +35,9 @@ interface ClassHeroesLeaderboardViewProps {
   students: Student[];
   fridayAttendance: AttendanceRecord[];
   darsKtabAttendance: DarsKtabRecord[];
+  mal3ab?: Mal3abRecord[];
+  summerClub?: SummerClubRecord[];
+  confessions?: ConfessionRecord[];
   customEvents: CustomEvent[];
   pointSettings: PointSettings;
   customPoints: CustomPointEntry[];
@@ -57,6 +64,9 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
   students,
   fridayAttendance,
   darsKtabAttendance,
+  mal3ab = [],
+  summerClub = [],
+  confessions = [],
   customEvents,
   pointSettings,
   customPoints,
@@ -79,7 +89,10 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
           darsKtabAttendance,
           customEvents,
           customPoints,
-          pointSettings
+          pointSettings,
+          mal3ab,
+          summerClub,
+          confessions
         );
         return {
           student,
@@ -87,7 +100,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
         };
       })
       .sort((a, b) => b.totalScore - a.totalScore);
-  }, [students, fridayAttendance, darsKtabAttendance, customEvents, customPoints, pointSettings]);
+  }, [students, fridayAttendance, darsKtabAttendance, customEvents, customPoints, pointSettings, mal3ab, summerClub, confessions]);
 
   // Top 3 Podium
   const top1 = rankedStudents[0] || null;
@@ -464,7 +477,10 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
                       darsKtabAttendance,
                       customEvents,
                       customPoints,
-                      pointSettings
+                      pointSettings,
+                      mal3ab,
+                      summerClub,
+                      confessions
                     )
                   : null;
 
@@ -1338,6 +1354,22 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
                         >
                           Sat: {item.darsKtabPoints + item.ashyaPoints}p
                         </span>
+                        {item.confessionPoints > 0 && (
+                          <span
+                            title="Monthly Confession Points"
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              background: 'rgba(236, 72, 153, 0.18)',
+                              color: '#f472b6',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '3px',
+                            }}
+                          >
+                            <Church size={11} /> Confession: +{item.confessionPoints}p
+                          </span>
+                        )}
                         {item.customPointsTotal !== 0 && (
                           <span
                             title="Bonus & Good Deeds Points"
