@@ -3,6 +3,9 @@ import type {
   Student,
   AttendanceRecord,
   DarsKtabRecord,
+  Mal3abRecord,
+  SummerClubRecord,
+  SummerClubSettings,
   CustomEvent,
   VisitRecord,
   PointSettings,
@@ -16,6 +19,9 @@ const STORAGE_KEYS = {
   STUDENTS: 'pss_students_v1',
   ATTENDANCE: 'pss_attendance_v1',
   DARS_KTAB: 'pss_dars_ktab_v1',
+  MAL3AB: 'pss_mal3ab_v1',
+  SUMMER_CLUB: 'pss_summer_club_v1',
+  SUMMER_CLUB_SETTINGS: 'pss_summer_club_settings_v1',
   CUSTOM_EVENTS: 'pss_custom_events_v1',
   VISITS: 'pss_visits_v1',
   POINT_SETTINGS: 'pss_point_settings_v1',
@@ -27,12 +33,21 @@ const STORAGE_KEYS = {
   SESSION: 'pss_session_v1',
 };
 
+export const DEFAULT_SUMMER_CLUB_SETTINGS: SummerClubSettings = {
+  day1Weekday: 2, // Tuesday (الثلاثاء) default
+  day2Weekday: 4, // Thursday (الخميس) default
+};
+
 const DEFAULT_POINT_SETTINGS: PointSettings = {
   fridayClassPoints: 10,
   odasPoints: 15,
   darsKtabPoints: 10,
   ashyaPoints: 5,
   customEventPoints: 20,
+  mal3abPoints: 10,
+  mal3abMatchPoints: 5,
+  summerClubPoints: 10,
+  summerClubActivityPoints: 5,
 };
 
 const INITIAL_CUSTOM_POINTS: CustomPointEntry[] = [
@@ -243,6 +258,21 @@ const INITIAL_DARS_KTAB: DarsKtabRecord[] = [
   { id: 'PASSPORT-103_2026-09-05', studentId: 'PASSPORT-103', date: '2026-09-05', ashya: true, darsKtab: true, timestamp: '2026-09-05T18:00:00Z' },
   { id: 'PASSPORT-103_2026-09-12', studentId: 'PASSPORT-103', date: '2026-09-12', ashya: true, darsKtab: true, timestamp: '2026-09-12T18:00:00Z' },
   { id: 'PASSPORT-103_2026-09-19', studentId: 'PASSPORT-103', date: '2026-09-19', ashya: true, darsKtab: true, timestamp: '2026-09-19T18:00:00Z' },
+];
+
+const INITIAL_MAL3AB: Mal3abRecord[] = [
+  { id: 'PASSPORT-101_2026-09-17', studentId: 'PASSPORT-101', date: '2026-09-17', attended: true, matchPlayed: true, timestamp: '2026-09-17T17:00:00Z' },
+  { id: 'PASSPORT-102_2026-09-17', studentId: 'PASSPORT-102', date: '2026-09-17', attended: true, matchPlayed: true, timestamp: '2026-09-17T17:05:00Z' },
+  { id: 'PASSPORT-103_2026-09-17', studentId: 'PASSPORT-103', date: '2026-09-17', attended: true, matchPlayed: false, timestamp: '2026-09-17T17:10:00Z' },
+  { id: 'PASSPORT-104_2026-09-17', studentId: 'PASSPORT-104', date: '2026-09-17', attended: false, matchPlayed: false, timestamp: '2026-09-17T17:00:00Z' },
+];
+
+const INITIAL_SUMMER_CLUB: SummerClubRecord[] = [
+  { id: 'PASSPORT-101_day1_2026-09-15', studentId: 'PASSPORT-101', subpage: 'day1', date: '2026-09-15', attended: true, activity: true, timestamp: '2026-09-15T10:00:00Z' },
+  { id: 'PASSPORT-102_day1_2026-09-15', studentId: 'PASSPORT-102', subpage: 'day1', date: '2026-09-15', attended: true, activity: false, timestamp: '2026-09-15T10:15:00Z' },
+  { id: 'PASSPORT-103_day1_2026-09-15', studentId: 'PASSPORT-103', subpage: 'day1', date: '2026-09-15', attended: true, activity: true, timestamp: '2026-09-15T10:00:00Z' },
+  { id: 'PASSPORT-101_day2_2026-09-17', studentId: 'PASSPORT-101', subpage: 'day2', date: '2026-09-17', attended: true, activity: true, timestamp: '2026-09-17T10:00:00Z' },
+  { id: 'PASSPORT-103_day2_2026-09-17', studentId: 'PASSPORT-103', subpage: 'day2', date: '2026-09-17', attended: true, activity: true, timestamp: '2026-09-17T10:00:00Z' },
 ];
 
 const INITIAL_CUSTOM_EVENTS: CustomEvent[] = [
@@ -465,6 +495,163 @@ class DatabaseService {
 
     await this.saveAllDarsKtab(records);
     return newRecord;
+  }
+
+  // --- Thursday Mal3ab Attendance (ملعب الخميس) ---
+  async getMal3abAttendance(): Promise<Mal3abRecord[]> {
+    if (!this.isBrowser()) return INITIAL_MAL3AB;
+    try {
+      const stored = await get<Mal3abRecord[]>(STORAGE_KEYS.MAL3AB);
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        return stored;
+      }
+      const local = localStorage.getItem(STORAGE_KEYS.MAL3AB);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      await this.saveAllMal3ab(INITIAL_MAL3AB);
+      return INITIAL_MAL3AB;
+    } catch (e) {
+      console.warn('Error fetching Mal3ab records:', e);
+      return INITIAL_MAL3AB;
+    }
+  }
+
+  async saveAllMal3ab(records: Mal3abRecord[]): Promise<void> {
+    if (!this.isBrowser()) return;
+    try {
+      await set(STORAGE_KEYS.MAL3AB, records);
+      localStorage.setItem(STORAGE_KEYS.MAL3AB, JSON.stringify(records));
+    } catch (e) {
+      console.error('Error saving Mal3ab records:', e);
+    }
+  }
+
+  async recordMal3abAttendance(
+    studentId: string,
+    date: string,
+    attended: boolean,
+    matchPlayed: boolean
+  ): Promise<Mal3abRecord> {
+    const records = await this.getMal3abAttendance();
+    const recordId = `${studentId}_${date}`;
+    const existingIndex = records.findIndex((r) => r.id === recordId || (r.studentId === studentId && r.date === date));
+
+    const newRecord: Mal3abRecord = {
+      id: recordId,
+      studentId,
+      date,
+      attended,
+      matchPlayed,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      records[existingIndex] = newRecord;
+    } else {
+      records.push(newRecord);
+    }
+
+    await this.saveAllMal3ab(records);
+    return newRecord;
+  }
+
+  // --- Summer Club Attendance (النادي الصيفي - يومين) ---
+  async getSummerClubAttendance(): Promise<SummerClubRecord[]> {
+    if (!this.isBrowser()) return INITIAL_SUMMER_CLUB;
+    try {
+      const stored = await get<SummerClubRecord[]>(STORAGE_KEYS.SUMMER_CLUB);
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        return stored;
+      }
+      const local = localStorage.getItem(STORAGE_KEYS.SUMMER_CLUB);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      await this.saveAllSummerClub(INITIAL_SUMMER_CLUB);
+      return INITIAL_SUMMER_CLUB;
+    } catch (e) {
+      console.warn('Error fetching Summer Club records:', e);
+      return INITIAL_SUMMER_CLUB;
+    }
+  }
+
+  async saveAllSummerClub(records: SummerClubRecord[]): Promise<void> {
+    if (!this.isBrowser()) return;
+    try {
+      await set(STORAGE_KEYS.SUMMER_CLUB, records);
+      localStorage.setItem(STORAGE_KEYS.SUMMER_CLUB, JSON.stringify(records));
+    } catch (e) {
+      console.error('Error saving Summer Club records:', e);
+    }
+  }
+
+  async recordSummerClubAttendance(
+    studentId: string,
+    subpage: 'day1' | 'day2',
+    date: string,
+    attended: boolean,
+    activity: boolean
+  ): Promise<SummerClubRecord> {
+    const records = await this.getSummerClubAttendance();
+    const recordId = `${studentId}_${subpage}_${date}`;
+    const existingIndex = records.findIndex(
+      (r) => r.id === recordId || (r.studentId === studentId && r.subpage === subpage && r.date === date)
+    );
+
+    const newRecord: SummerClubRecord = {
+      id: recordId,
+      studentId,
+      subpage,
+      date,
+      attended,
+      activity,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (existingIndex >= 0) {
+      records[existingIndex] = newRecord;
+    } else {
+      records.push(newRecord);
+    }
+
+    await this.saveAllSummerClub(records);
+    return newRecord;
+  }
+
+  // --- Summer Club Configurable Weekdays Settings ---
+  async getSummerClubSettings(): Promise<SummerClubSettings> {
+    if (!this.isBrowser()) return DEFAULT_SUMMER_CLUB_SETTINGS;
+    try {
+      const stored = await get<SummerClubSettings>(STORAGE_KEYS.SUMMER_CLUB_SETTINGS);
+      if (stored && typeof stored.day1Weekday === 'number' && typeof stored.day2Weekday === 'number') {
+        return stored;
+      }
+      const local = localStorage.getItem(STORAGE_KEYS.SUMMER_CLUB_SETTINGS);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (typeof parsed.day1Weekday === 'number' && typeof parsed.day2Weekday === 'number') {
+          return parsed;
+        }
+      }
+      await this.saveSummerClubSettings(DEFAULT_SUMMER_CLUB_SETTINGS);
+      return DEFAULT_SUMMER_CLUB_SETTINGS;
+    } catch (e) {
+      console.warn('Error fetching Summer Club settings:', e);
+      return DEFAULT_SUMMER_CLUB_SETTINGS;
+    }
+  }
+
+  async saveSummerClubSettings(settings: SummerClubSettings): Promise<void> {
+    if (!this.isBrowser()) return;
+    try {
+      await set(STORAGE_KEYS.SUMMER_CLUB_SETTINGS, settings);
+      localStorage.setItem(STORAGE_KEYS.SUMMER_CLUB_SETTINGS, JSON.stringify(settings));
+    } catch (e) {
+      console.error('Error saving Summer Club settings:', e);
+    }
   }
 
   // --- Customized Events ---
@@ -835,6 +1022,9 @@ class DatabaseService {
     const students = await this.getStudents();
     const attendance = await this.getAttendance();
     const darsKtab = await this.getDarsKtabAttendance();
+    const mal3ab = await this.getMal3abAttendance();
+    const summerClub = await this.getSummerClubAttendance();
+    const summerClubSettings = await this.getSummerClubSettings();
     const customEvents = await this.getCustomEvents();
     const visits = await this.getVisits();
     const pointSettings = await this.getPointSettings();
@@ -844,12 +1034,15 @@ class DatabaseService {
     const auditLogs = await this.getAuditLogs();
 
     const backup = {
-      version: 5,
+      version: 6,
       appName: 'Pope Saweros Sunday School Online Scoring & Attendance System',
       exportDate: new Date().toISOString(),
       students,
       attendance,
       darsKtab,
+      mal3ab,
+      summerClub,
+      summerClubSettings,
       customEvents,
       visits,
       pointSettings,
@@ -870,6 +1063,9 @@ class DatabaseService {
       await this.saveStudents(data.students);
       if (Array.isArray(data.attendance)) await this.saveAllAttendance(data.attendance);
       if (Array.isArray(data.darsKtab)) await this.saveAllDarsKtab(data.darsKtab);
+      if (Array.isArray(data.mal3ab)) await this.saveAllMal3ab(data.mal3ab);
+      if (Array.isArray(data.summerClub)) await this.saveAllSummerClub(data.summerClub);
+      if (data.summerClubSettings) await this.saveSummerClubSettings(data.summerClubSettings);
       if (Array.isArray(data.customEvents)) await this.saveAllCustomEvents(data.customEvents);
       if (Array.isArray(data.visits)) await this.saveAllVisits(data.visits);
       if (data.pointSettings) await this.savePointSettings(data.pointSettings);
@@ -893,6 +1089,9 @@ class DatabaseService {
     await this.saveStudents(INITIAL_STUDENTS);
     await this.saveAllAttendance(INITIAL_FRIDAY_ATTENDANCE);
     await this.saveAllDarsKtab(INITIAL_DARS_KTAB);
+    await this.saveAllMal3ab(INITIAL_MAL3AB);
+    await this.saveAllSummerClub(INITIAL_SUMMER_CLUB);
+    await this.saveSummerClubSettings(DEFAULT_SUMMER_CLUB_SETTINGS);
     await this.saveAllCustomEvents(INITIAL_CUSTOM_EVENTS);
     await this.saveAllVisits(INITIAL_VISITS);
     await this.savePointSettings(DEFAULT_POINT_SETTINGS);

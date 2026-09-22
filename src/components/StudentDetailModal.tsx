@@ -26,6 +26,8 @@ import type {
   Student,
   AttendanceRecord,
   DarsKtabRecord,
+  Mal3abRecord,
+  SummerClubRecord,
   CustomEvent,
   CustomPointEntry,
   PointSettings,
@@ -43,6 +45,8 @@ interface StudentDetailModalProps {
   student: Student;
   attendance: AttendanceRecord[];
   darsKtab?: DarsKtabRecord[];
+  mal3ab?: Mal3abRecord[];
+  summerClub?: SummerClubRecord[];
   customEvents?: CustomEvent[];
   customPoints?: CustomPointEntry[];
   pointSettings?: PointSettings;
@@ -58,6 +62,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   student,
   attendance,
   darsKtab = [],
+  mal3ab = [],
+  summerClub = [],
   customEvents = [],
   customPoints = [],
   pointSettings = {
@@ -66,6 +72,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     darsKtabPoints: 10,
     ashyaPoints: 5,
     customEventPoints: 20,
+    mal3abPoints: 10,
+    mal3abMatchPoints: 5,
+    summerClubPoints: 10,
+    summerClubActivityPoints: 5,
   },
   visits,
   isOpen,
@@ -80,14 +90,16 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   if (!isOpen) return null;
 
   const age = calculateAge(student.dob);
-  const attendanceStats = calculateAttendanceStats(student.id, attendance, darsKtab, customEvents);
+  const attendanceStats = calculateAttendanceStats(student.id, attendance, darsKtab, customEvents, mal3ab, summerClub);
   const scoreData = calculateStudentScore(
     student.id,
     attendance,
     darsKtab,
     customEvents,
     customPoints,
-    pointSettings
+    pointSettings,
+    mal3ab,
+    summerClub
   );
   const visitStats = getStudentVisits(student.id, visits);
 

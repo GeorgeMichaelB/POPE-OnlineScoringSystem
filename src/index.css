@@ -471,3 +471,235 @@ button {
     padding: 0 !important;
   }
 }
+
+/* Navigation Droplist Component */
+.nav-droplist-container {
+  position: relative;
+  display: inline-block;
+}
+
+.nav-droplist-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.85rem;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: inherit;
+  transition: all 0.15s ease-in-out;
+  user-select: none;
+}
+
+.nav-droplist-trigger:hover,
+.nav-droplist-trigger.open {
+  background: var(--bg-hover);
+  border-color: var(--border-focus);
+}
+
+.nav-droplist-current {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.nav-droplist-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: var(--bg-card);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  flex-shrink: 0;
+}
+
+.nav-droplist-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-droplist-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.nav-droplist-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+.nav-droplist-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid;
+  margin-left: 0.25rem;
+}
+
+.nav-droplist-chevron {
+  color: var(--text-muted);
+}
+
+.nav-droplist-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 320px;
+  max-width: 90vw;
+  background: var(--bg-card);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  animation: droplistSlideDown 0.15s ease-out;
+  overflow: hidden;
+}
+
+@keyframes droplistSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-droplist-menu-header {
+  padding: 0.6rem 0.85rem;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.nav-droplist-menu-scroll {
+  max-height: 440px;
+  overflow-y: auto;
+  padding: 0.4rem;
+}
+
+.nav-droplist-group {
+  margin-bottom: 0.5rem;
+}
+
+.nav-droplist-group:last-child {
+  margin-bottom: 0;
+}
+
+.nav-droplist-group-header {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-droplist-group-header .ar-text {
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.nav-droplist-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.nav-droplist-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: left;
+  border: 1px solid transparent;
+  transition: all 0.12s ease;
+}
+
+.nav-droplist-item:hover {
+  background: var(--bg-subtle);
+}
+
+.nav-droplist-item.selected {
+  background: rgba(30, 41, 59, 0.06);
+  border-color: rgba(30, 41, 59, 0.15);
+  font-weight: 700;
+}
+
+.nav-droplist-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--bg-subtle);
+  flex-shrink: 0;
+}
+
+.nav-droplist-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-droplist-item-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.nav-droplist-item-subtitle {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+.nav-droplist-item-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  margin-right: 0.25rem;
+}
+
+.nav-droplist-item-check {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .brand-titles p {
+    display: none;
+  }
+  .nav-droplist-menu {
+    position: fixed;
+    top: 56px;
+    left: 8px;
+    right: 8px;
+    max-width: none;
+    width: auto;
+  }
+}

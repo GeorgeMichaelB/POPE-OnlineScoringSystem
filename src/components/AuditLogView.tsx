@@ -11,7 +11,9 @@ import {
   CalendarCheck,
   CalendarDays,
   Sparkles,
-  KeyRound
+  KeyRound,
+  Flame,
+  Sun
 } from 'lucide-react';
 import type { AuditLogEntry, LogCategory } from '../types';
 
@@ -36,6 +38,18 @@ const CATEGORY_CONFIG: Record<
     color: '#059669',
     bg: 'rgba(5, 150, 105, 0.12)',
     icon: <CalendarCheck size={15} color="#059669" />,
+  },
+  mal3ab: {
+    label: 'Mal3ab (الملعب والرياضة)',
+    color: '#16a34a',
+    bg: 'rgba(22, 163, 74, 0.12)',
+    icon: <Flame size={15} color="#16a34a" />,
+  },
+  summer_club: {
+    label: 'Summer Club (النادي الصيفي)',
+    color: '#ea580c',
+    bg: 'rgba(234, 88, 12, 0.12)',
+    icon: <Sun size={15} color="#ea580c" />,
   },
   scoring: {
     label: 'Scoring & Points (نقاط وتشجيع)',

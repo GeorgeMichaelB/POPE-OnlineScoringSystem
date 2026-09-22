@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   CalendarCheck,
@@ -10,12 +10,16 @@ import {
   Trophy,
   Crown,
   ShieldCheck,
-  LogOut
+  LogOut,
+  Cake
 } from 'lucide-react';
 import type {
   Student,
   AttendanceRecord,
   DarsKtabRecord,
+  Mal3abRecord,
+  SummerClubRecord,
+  SummerClubSettings,
   CustomEvent,
   CustomPointEntry,
   PointSettings,
@@ -24,15 +28,21 @@ import type {
   UserAccount,
   AuditLogEntry
 } from './types';
-import { db } from './services/db';
+import { db, DEFAULT_SUMMER_CLUB_SETTINGS } from './services/db';
 import { sound } from './services/sound';
 import {
   getNearestFridayDateString,
   getNearestSaturdayDateString,
+  getNearestThursdayDateString,
+  getNearestWeekdayDateString,
+  getUrgentBirthdayAlerts,
 } from './utils/helpers';
 
 import { AttendanceView } from './components/AttendanceView';
 import { DarsKtabView } from './components/DarsKtabView';
+import { Mal3abView } from './components/Mal3abView';
+import { SummerClubView } from './components/SummerClubView';
+import { BirthdaysView } from './components/BirthdaysView';
 import { CustomEventsView } from './components/CustomEventsView';
 import { ScoringView } from './components/ScoringView';
 import { VisitsView } from './components/VisitsView';
@@ -45,8 +55,7 @@ import { QRScannerModal } from './components/QRScannerModal';
 import { StudentFormModal } from './components/StudentFormModal';
 import { StudentDetailModal } from './components/StudentDetailModal';
 import { SettingsModal } from './components/SettingsModal';
-
-type AppView = 'heroes' | 'attendance' | 'dars_ktab' | 'events' | 'scoring' | 'visits' | 'students' | 'log';
+import { NavDroplist, type AppView } from './components/NavDroplist';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
@@ -54,11 +63,20 @@ export const App: React.FC = () => {
   // Dates
   const [fridayDate, setFridayDate] = useState<string>(getNearestFridayDateString());
   const [saturdayDate, setSaturdayDate] = useState<string>(getNearestSaturdayDateString());
+  const [thursdayDate, setThursdayDate] = useState<string>(getNearestThursdayDateString());
+
+  // Summer Club states
+  const [summerClubSettings, setSummerClubSettings] = useState<SummerClubSettings>(DEFAULT_SUMMER_CLUB_SETTINGS);
+  const [summerClubSubpage, setSummerClubSubpage] = useState<'day1' | 'day2'>('day1');
+  const [summerClubDay1Date, setSummerClubDay1Date] = useState<string>(getNearestWeekdayDateString(DEFAULT_SUMMER_CLUB_SETTINGS.day1Weekday));
+  const [summerClubDay2Date, setSummerClubDay2Date] = useState<string>(getNearestWeekdayDateString(DEFAULT_SUMMER_CLUB_SETTINGS.day2Weekday));
 
   // Data states
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
   const [darsKtab, setDarsKtab] = useState<DarsKtabRecord[]>([]);
+  const [mal3ab, setMal3ab] = useState<Mal3abRecord[]>([]);
+  const [summerClub, setSummerClub] = useState<SummerClubRecord[]>([]);
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>([]);
   const [visits, setVisits] = useState<VisitRecord[]>([]);
   const [pointSettings, setPointSettings] = useState<PointSettings>({
@@ -67,6 +85,10 @@ export const App: React.FC = () => {
     darsKtabPoints: 10,
     ashyaPoints: 5,
     customEventPoints: 20,
+    mal3abPoints: 10,
+    mal3abMatchPoints: 5,
+    summerClubPoints: 10,
+    summerClubActivityPoints: 5,
   });
   const [customPoints, setCustomPoints] = useState<CustomPointEntry[]>([]);
   const [classHeroes, setClassHeroes] = useState<ClassHero[]>([]);
@@ -74,6 +96,16 @@ export const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [currentServantName, setCurrentServantName] = useState<string>('George Michael');
   const [loading, setLoading] = useState(true);
+
+  // Browser Notification state
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
+
+  // Urgent Birthday Alerts (<= 3 days away)
+  const urgentBirthdayAlerts = useMemo(() => {
+    return getUrgentBirthdayAlerts(students);
+  }, [students]);
 
   // Active / Selected Student states
   const [selectedStudentForDetail, setSelectedStudentForDetail] = useState<Student | null>(null);
@@ -84,19 +116,55 @@ export const App: React.FC = () => {
 
   // Modal triggers
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
-  const [qrScanMode, setQrScanMode] = useState<'attendance' | 'dars_ktab' | 'event' | 'visit' | 'register'>('attendance');
+  const [qrScanMode, setQrScanMode] = useState<
+    'attendance' | 'dars_ktab' | 'mal3ab' | 'summer_club_day1' | 'summer_club_day2' | 'event' | 'visit' | 'register'
+  >('attendance');
   const [isStudentFormOpen, setIsStudentFormOpen] = useState(false);
   const [scannedQrForRegistration, setScannedQrForRegistration] = useState<string>('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isManageHeroesOpen, setIsManageHeroesOpen] = useState(false);
 
+  // Check & trigger browser desktop notification for birthdays 3 days away
+  const triggerBirthdayNotifications = (urgentList: ReturnType<typeof getUrgentBirthdayAlerts>) => {
+    if (urgentList.length === 0) return;
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      urgentList.forEach((item) => {
+        const timeStr = item.daysUntil === 0 ? 'today!' : `in ${item.daysUntil} days (${item.nextBirthdayDateString})`;
+        try {
+          new Notification(`🎂 Birthday Reminder: ${item.student.name}`, {
+            body: `${item.student.name} is turning ${item.turningAge} ${timeStr}! Send church pastoral blessings.`,
+          });
+        } catch (e) {
+          console.warn('Could not display system notification:', e);
+        }
+      });
+    }
+  };
+
+  const requestNotificationPermission = async () => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      try {
+        const perm = await Notification.requestPermission();
+        setNotificationPermission(perm);
+        if (perm === 'granted') {
+          triggerBirthdayNotifications(urgentBirthdayAlerts);
+        }
+      } catch (e) {
+        console.warn('Notification permission error:', e);
+      }
+    }
+  };
+
   // Load initial data
   const loadAllData = async () => {
     try {
-      const [stu, att, dk, evts, vis, ptsCfg, pts, heroes, logs] = await Promise.all([
+      const [stu, att, dk, ml3, sc, scCfg, evts, vis, ptsCfg, pts, heroes, logs] = await Promise.all([
         db.getStudents(),
         db.getAttendance(),
         db.getDarsKtabAttendance(),
+        db.getMal3abAttendance(),
+        db.getSummerClubAttendance(),
+        db.getSummerClubSettings(),
         db.getCustomEvents(),
         db.getVisits(),
         db.getPointSettings(),
@@ -107,6 +175,11 @@ export const App: React.FC = () => {
       setStudents(stu);
       setAttendance(att);
       setDarsKtab(dk);
+      setMal3ab(ml3);
+      setSummerClub(sc);
+      setSummerClubSettings(scCfg);
+      setSummerClubDay1Date(getNearestWeekdayDateString(scCfg.day1Weekday));
+      setSummerClubDay2Date(getNearestWeekdayDateString(scCfg.day2Weekday));
       setCustomEvents(evts);
       if (evts.length > 0 && !selectedEventId) {
         setSelectedEventId(evts[0].id);
@@ -116,6 +189,10 @@ export const App: React.FC = () => {
       setCustomPoints(pts);
       setClassHeroes(heroes);
       setAuditLogs(logs);
+
+      // Trigger 3-day advance notification if permission is already granted
+      const urgent = getUrgentBirthdayAlerts(stu);
+      triggerBirthdayNotifications(urgent);
 
       // Check current session
       const sessionUsername = db.getCurrentSession();
@@ -257,7 +334,84 @@ export const App: React.FC = () => {
     setAuditLogs(updatedLogs);
   };
 
-  // 3. Custom Event Actions
+  // 3. Thursday Mal3ab Actions
+  const handleToggleMal3ab = async (
+    studentId: string,
+    type: 'attended' | 'matchPlayed',
+    value: boolean
+  ) => {
+    const existing = mal3ab.find(
+      (r) => r.studentId === studentId && r.date === thursdayDate
+    );
+
+    const attVal = type === 'attended' ? value : existing?.attended ?? false;
+    const matchVal = type === 'matchPlayed' ? value : existing?.matchPlayed ?? false;
+
+    const updated = await db.recordMal3abAttendance(studentId, thursdayDate, attVal, matchVal);
+    setMal3ab((prev) => {
+      const filtered = prev.filter((r) => r.id !== updated.id);
+      return [...filtered, updated];
+    });
+
+    if (value) {
+      sound.playSuccessChime();
+    }
+
+    const student = students.find((s) => s.id === studentId);
+    await db.addLogEntry({
+      username: currentUser?.username || '@servant',
+      servantName: currentUser?.name || currentServantName,
+      action: 'ATTENDANCE_MAL3AB',
+      details: `Updated Thursday Mal3ab for ${student?.name || studentId} (${thursdayDate}): Attended=${attVal ? 'Present' : 'Absent'}, Match=${matchVal ? 'Played' : 'Not Played'}`,
+      category: 'mal3ab',
+    });
+    const updatedLogs = await db.getAuditLogs();
+    setAuditLogs(updatedLogs);
+  };
+
+  // 4. Summer Club Actions (2 Subpages)
+  const handleToggleSummerClub = async (
+    studentId: string,
+    subpage: 'day1' | 'day2',
+    type: 'attended' | 'activity',
+    value: boolean
+  ) => {
+    const sessionDate = subpage === 'day1' ? summerClubDay1Date : summerClubDay2Date;
+    const existing = summerClub.find(
+      (r) => r.studentId === studentId && r.subpage === subpage && r.date === sessionDate
+    );
+
+    const attVal = type === 'attended' ? value : existing?.attended ?? false;
+    const actVal = type === 'activity' ? value : existing?.activity ?? false;
+
+    const updated = await db.recordSummerClubAttendance(studentId, subpage, sessionDate, attVal, actVal);
+    setSummerClub((prev) => {
+      const filtered = prev.filter((r) => r.id !== updated.id);
+      return [...filtered, updated];
+    });
+
+    if (value) {
+      sound.playSuccessChime();
+    }
+
+    const student = students.find((s) => s.id === studentId);
+    await db.addLogEntry({
+      username: currentUser?.username || '@servant',
+      servantName: currentUser?.name || currentServantName,
+      action: 'ATTENDANCE_SUMMER_CLUB',
+      details: `Updated Summer Club ${subpage === 'day1' ? 'First Day' : 'Second Day'} for ${student?.name || studentId} (${sessionDate}): Attended=${attVal ? 'Present' : 'Absent'}, Activity=${actVal ? 'Present' : 'Absent'}`,
+      category: 'summer_club',
+    });
+    const updatedLogs = await db.getAuditLogs();
+    setAuditLogs(updatedLogs);
+  };
+
+  const handleUpdateSummerClubSettings = async (newSettings: SummerClubSettings) => {
+    await db.saveSummerClubSettings(newSettings);
+    setSummerClubSettings(newSettings);
+  };
+
+  // 5. Custom Event Actions
   const handleSaveCustomEvent = async (event: CustomEvent) => {
     await db.saveCustomEvent(event);
     const updated = await db.getCustomEvents();
@@ -496,6 +650,17 @@ export const App: React.FC = () => {
     } else if (qrScanMode === 'dars_ktab') {
       handleToggleDarsKtab(foundStudent.id, 'darsKtab', true);
       setCurrentView('dars_ktab');
+    } else if (qrScanMode === 'mal3ab') {
+      handleToggleMal3ab(foundStudent.id, 'attended', true);
+      setCurrentView('mal3ab');
+    } else if (qrScanMode === 'summer_club_day1') {
+      handleToggleSummerClub(foundStudent.id, 'day1', 'attended', true);
+      setSummerClubSubpage('day1');
+      setCurrentView('summer_club');
+    } else if (qrScanMode === 'summer_club_day2') {
+      handleToggleSummerClub(foundStudent.id, 'day2', 'attended', true);
+      setSummerClubSubpage('day2');
+      setCurrentView('summer_club');
     } else if (qrScanMode === 'event' && selectedEventId) {
       handleToggleEventAttendance(selectedEventId, foundStudent.id);
       setCurrentView('events');
@@ -514,6 +679,16 @@ export const App: React.FC = () => {
 
   const openDarsKtabScanner = () => {
     setQrScanMode('dars_ktab');
+    setIsQRScannerOpen(true);
+  };
+
+  const openMal3abScanner = () => {
+    setQrScanMode('mal3ab');
+    setIsQRScannerOpen(true);
+  };
+
+  const openSummerClubScanner = (subpage: 'day1' | 'day2' = 'day1') => {
+    setQrScanMode(subpage === 'day1' ? 'summer_club_day1' : 'summer_club_day2');
     setIsQRScannerOpen(true);
   };
 
@@ -583,84 +758,46 @@ export const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Desktop Navigation Links */}
-            <nav className="header-nav">
-              <button
-                type="button"
-                onClick={() => setCurrentView('heroes')}
-                className="nav-tab-btn"
-                style={{
-                  color: '#d97706',
-                  borderColor: 'rgba(217, 119, 6, 0.4)',
-                  background: 'rgba(217, 119, 6, 0.08)',
-                  fontWeight: 700,
-                }}
-              >
-                <Crown size={16} /> Hall of Champions (الأبطال)
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('attendance')}
-                className={`nav-tab-btn ${currentView === 'attendance' ? 'active' : ''}`}
-              >
-                <CalendarCheck size={16} /> Friday Class
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('dars_ktab')}
-                className={`nav-tab-btn ${currentView === 'dars_ktab' ? 'active' : ''}`}
-              >
-                <BookOpen size={16} /> Dars Ktab (Sat)
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('events')}
-                className={`nav-tab-btn ${currentView === 'events' ? 'active' : ''}`}
-              >
-                <Sparkles size={16} /> Events ({customEvents.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('scoring')}
-                className={`nav-tab-btn ${currentView === 'scoring' ? 'active' : ''}`}
-              >
-                <Trophy size={16} /> Scoring
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('visits')}
-                className={`nav-tab-btn ${currentView === 'visits' ? 'active' : ''}`}
-              >
-                <CalendarDays size={16} /> Eftekad
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('students')}
-                className={`nav-tab-btn ${currentView === 'students' ? 'active' : ''}`}
-              >
-                <Users size={16} /> Boys ({students.length})
-              </button>
-
-              {/* Admin-Only Audit Log Tab */}
-              {currentUser?.role === 'admin' && (
-                <button
-                  type="button"
-                  onClick={() => setCurrentView('log')}
-                  className={`nav-tab-btn ${currentView === 'log' ? 'active' : ''}`}
-                  style={{
-                    color: currentView === 'log' ? '#ffffff' : '#2563eb',
-                    borderColor: 'rgba(37, 99, 235, 0.4)',
-                    background: currentView === 'log' ? '#2563eb' : 'rgba(37, 99, 235, 0.08)',
-                    fontWeight: 700,
-                  }}
-                >
-                  <ShieldCheck size={16} /> Audit Log ({auditLogs.length})
-                </button>
-              )}
-            </nav>
+            {/* Unified Navigation Droplist */}
+            <NavDroplist
+              currentView={currentView}
+              onChangeView={setCurrentView}
+              customEventsCount={customEvents.length}
+              studentsCount={students.length}
+              auditLogsCount={auditLogs.length}
+              birthdayAlertCount={urgentBirthdayAlerts.length}
+              isAdmin={currentUser?.role === 'admin'}
+            />
 
             {/* Right Header Actions */}
             <div className="header-actions">
+              {/* Urgent Birthday Alert Indicator (if any boy has birthday <= 3 days) */}
+              {urgentBirthdayAlerts.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('birthdays')}
+                  className="btn btn-sm"
+                  title={`${urgentBirthdayAlerts.length} upcoming birthday alerts in next 3 days!`}
+                  style={{
+                    backgroundColor: '#fff1f2',
+                    border: '1px solid #fecdd3',
+                    color: '#be123c',
+                    fontWeight: 700,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 3px rgba(225, 29, 72, 0.1)',
+                  }}
+                >
+                  <Cake size={15} color="#e11d48" />
+                  <span style={{ fontSize: '0.78rem' }}>
+                    {urgentBirthdayAlerts.length} Birthday{urgentBirthdayAlerts.length > 1 ? 's' : ''}!
+                  </span>
+                </button>
+              )}
+
               {/* Servant Account Badge */}
               <div
                 style={{
@@ -684,10 +821,13 @@ export const App: React.FC = () => {
                 )}
                 <span>{currentUser?.username}</span>
               </div>
+
               <button
                 type="button"
                 onClick={() => {
                   if (currentView === 'dars_ktab') openDarsKtabScanner();
+                  else if (currentView === 'mal3ab') openMal3abScanner();
+                  else if (currentView === 'summer_club') openSummerClubScanner(summerClubSubpage);
                   else if (currentView === 'events') openEventScanner();
                   else if (currentView === 'visits') openVisitScanner();
                   else openFridayScanner();
@@ -767,7 +907,51 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* VIEW 3: Customized Events */}
+        {/* VIEW 3: Thursday Mal3ab (Sports & Pitch) */}
+        {currentView === 'mal3ab' && (
+          <Mal3abView
+            students={students}
+            records={mal3ab}
+            onToggleRecord={handleToggleMal3ab}
+            onOpenQRScanner={openMal3abScanner}
+            onSelectStudent={(student) => setSelectedStudentForDetail(student)}
+            selectedDate={thursdayDate}
+            onChangeDate={setThursdayDate}
+            lastScannedStudent={lastScannedStudent}
+          />
+        )}
+
+        {/* VIEW 4: Summer Club (2 Subpages with Configurable Weekday Defaults) */}
+        {currentView === 'summer_club' && (
+          <SummerClubView
+            students={students}
+            records={summerClub}
+            settings={summerClubSettings}
+            onUpdateSettings={handleUpdateSummerClubSettings}
+            onToggleRecord={handleToggleSummerClub}
+            onOpenQRScanner={openSummerClubScanner}
+            onSelectStudent={(student) => setSelectedStudentForDetail(student)}
+            activeSubpage={summerClubSubpage}
+            onChangeSubpage={setSummerClubSubpage}
+            day1Date={summerClubDay1Date}
+            onChangeDay1Date={setSummerClubDay1Date}
+            day2Date={summerClubDay2Date}
+            onChangeDay2Date={setSummerClubDay2Date}
+            lastScannedStudent={lastScannedStudent}
+          />
+        )}
+
+        {/* VIEW 5: Birthdays & 3-Day Alerts */}
+        {currentView === 'birthdays' && (
+          <BirthdaysView
+            students={students}
+            onSelectStudent={(student) => setSelectedStudentForDetail(student)}
+            onRequestNotificationPermission={requestNotificationPermission}
+            notificationPermission={notificationPermission}
+          />
+        )}
+
+        {/* VIEW 6: Customized Events */}
         {currentView === 'events' && (
           <CustomEventsView
             students={students}
@@ -783,7 +967,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* VIEW 4: Online Scoring System */}
+        {/* VIEW 7: Online Scoring System */}
         {currentView === 'scoring' && (
           <ScoringView
             students={students}
@@ -800,7 +984,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* VIEW 5: Visits & Eftekad */}
+        {/* VIEW 8: Visits & Eftekad */}
         {currentView === 'visits' && (
           <VisitsView
             students={students}
@@ -815,7 +999,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* VIEW 6: Boys Roster */}
+        {/* VIEW 9: Boys Roster */}
         {currentView === 'students' && (
           <StudentListView
             students={students}
@@ -836,7 +1020,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {/* VIEW 7: Admin Activity Audit Log (Admin Only) */}
+        {/* VIEW 10: Admin Activity Audit Log (Admin Only) */}
         {currentView === 'log' && currentUser?.role === 'admin' && (
           <AuditLogView
             logs={auditLogs}
@@ -942,13 +1126,25 @@ export const App: React.FC = () => {
             ? 'Scan Passport for Friday Class'
             : qrScanMode === 'dars_ktab'
             ? 'Scan Passport for Saturday Dars Ktab'
+            : qrScanMode === 'mal3ab'
+            ? 'Scan Passport for Thursday Mal3ab'
+            : qrScanMode === 'summer_club_day1'
+            ? 'Scan Passport for Summer Club (First Day)'
+            : qrScanMode === 'summer_club_day2'
+            ? 'Scan Passport for Summer Club (Second Day)'
             : qrScanMode === 'event'
             ? 'Scan Passport for Event'
             : qrScanMode === 'visit'
             ? 'Scan Passport to Start Visit'
             : 'Scan Passport QR Code'
         }
-        continuous={qrScanMode === 'attendance' || qrScanMode === 'dars_ktab'}
+        continuous={
+          qrScanMode === 'attendance' ||
+          qrScanMode === 'dars_ktab' ||
+          qrScanMode === 'mal3ab' ||
+          qrScanMode === 'summer_club_day1' ||
+          qrScanMode === 'summer_club_day2'
+        }
       />
 
       <StudentFormModal
@@ -967,6 +1163,8 @@ export const App: React.FC = () => {
           student={selectedStudentForDetail}
           attendance={attendance}
           darsKtab={darsKtab}
+          mal3ab={mal3ab}
+          summerClub={summerClub}
           customEvents={customEvents}
           customPoints={customPoints}
           pointSettings={pointSettings}

@@ -44,6 +44,33 @@ export interface DarsKtabRecord {
   timestamp: string;
 }
 
+// Thursday Mal3ab Attendance (حضور ومشاركة الملعب والنشاط الرياضي - الخميس)
+export interface Mal3abRecord {
+  id: string; // `${studentId}_${date}`
+  studentId: string;
+  date: string; // YYYY-MM-DD (Thursdays)
+  attended: boolean; // Attended Mal3ab (حضور الملعب)
+  matchPlayed: boolean; // Match / Sportsmanship / Activity (مشاركة ولعب الماتش)
+  timestamp: string;
+}
+
+// Summer Club Configurable Defaults for 2 Subpages (النادي الصيفي)
+export interface SummerClubSettings {
+  day1Weekday: number; // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat (Default 2: Tuesday)
+  day2Weekday: number; // (Default 4: Thursday)
+}
+
+// Summer Club Attendance Record (First Day or Second Day)
+export interface SummerClubRecord {
+  id: string; // `${studentId}_${subpage}_${date}`
+  studentId: string;
+  subpage: 'day1' | 'day2';
+  date: string; // YYYY-MM-DD
+  attended: boolean; // Attended Club Day (حضور النادي)
+  activity: boolean; // Workshop / Activity / Spiritual Topic (الورشة والنشاط)
+  timestamp: string;
+}
+
 // Customized Events (Trips, Spiritual Days, Conferences, Retreats)
 export interface CustomEvent {
   id: string;
@@ -62,6 +89,10 @@ export interface PointSettings {
   darsKtabPoints: number; // e.g. 10 pts
   ashyaPoints: number; // e.g. 5 pts
   customEventPoints: number; // e.g. 20 pts
+  mal3abPoints?: number; // e.g. 10 pts
+  mal3abMatchPoints?: number; // e.g. 5 pts
+  summerClubPoints?: number; // e.g. 10 pts
+  summerClubActivityPoints?: number; // e.g. 5 pts
 }
 
 // Manual or Custom Point Additions/Deductions entered by the servant
@@ -119,7 +150,7 @@ export interface UserAccount {
 }
 
 // Activity Audit Log
-export type LogCategory = 'auth' | 'attendance' | 'scoring' | 'heroes' | 'events' | 'visits' | 'students';
+export type LogCategory = 'auth' | 'attendance' | 'scoring' | 'heroes' | 'events' | 'visits' | 'students' | 'mal3ab' | 'summer_club';
 
 export interface AuditLogEntry {
   id: string;

@@ -1,10 +1,13 @@
 import type {
   AttendanceRecord,
   DarsKtabRecord,
+  Mal3abRecord,
+  SummerClubRecord,
   CustomEvent,
   CustomPointEntry,
   PointSettings,
-  VisitRecord
+  VisitRecord,
+  Student
 } from '../types';
 
 export function calculateAge(dobString: string): number {
@@ -19,12 +22,14 @@ export function calculateAge(dobString: string): number {
   return isNaN(age) ? 0 : Math.max(0, age);
 }
 
-// Calculate comprehensive attendance stats across Friday, Saturday, and Events
+// Calculate comprehensive attendance stats across Friday, Saturday, Mal3ab, Summer Club, and Events
 export function calculateAttendanceStats(
   studentId: string,
   fridayRecords: AttendanceRecord[],
   darsKtabRecords: DarsKtabRecord[] = [],
-  customEvents: CustomEvent[] = []
+  customEvents: CustomEvent[] = [],
+  mal3abRecords: Mal3abRecord[] = [],
+  summerClubRecords: SummerClubRecord[] = []
 ) {
   // Friday Attendance
   const uniqueFridayDates = Array.from(new Set(fridayRecords.map((r) => r.date)));
@@ -46,6 +51,22 @@ export function calculateAttendanceStats(
   const darsKtabPercent = totalSaturdaySessions > 0 ? Math.round((darsKtabPresent / totalSaturdaySessions) * 100) : 0;
   const ashyaPercent = totalSaturdaySessions > 0 ? Math.round((ashyaPresent / totalSaturdaySessions) * 100) : 0;
 
+  // Thursday Mal3ab Attendance
+  const uniqueMal3abDates = Array.from(new Set(mal3abRecords.map((r) => r.date)));
+  const totalMal3abSessions = uniqueMal3abDates.length;
+  const studentMal3abRecords = mal3abRecords.filter((r) => r.studentId === studentId);
+  const mal3abAttended = studentMal3abRecords.filter((r) => r.attended).length;
+  const mal3abMatch = studentMal3abRecords.filter((r) => r.matchPlayed).length;
+  const mal3abPercent = totalMal3abSessions > 0 ? Math.round((mal3abAttended / totalMal3abSessions) * 100) : 0;
+
+  // Summer Club Attendance
+  const uniqueSummerClubDates = Array.from(new Set(summerClubRecords.map((r) => `${r.subpage}_${r.date}`)));
+  const totalSummerClubSessions = uniqueSummerClubDates.length;
+  const studentSummerClubRecords = summerClubRecords.filter((r) => r.studentId === studentId);
+  const summerClubAttended = studentSummerClubRecords.filter((r) => r.attended).length;
+  const summerClubActivity = studentSummerClubRecords.filter((r) => r.activity).length;
+  const summerClubPercent = totalSummerClubSessions > 0 ? Math.round((summerClubAttended / totalSummerClubSessions) * 100) : 0;
+
   // Custom Events Attended
   const totalCustomEvents = customEvents.length;
   const eventsAttended = customEvents.filter((ev) => ev.attendeeIds.includes(studentId)).length;
@@ -64,6 +85,16 @@ export function calculateAttendanceStats(
     ashyaPresent,
     ashyaPercent,
 
+    totalMal3abSessions,
+    mal3abAttended,
+    mal3abMatch,
+    mal3abPercent,
+
+    totalSummerClubSessions,
+    summerClubAttended,
+    summerClubActivity,
+    summerClubPercent,
+
     totalCustomEvents,
     eventsAttended,
     eventsPercent,
@@ -77,7 +108,9 @@ export function calculateStudentScore(
   darsKtabRecords: DarsKtabRecord[],
   customEvents: CustomEvent[],
   customPointEntries: CustomPointEntry[],
-  settings: PointSettings
+  settings: PointSettings,
+  mal3abRecords: Mal3abRecord[] = [],
+  summerClubRecords: SummerClubRecord[] = []
 ) {
   // Friday Class points
   const fridayCount = fridayRecords.filter((r) => r.studentId === studentId && r.sundaySchool).length;
@@ -95,6 +128,18 @@ export function calculateStudentScore(
   const ashyaCount = darsKtabRecords.filter((r) => r.studentId === studentId && r.ashya).length;
   const ashyaPoints = ashyaCount * (settings.ashyaPoints || 0);
 
+  // Thursday Mal3ab points
+  const mal3abAttendedCount = mal3abRecords.filter((r) => r.studentId === studentId && r.attended).length;
+  const mal3abPoints = mal3abAttendedCount * (settings.mal3abPoints ?? 10);
+  const mal3abMatchCount = mal3abRecords.filter((r) => r.studentId === studentId && r.matchPlayed).length;
+  const mal3abMatchPoints = mal3abMatchCount * (settings.mal3abMatchPoints ?? 5);
+
+  // Summer Club points
+  const summerClubAttendedCount = summerClubRecords.filter((r) => r.studentId === studentId && r.attended).length;
+  const summerClubPoints = summerClubAttendedCount * (settings.summerClubPoints ?? 10);
+  const summerClubActivityCount = summerClubRecords.filter((r) => r.studentId === studentId && r.activity).length;
+  const summerClubActivityPoints = summerClubActivityCount * (settings.summerClubActivityPoints ?? 5);
+
   // Custom Events points
   const eventCount = customEvents.filter((e) => e.attendeeIds.includes(studentId)).length;
   const eventPoints = eventCount * (settings.customEventPoints || 0);
@@ -103,7 +148,17 @@ export function calculateStudentScore(
   const studentCustomEntries = customPointEntries.filter((p) => p.studentId === studentId);
   const customPointsTotal = studentCustomEntries.reduce((sum, item) => sum + (Number(item.points) || 0), 0);
 
-  const totalScore = fridayPoints + odasPoints + darsKtabPoints + ashyaPoints + eventPoints + customPointsTotal;
+  const totalScore =
+    fridayPoints +
+    odasPoints +
+    darsKtabPoints +
+    ashyaPoints +
+    mal3abPoints +
+    mal3abMatchPoints +
+    summerClubPoints +
+    summerClubActivityPoints +
+    eventPoints +
+    customPointsTotal;
 
   return {
     totalScore,
@@ -115,6 +170,14 @@ export function calculateStudentScore(
     darsKtabCount,
     ashyaPoints,
     ashyaCount,
+    mal3abPoints,
+    mal3abAttendedCount,
+    mal3abMatchPoints,
+    mal3abMatchCount,
+    summerClubPoints,
+    summerClubAttendedCount,
+    summerClubActivityPoints,
+    summerClubActivityCount,
     eventPoints,
     eventCount,
     customPointsTotal,
@@ -248,6 +311,143 @@ export function getSaturdaysList(countPast = 14, countFuture = 4): string[] {
   }
 
   return saturdays.reverse(); // most recent/upcoming first
+}
+
+// Get the nearest Thursday (Thursday = 4)
+export function getNearestThursdayDateString(): string {
+  return getNearestWeekdayDateString(4);
+}
+
+// Generate an array of Thursday dates only
+export function getThursdaysList(countPast = 14, countFuture = 4): string[] {
+  return getWeekdayDatesList(4, countPast, countFuture);
+}
+
+// Generic weekday nearest date calculation (0 = Sun, 1 = Mon, ..., 6 = Sat)
+export function getNearestWeekdayDateString(targetDayOfWeek: number): string {
+  const now = new Date();
+  const currentDay = now.getDay();
+  const diff = targetDayOfWeek - currentDay;
+  const targetDate = new Date(now);
+  targetDate.setDate(now.getDate() + diff);
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Generic array of dates for any chosen weekday
+export function getWeekdayDatesList(targetDayOfWeek: number, countPast = 14, countFuture = 4): string[] {
+  const baseNearest = new Date(getNearestWeekdayDateString(targetDayOfWeek));
+  const dates: string[] = [];
+
+  for (let i = -countPast; i <= countFuture; i++) {
+    const d = new Date(baseNearest);
+    d.setDate(baseNearest.getDate() + i * 7);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+  }
+
+  return dates.reverse(); // most recent/upcoming first
+}
+
+// Weekday selector options with English & Arabic translations
+export interface WeekdayOption {
+  value: number; // 0-6
+  labelEn: string;
+  labelAr: string;
+}
+
+export const WEEKDAY_OPTIONS: WeekdayOption[] = [
+  { value: 0, labelEn: 'Sunday', labelAr: 'الأحد' },
+  { value: 1, labelEn: 'Monday', labelAr: 'الإثنين' },
+  { value: 2, labelEn: 'Tuesday', labelAr: 'الثلاثاء' },
+  { value: 3, labelEn: 'Wednesday', labelAr: 'الأربعاء' },
+  { value: 4, labelEn: 'Thursday', labelAr: 'الخميس' },
+  { value: 5, labelEn: 'Friday', labelAr: 'الجمعة' },
+  { value: 6, labelEn: 'Saturday', labelAr: 'السبت' },
+];
+
+export function getWeekdayName(weekdayNum: number, lang: 'en' | 'ar' = 'en'): string {
+  const found = WEEKDAY_OPTIONS.find((w) => w.value === weekdayNum);
+  if (!found) return '';
+  return lang === 'ar' ? found.labelAr : found.labelEn;
+}
+
+// --- Birthday Utilities ---
+
+export interface BirthdayInfo {
+  student: Student;
+  dob: string;
+  nextBirthdayDate: Date;
+  nextBirthdayDateString: string;
+  daysUntil: number;
+  turningAge: number;
+  isToday: boolean;
+  isUrgent3Days: boolean; // <= 3 days away
+}
+
+export function getStudentBirthdayInfo(student: Student, referenceDate = new Date()): BirthdayInfo | null {
+  if (!student.dob) return null;
+  const parts = student.dob.split('-');
+  if (parts.length !== 3) return null;
+
+  const birthYear = Number(parts[0]);
+  const birthMonth = Number(parts[1]) - 1; // 0-indexed
+  const birthDay = Number(parts[2]);
+
+  const currentYear = referenceDate.getFullYear();
+  // Normalize today at midnight for accurate day difference
+  const today = new Date(currentYear, referenceDate.getMonth(), referenceDate.getDate());
+
+  let nextBday = new Date(currentYear, birthMonth, birthDay);
+  if (nextBday < today) {
+    // Birthday has already passed this calendar year, so next one is next year
+    nextBday = new Date(currentYear + 1, birthMonth, birthDay);
+  }
+
+  const diffMs = nextBday.getTime() - today.getTime();
+  const daysUntil = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  const turningAge = nextBday.getFullYear() - birthYear;
+
+  const monthPad = String(nextBday.getMonth() + 1).padStart(2, '0');
+  const dayPad = String(nextBday.getDate()).padStart(2, '0');
+  const nextBirthdayDateString = `${nextBday.getFullYear()}-${monthPad}-${dayPad}`;
+
+  return {
+    student,
+    dob: student.dob,
+    nextBirthdayDate: nextBday,
+    nextBirthdayDateString,
+    daysUntil,
+    turningAge,
+    isToday: daysUntil === 0,
+    isUrgent3Days: daysUntil >= 0 && daysUntil <= 3,
+  };
+}
+
+export function getUpcomingBirthdays(students: Student[], limitDays = 365): BirthdayInfo[] {
+  const list: BirthdayInfo[] = [];
+  const now = new Date();
+
+  students.forEach((s) => {
+    const info = getStudentBirthdayInfo(s, now);
+    if (info && info.daysUntil <= limitDays) {
+      list.push(info);
+    }
+  });
+
+  // Sort by daysUntil ascending (soonest first)
+  list.sort((a, b) => a.daysUntil - b.daysUntil);
+  return list;
+}
+
+// Get urgent birthday alerts (0 to 3 days away)
+export function getUrgentBirthdayAlerts(students: Student[]): BirthdayInfo[] {
+  return getUpcomingBirthdays(students).filter((b) => b.isUrgent3Days);
 }
 
 export function formatFriendlyDate(dateStr: string): string {
