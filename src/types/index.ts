@@ -7,8 +7,10 @@ export type LoveLanguage =
   | 'Other / Not determined';
 
 export interface Student {
-  id: string; // QR code passport string / ID
+  id: string; // QR code passport string / ID (e.g. AWI1012)
+  series?: string; // Series registration code (e.g. APSAW2743401)
   name: string;
+  arabicName?: string; // Arabic name (الاسم باللغة العربية)
   dob: string; // YYYY-MM-DD
   address: string;
   school: string;
@@ -23,6 +25,7 @@ export interface Student {
   confessionFather?: string; // اب الاعتراف - Confession Father / Priest
   confessionMonthlyDay?: number; // Chosen monthly confession day of month (1-31)
   photoUrl?: string; // Profile picture (base64 or URL)
+  isDeacon?: boolean; // شماس (Ordained / Serving Deacon)
   createdAt: string;
 }
 

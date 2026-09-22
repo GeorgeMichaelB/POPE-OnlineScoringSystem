@@ -88,11 +88,15 @@ export const SummerClubView: React.FC<SummerClubViewProps> = ({
   const activityPercent = totalStudents > 0 ? Math.round((activityCount / totalStudents) * 100) : 0;
 
   // Filter students
+  const q = searchQuery.toLowerCase().trim();
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.school.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      (s.arabicName && s.arabicName.toLowerCase().includes(q)) ||
+      s.id.toLowerCase().includes(q) ||
+      (s.series && s.series.toLowerCase().includes(q)) ||
+      s.school.toLowerCase().includes(q);
 
     if (!matchesSearch) return false;
 
@@ -462,7 +466,7 @@ export const SummerClubView: React.FC<SummerClubViewProps> = ({
           />
           <input
             type="text"
-            placeholder="Search boys by name, ID, or school..."
+            placeholder="Search by boy English or Arabic name, ID, series..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="form-input"
@@ -586,7 +590,7 @@ export const SummerClubView: React.FC<SummerClubViewProps> = ({
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                       <span
                         style={{
                           fontWeight: 700,
@@ -596,6 +600,11 @@ export const SummerClubView: React.FC<SummerClubViewProps> = ({
                       >
                         {student.name}
                       </span>
+                      {student.arabicName && (
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          ({student.arabicName})
+                        </span>
+                      )}
                     </div>
                     <div
                       style={{

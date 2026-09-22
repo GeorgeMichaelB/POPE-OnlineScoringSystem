@@ -186,7 +186,7 @@ export const HeroManageModal: React.FC<HeroManageModalProps> = ({
               >
                 {students.map((student) => (
                   <option key={student.id} value={student.id}>
-                    {student.name} ({student.id})
+                    {student.name} {student.arabicName ? `(${student.arabicName})` : ''} - {student.id}
                   </option>
                 ))}
               </select>

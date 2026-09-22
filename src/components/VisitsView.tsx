@@ -246,8 +246,13 @@ export const VisitsView: React.FC<VisitsViewProps> = ({
                 {activeStudent.name.charAt(0)}
               </div>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span style={{ fontSize: '1.15rem', fontWeight: 700 }}>{activeStudent.name}</span>
+                  {activeStudent.arabicName && (
+                    <span style={{ fontSize: '0.95rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      ({activeStudent.arabicName})
+                    </span>
+                  )}
                   <span className="badge badge-neutral">{activeStudent.id}</span>
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
@@ -727,7 +732,9 @@ export const VisitsView: React.FC<VisitsViewProps> = ({
                     }}
                   >
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{student.name}</div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>
+                        {student.name} {student.arabicName ? `(${student.arabicName})` : ''}
+                      </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                         {student.category} •{' '}
                         {daysSinceLastVisit !== null

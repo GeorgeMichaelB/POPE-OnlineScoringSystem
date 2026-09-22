@@ -40,13 +40,18 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
   const recordsMap = new Map<string, AttendanceRecord>();
   dateRecords.forEach((r) => recordsMap.set(r.studentId, r));
 
-  // Filter students by name or passport
+  // Filter students by name, arabicName, series, ID, or school or deacon
+  const q = searchQuery.toLowerCase().trim();
   const filteredStudents = students.filter((s) => {
-    const matchesSearch =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.school.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch;
+    if (!q) return true;
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.arabicName && s.arabicName.toLowerCase().includes(q)) ||
+      s.id.toLowerCase().includes(q) ||
+      (s.series && s.series.toLowerCase().includes(q)) ||
+      s.school.toLowerCase().includes(q) ||
+      Boolean(s.isDeacon && ('شماس'.includes(q) || 'deacon'.includes(q)))
+    );
   });
 
   // Calculate metrics for selected date
@@ -222,7 +227,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
         />
         <input
           type="text"
-          placeholder="Search by boy name or passport ID..."
+          placeholder="Search by boy English or Arabic name, ID, series..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="form-input"
@@ -318,10 +323,15 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                     )}
 
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                         <span style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-primary)' }}>
                           {student.name}
                         </span>
+                        {student.arabicName && (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            ({student.arabicName})
+                          </span>
+                        )}
                         <span
                           style={{
                             fontSize: '0.7rem',
@@ -333,6 +343,21 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                         >
                           {student.id}
                         </span>
+                        {student.isDeacon && (
+                          <span
+                            className="badge"
+                            style={{
+                              background: '#ede9fe',
+                              color: '#6d28d9',
+                              border: '1px solid #ddd6fe',
+                              fontSize: '0.68rem',
+                              fontWeight: 700,
+                              padding: '0.1rem 0.4rem',
+                            }}
+                          >
+                            ✝️ شماس
+                          </span>
+                        )}
                       </div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                         {student.school || 'St. Joseph School'}
@@ -341,7 +366,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                   </div>
 
                   {/* Dual Attendance Action Buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {/* Sunday School Attendance Toggle */}
                     <button
                       type="button"

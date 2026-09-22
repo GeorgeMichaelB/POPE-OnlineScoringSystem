@@ -115,7 +115,9 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
     return rankedStudents.filter(
       (item) =>
         item.student.name.toLowerCase().includes(q) ||
+        (item.student.arabicName && item.student.arabicName.toLowerCase().includes(q)) ||
         item.student.id.toLowerCase().includes(q) ||
+        (item.student.series && item.student.series.toLowerCase().includes(q)) ||
         item.student.school.toLowerCase().includes(q)
     );
   }, [rankedStudents, restStudents, searchQuery]);
@@ -1292,10 +1294,15 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
                       </div>
 
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                           <strong style={{ fontSize: '0.98rem', color: '#f8fafc' }}>
                             {item.student.name}
                           </strong>
+                          {item.student.arabicName && (
+                            <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 600 }}>
+                              ({item.student.arabicName})
+                            </span>
+                          )}
                           <span
                             style={{
                               fontSize: '0.7rem',

@@ -158,9 +158,24 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               </div>
             )}
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <h3 className="modal-title">{student.name}</h3>
+                {student.arabicName && (
+                  <span style={{ fontSize: '1rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                    ({student.arabicName})
+                  </span>
+                )}
                 <span className="badge badge-neutral">{student.id}</span>
+                {student.series && (
+                  <span className="badge badge-neutral" style={{ fontSize: '0.72rem' }}>
+                    {student.series}
+                  </span>
+                )}
+                {student.isDeacon && (
+                  <span className="badge" style={{ background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe', fontWeight: 700 }}>
+                    ✝️ شماس
+                  </span>
+                )}
                 <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', fontWeight: 700 }}>
                   <Trophy size={11} /> {scoreData.totalScore} pts
                 </span>
@@ -347,7 +362,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
                   gap: '0.75rem',
                 }}
               >
@@ -360,12 +375,23 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   </div>
                 </div>
 
+                {student.series && (
+                  <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <FileText size={13} /> SERIES CODE
+                    </div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: '2px' }}>
+                      {student.series}
+                    </div>
+                  </div>
+                )}
+
                 <div style={{ padding: '0.75rem', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                     <School size={13} /> SCHOOL & GRADE
                   </div>
                   <div style={{ fontWeight: 600, fontSize: '0.9rem', marginTop: '2px' }}>
-                    {student.school || 'Not specified'}
+                    {student.school || 'Pope Saweros Sunday School'}
                   </div>
                 </div>
 
@@ -384,6 +410,15 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   </div>
                   <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--color-danger)', marginTop: '2px' }}>
                     {student.loveLanguage || 'Not determined'}
+                  </div>
+                </div>
+
+                <div style={{ padding: '0.75rem', background: student.isDeacon ? '#f5f3ff' : 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', border: student.isDeacon ? '1px solid #ddd6fe' : 'none' }}>
+                  <div style={{ fontSize: '0.75rem', color: student.isDeacon ? '#7c3aed' : 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}>
+                    <Church size={13} /> الرتبة الكنسية (DEACON)
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: student.isDeacon ? '#6d28d9' : 'var(--text-primary)', marginTop: '2px' }}>
+                    {student.isDeacon ? '✝️ شماس خادم مذبح' : 'غير مشرطن'}
                   </div>
                 </div>
               </div>
@@ -784,7 +819,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>PASSPORT: {student.id}</div>
+                  <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>ID: {student.id}</div>
+                  {student.series && (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Series: {student.series}</div>
+                  )}
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                     Report Date: {new Date().toLocaleDateString()}
                   </div>
@@ -805,16 +843,19 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 }}
               >
                 <div>
-                  <strong>Student Full Name:</strong> {student.name}
+                  <strong>Student Full Name:</strong> {student.name} {student.arabicName ? `(${student.arabicName})` : ''}
                 </div>
                 <div>
                   <strong>Class:</strong> Pope Saweros Class (Grade 4)
                 </div>
                 <div>
-                  <strong>Date of Birth:</strong> {student.dob} ({age} years old)
+                  <strong>Date of Birth:</strong> {student.dob || 'Unlisted'} {age > 0 ? `(${age} years old)` : ''}
                 </div>
                 <div>
                   <strong>School:</strong> {student.school || 'N/A'}
+                </div>
+                <div>
+                  <strong>Deacon (شماس):</strong> {student.isDeacon ? '✝️ نعم (شماس خادم مذبح)' : 'لا'}
                 </div>
                 <div>
                   <strong>Home Address:</strong> {student.address || 'N/A'}

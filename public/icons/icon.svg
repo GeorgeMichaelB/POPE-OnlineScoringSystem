@@ -15,7 +15,7 @@
       <stop offset="100%" stop-color="#fde047" />
     </linearGradient>
     <radialGradient id="haloGlow" cx="50%" cy="45%" r="45%">
-      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.35" />
+      <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.3" />
       <stop offset="60%" stop-color="#6366f1" stop-opacity="0.1" />
       <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
     </radialGradient>
@@ -33,6 +33,7 @@
 
   <!-- Outer Liturgical Ring -->
   <circle cx="256" cy="240" r="148" fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-dasharray="8 6" opacity="0.45" />
+  <circle cx="256" cy="240" r="136" fill="none" stroke="url(#goldGrad)" stroke-width="2" opacity="0.3" />
 
   <!-- Church Crown of St. Saweros at Top of Cross -->
   <g transform="translate(256, 125)" filter="url(#dropShadow)">
@@ -41,6 +42,10 @@
     <circle cx="0" cy="-7" r="5.5" fill="#ffffff" />
     <circle cx="22" cy="-17" r="4.5" fill="#fef08a" />
     <rect x="-38" y="10" width="76" height="8" rx="3" fill="url(#goldGrad)" />
+    <!-- Ruby Gemstones in Crown -->
+    <circle cx="-18" cy="14" r="2.5" fill="#dc2626" />
+    <circle cx="0" cy="14" r="3" fill="#2563eb" />
+    <circle cx="18" cy="14" r="2.5" fill="#dc2626" />
   </g>
 
   <!-- Central Coptic Cross -->
@@ -59,11 +64,41 @@
     <circle cx="256" cy="230" r="32" fill="none" stroke="url(#goldGrad)" stroke-width="7" />
     <circle cx="256" cy="230" r="14" fill="url(#goldGrad)" />
     <circle cx="256" cy="230" r="6" fill="#ffffff" />
+
+    <!-- Four Corner Rays/Stars of the Coptic Cross -->
+    <g stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round">
+      <line x1="202" y1="176" x2="218" y2="192" />
+      <circle cx="196" cy="170" r="4" fill="url(#goldGrad)" />
+
+      <line x1="310" y1="176" x2="294" y2="192" />
+      <circle cx="316" cy="170" r="4" fill="url(#goldGrad)" />
+
+      <line x1="202" y1="284" x2="218" y2="268" />
+      <circle cx="196" cy="290" r="4" fill="url(#goldGrad)" />
+
+      <line x1="310" y1="284" x2="294" y2="268" />
+      <circle cx="316" cy="290" r="4" fill="url(#goldGrad)" />
+    </g>
   </g>
 
   <!-- Open Gospel / Bible at Base -->
   <g transform="translate(256, 380)" filter="url(#dropShadow)">
+    <!-- Book Pages -->
     <path d="M-84 0 C-46 -12 -12 4 0 16 C12 4 46 -12 84 0 L80 40 C44 26 12 42 0 32 C-12 42 -44 26 -80 40 Z" fill="#ffffff" />
+    <!-- Book Cover Edge -->
     <path d="M-86 38 C-48 24 -14 42 0 32 C14 42 48 24 86 38 L84 46 C46 32 14 50 0 39 C-14 50 -46 32 -84 46 Z" fill="url(#goldGrad)" />
+    <!-- Bookmark Ribbon -->
+    <path d="M-3 20 L-3 54 L6 47 L15 54 L15 20 Z" fill="#dc2626" />
+    <!-- Text Lines Simulation on Bible -->
+    <line x1="-66" y1="12" x2="-18" y2="18" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="-66" y1="22" x2="-22" y2="27" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="18" y1="18" x2="66" y2="12" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
+    <line x1="22" y1="27" x2="66" y2="22" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Bottom Brand Ribbon Banner -->
+  <g transform="translate(256, 460)">
+    <text text-anchor="middle" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="800" fill="#f8fafc" letter-spacing="2">POPE SAWEROS</text>
+    <text text-anchor="middle" y="20" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#f59e0b" letter-spacing="3">GRADE 4 SUNDAY SCHOOL</text>
   </g>
 </svg>

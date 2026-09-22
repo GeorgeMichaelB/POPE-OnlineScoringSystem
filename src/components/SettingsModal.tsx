@@ -8,6 +8,7 @@ interface SettingsModalProps {
   currentServantName: string;
   onUpdateServantName: (name: string) => void;
   onDataChanged: () => void;
+  onOpenInstallModal?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -16,6 +17,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   currentServantName,
   onUpdateServantName,
   onDataChanged,
+  onOpenInstallModal,
 }) => {
   const [servantName, setServantName] = useState(currentServantName);
   const [isSaved, setIsSaved] = useState(false);
@@ -117,6 +119,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </p>
             </form>
           </div>
+
+          {/* Install to Device / Apps Menu */}
+          {onOpenInstallModal && (
+            <div
+              className="card"
+              style={{
+                padding: '1rem',
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.05), rgba(15, 23, 42, 0.02))',
+                border: '1.5px solid #cbd5e1',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Download size={16} color="var(--color-primary)" />
+                    Install App to Device (تثبيت التطبيق)
+                  </h4>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+                    Install Pope Saweros Class on your mobile home screen or computer apps menu for offline access and fullscreen mode.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenInstallModal();
+                  }}
+                  className="btn btn-install-pwa btn-sm"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  <Download size={14} /> Install to Apps Menu
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Sync & Share Across Servants */}
           <div>

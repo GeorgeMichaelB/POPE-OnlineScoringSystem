@@ -126,10 +126,14 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
   // Sort by highest total score first
   scoredStudents.sort((a, b) => b.totalScore - a.totalScore);
 
+  const q = searchQuery.toLowerCase().trim();
   const filteredScoredStudents = scoredStudents.filter((item) =>
-    item.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (item.student.confessionFather && item.student.confessionFather.toLowerCase().includes(searchQuery.toLowerCase()))
+    !q ||
+    item.student.name.toLowerCase().includes(q) ||
+    (item.student.arabicName && item.student.arabicName.toLowerCase().includes(q)) ||
+    item.student.id.toLowerCase().includes(q) ||
+    (item.student.series && item.student.series.toLowerCase().includes(q)) ||
+    (item.student.confessionFather && item.student.confessionFather.toLowerCase().includes(q))
   );
 
   // Confession statistics for the selected month
@@ -145,9 +149,12 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
 
   const filteredConfessionBoys = students.filter((student) => {
     const matchesQuery =
-      student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (student.confessionFather && student.confessionFather.toLowerCase().includes(searchQuery.toLowerCase()));
+      !q ||
+      student.name.toLowerCase().includes(q) ||
+      (student.arabicName && student.arabicName.toLowerCase().includes(q)) ||
+      student.id.toLowerCase().includes(q) ||
+      (student.series && student.series.toLowerCase().includes(q)) ||
+      (student.confessionFather && student.confessionFather.toLowerCase().includes(q));
 
     const matchesPriest =
       selectedPriestFilter === 'ALL' || student.confessionFather === selectedPriestFilter;
@@ -1059,8 +1066,13 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                       </div>
 
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{item.student.name}</span>
+                          {item.student.arabicName && (
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                              ({item.student.arabicName})
+                            </span>
+                          )}
                           <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
                             {item.student.id}
                           </span>

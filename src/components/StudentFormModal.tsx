@@ -29,11 +29,13 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<Student>({
     id: '',
+    series: '',
     name: '',
-    dob: '2015-01-01',
+    arabicName: '',
+    dob: '2016-01-01',
     address: '',
     school: '',
-    category: 'Grade 4',
+    category: 'Pope Saweros Class',
     boyPhone: '',
     dadPhone: '',
     momPhone: '',
@@ -44,6 +46,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     confessionFather: '',
     confessionMonthlyDay: 15,
     photoUrl: '',
+    isDeacon: false,
     createdAt: new Date().toISOString(),
   });
 
@@ -52,12 +55,14 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       setFormData(existingStudent);
     } else {
       setFormData({
-        id: initialQrCode || `PASSPORT-${Math.floor(100 + Math.random() * 900)}`,
+        id: initialQrCode || '',
+        series: '',
         name: '',
-        dob: '2015-01-01',
+        arabicName: '',
+        dob: '2016-01-01',
         address: '',
         school: '',
-        category: 'Grade 4',
+        category: 'Pope Saweros Class',
         boyPhone: '',
         dadPhone: '',
         momPhone: '',
@@ -68,6 +73,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         confessionFather: '',
         confessionMonthlyDay: 15,
         photoUrl: '',
+        isDeacon: false,
         createdAt: new Date().toISOString(),
       });
     }
@@ -97,7 +103,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       return;
     }
     if (!formData.id.trim()) {
-      alert('Please provide a Passport QR ID.');
+      alert('Please provide a Student ID.');
       return;
     }
     onSave(formData);
@@ -110,7 +116,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="modal-content"
+        style={{ maxWidth: 680, maxHeight: '90vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -129,7 +139,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             </div>
             <div>
               <h3 className="modal-title">
-                {existingStudent ? 'Edit Student Profile' : 'New Kid Registration'}
+                {existingStudent ? 'Edit Student Profile' : 'Register New Student'}
               </h3>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 {existingStudent
@@ -151,10 +161,26 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit}>
           <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Passport QR Badge & Category */}
+            {/* Top Helper */}
             <div
               style={{
                 background: 'var(--bg-subtle)',
+                padding: '0.65rem 0.85rem',
+                borderRadius: 'var(--radius-sm)',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              {existingStudent
+                ? `Updating profile for ${existingStudent.name} (${existingStudent.id})`
+                : 'Assign unique Student ID & register boy'}
+            </div>
+
+            {/* Passport QR Badge, Series & Category */}
+            <div
+              style={{
+                background: 'var(--color-primary-light)',
+                border: '1px solid var(--border-medium)',
                 padding: '0.75rem 1rem',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
@@ -166,19 +192,39 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Passport QR Code:
+                  Student ID *:
                 </span>
                 <input
                   type="text"
                   required
+                  placeholder="e.g. AWI1012"
                   value={formData.id}
                   onChange={(e) => handleChange('id', e.target.value)}
                   className="form-input"
                   style={{
-                    width: '160px',
+                    width: '140px',
                     padding: '0.25rem 0.5rem',
                     fontWeight: 700,
                     letterSpacing: '0.5px',
+                    background: 'white',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Series Code:
+                </span>
+                <input
+                  type="text"
+                  placeholder="e.g. APSAW2743401"
+                  value={formData.series || ''}
+                  onChange={(e) => handleChange('series', e.target.value)}
+                  className="form-input"
+                  style={{
+                    width: '150px',
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.85rem',
                     background: 'white',
                   }}
                 />
@@ -189,22 +235,39 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               </div>
             </div>
 
-            {/* Basic Info */}
+            {/* Name Fields: English & Arabic */}
             <div className="form-grid-2">
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <User size={14} /> Full Name *
+                  <User size={14} /> Full Name (English) *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. David Mina Youssef"
+                  placeholder="e.g. Andy Wael Ibrahim"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   className="form-input"
                 />
               </div>
 
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <User size={14} /> الاسم بالعربي (Arabic Name)
+                </label>
+                <input
+                  type="text"
+                  placeholder="مثال: أندي وائل إبراهيم"
+                  value={formData.arabicName || ''}
+                  onChange={(e) => handleChange('arabicName', e.target.value)}
+                  className="form-input"
+                  dir="rtl"
+                />
+              </div>
+            </div>
+
+            {/* Date of Birth & Deacon (شماس) Checkbox */}
+            <div className="form-grid-2">
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
                   <Calendar size={14} /> Date of Birth {calculatedAge > 0 ? `(${calculatedAge} years old)` : ''}
@@ -216,6 +279,42 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                   onChange={(e) => handleChange('dob', e.target.value)}
                   className="form-input"
                 />
+              </div>
+
+              {/* Shamas Checkbox */}
+              <div className="form-group" style={{ justifyContent: 'center' }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <Church size={14} /> رتبة الشماسية (Deacon)
+                </label>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.65rem',
+                    padding: '0.55rem 0.85rem',
+                    background: formData.isDeacon ? '#f5f3ff' : 'var(--bg-subtle)',
+                    border: formData.isDeacon ? '1.5px solid #8b5cf6' : '1px solid var(--border-medium)',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.isDeacon || false}
+                    onChange={(e) => handleChange('isDeacon', e.target.checked)}
+                    style={{ width: '18px', height: '18px', accentColor: '#7c3aed', cursor: 'pointer' }}
+                  />
+                  <span style={{ fontWeight: 700, fontSize: '0.92rem', color: formData.isDeacon ? '#6d28d9' : 'var(--text-primary)' }}>
+                    ✝️ شماس (Deacon)
+                  </span>
+                  {formData.isDeacon && (
+                    <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 600, marginLeft: 'auto' }}>
+                      مشرطن / خادم مذبح
+                    </span>
+                  )}
+                </label>
               </div>
             </div>
 

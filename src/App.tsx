@@ -2,16 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Users,
   CalendarCheck,
-  CalendarDays,
   QrCode,
   Settings,
   BookOpen,
-  Sparkles,
   Trophy,
   Crown,
-  ShieldCheck,
   LogOut,
-  Cake
+  Cake,
+  Download
 } from 'lucide-react';
 import type {
   Student,
@@ -57,6 +55,7 @@ import { StudentFormModal } from './components/StudentFormModal';
 import { StudentDetailModal } from './components/StudentDetailModal';
 import { SettingsModal } from './components/SettingsModal';
 import { NavDroplist, type AppView } from './components/NavDroplist';
+import { InstallPromptModal } from './components/InstallPromptModal';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
@@ -126,6 +125,40 @@ export const App: React.FC = () => {
   const [scannedQrForRegistration, setScannedQrForRegistration] = useState<string>('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isManageHeroesOpen, setIsManageHeroesOpen] = useState(false);
+
+  // PWA Apps Menu Installation states
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    if (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      // @ts-expect-error iOS Safari standalone check
+      window.navigator.standalone === true
+    ) {
+      setIsAppInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   // Check & trigger browser desktop notification for birthdays 3 days away
   const triggerBirthdayNotifications = (urgentList: ReturnType<typeof getUrgentBirthdayAlerts>) => {
@@ -675,8 +708,11 @@ export const App: React.FC = () => {
 
   // QR Scanning Handler
   const handleQRScan = (scannedCode: string) => {
+    const cleanScanned = scannedCode.trim().toLowerCase();
     const foundStudent = students.find(
-      (s) => s.id.toLowerCase() === scannedCode.toLowerCase()
+      (s) =>
+        s.id.toLowerCase() === cleanScanned ||
+        (s.series && s.series.toLowerCase() === cleanScanned)
     );
 
     if (!foundStudent) {
@@ -816,6 +852,24 @@ export const App: React.FC = () => {
 
             {/* Right Header Actions */}
             <div className="header-actions">
+              {/* Install App to Device Button */}
+              <button
+                type="button"
+                onClick={() => setIsInstallModalOpen(true)}
+                className="btn btn-sm btn-install-pwa"
+                title="Install App to Apps Menu (تثبيت التطبيق على الجهاز)"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '8px',
+                }}
+              >
+                <Download size={14} />
+                <span className="hide-on-mobile">{isAppInstalled ? 'Installed' : 'Install App'}</span>
+              </button>
+
               {/* Urgent Birthday Alert Indicator (if any boy has birthday <= 3 days) */}
               {urgentBirthdayAlerts.length > 0 && (
                 <button
@@ -837,8 +891,11 @@ export const App: React.FC = () => {
                   }}
                 >
                   <Cake size={15} color="#e11d48" />
-                  <span style={{ fontSize: '0.78rem' }}>
+                  <span className="hide-on-mobile" style={{ fontSize: '0.78rem' }}>
                     {urgentBirthdayAlerts.length} Birthday{urgentBirthdayAlerts.length > 1 ? 's' : ''}!
+                  </span>
+                  <span className="show-on-mobile-only" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+                    {urgentBirthdayAlerts.length}
                   </span>
                 </button>
               )}
@@ -849,7 +906,7 @@ export const App: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.4rem',
-                  padding: '0.35rem 0.65rem',
+                  padding: '0.35rem 0.55rem',
                   borderRadius: '8px',
                   background: 'var(--bg-subtle)',
                   border: '1px solid var(--border-light)',
@@ -864,7 +921,7 @@ export const App: React.FC = () => {
                 ) : (
                   <Users size={14} color="#2563eb" />
                 )}
-                <span>{currentUser?.username}</span>
+                <span className="hide-on-mobile">{currentUser?.username}</span>
               </div>
 
               <button
@@ -1095,20 +1152,11 @@ export const App: React.FC = () => {
         <div className="mobile-bottom-nav no-print">
           <button
             type="button"
-            onClick={() => setCurrentView('heroes')}
-            className="mobile-nav-btn"
-            style={{ color: '#d97706' }}
-          >
-            <Crown size={18} />
-            <span>Champions</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setCurrentView('attendance')}
             className={`mobile-nav-btn ${currentView === 'attendance' ? 'active' : ''}`}
+            title="Friday Attendance & Liturgy"
           >
-            <CalendarCheck size={18} />
+            <CalendarCheck size={19} />
             <span>Friday</span>
           </button>
 
@@ -1116,59 +1164,42 @@ export const App: React.FC = () => {
             type="button"
             onClick={() => setCurrentView('dars_ktab')}
             className={`mobile-nav-btn ${currentView === 'dars_ktab' ? 'active' : ''}`}
+            title="Saturday Dars Ktab & Ashya"
           >
-            <BookOpen size={18} />
+            <BookOpen size={19} />
             <span>Dars Ktab</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setCurrentView('events')}
-            className={`mobile-nav-btn ${currentView === 'events' ? 'active' : ''}`}
+            onClick={() => setCurrentView('heroes')}
+            className="mobile-nav-btn"
+            style={{ color: '#d97706' }}
+            title="Hall of Champions"
           >
-            <Sparkles size={18} />
-            <span>Events</span>
+            <Crown size={19} />
+            <span>Champions</span>
           </button>
 
           <button
             type="button"
             onClick={() => setCurrentView('scoring')}
             className={`mobile-nav-btn ${currentView === 'scoring' ? 'active' : ''}`}
+            title="Points & Confessions"
           >
-            <Trophy size={18} />
+            <Trophy size={19} />
             <span>Score</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setCurrentView('visits')}
-            className={`mobile-nav-btn ${currentView === 'visits' ? 'active' : ''}`}
-          >
-            <CalendarDays size={18} />
-            <span>Eftekad</span>
           </button>
 
           <button
             type="button"
             onClick={() => setCurrentView('students')}
             className={`mobile-nav-btn ${currentView === 'students' ? 'active' : ''}`}
+            title="Student Roster"
           >
-            <Users size={18} />
+            <Users size={19} />
             <span>Boys</span>
           </button>
-
-          {/* Admin Audit Log in Mobile Nav */}
-          {currentUser?.role === 'admin' && (
-            <button
-              type="button"
-              onClick={() => setCurrentView('log')}
-              className={`mobile-nav-btn ${currentView === 'log' ? 'active' : ''}`}
-              style={{ color: '#2563eb' }}
-            >
-              <ShieldCheck size={18} />
-              <span>Audit Log</span>
-            </button>
-          )}
         </div>
       )}
 
@@ -1181,18 +1212,18 @@ export const App: React.FC = () => {
           qrScanMode === 'attendance'
             ? 'Scan Passport for Friday Class'
             : qrScanMode === 'dars_ktab'
-            ? 'Scan Passport for Saturday Dars Ktab'
-            : qrScanMode === 'mal3ab'
-            ? 'Scan Passport for Thursday Mal3ab'
-            : qrScanMode === 'summer_club_day1'
-            ? 'Scan Passport for Summer Club (First Day)'
-            : qrScanMode === 'summer_club_day2'
-            ? 'Scan Passport for Summer Club (Second Day)'
-            : qrScanMode === 'event'
-            ? 'Scan Passport for Event'
-            : qrScanMode === 'visit'
-            ? 'Scan Passport to Start Visit'
-            : 'Scan Passport QR Code'
+              ? 'Scan Passport for Saturday Dars Ktab'
+              : qrScanMode === 'mal3ab'
+                ? 'Scan Passport for Thursday Mal3ab'
+                : qrScanMode === 'summer_club_day1'
+                  ? 'Scan Passport for Summer Club (First Day)'
+                  : qrScanMode === 'summer_club_day2'
+                    ? 'Scan Passport for Summer Club (Second Day)'
+                    : qrScanMode === 'event'
+                      ? 'Scan Passport for Event'
+                      : qrScanMode === 'visit'
+                        ? 'Scan Passport to Start Visit'
+                        : 'Scan Passport QR Code'
         }
         continuous={
           qrScanMode === 'attendance' ||
@@ -1247,6 +1278,14 @@ export const App: React.FC = () => {
           setCurrentServantName(name);
         }}
         onDataChanged={loadAllData}
+        onOpenInstallModal={() => setIsInstallModalOpen(true)}
+      />
+
+      <InstallPromptModal
+        isOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
+        deferredPrompt={deferredPrompt}
+        onInstallSuccess={() => setIsAppInstalled(true)}
       />
 
       <HeroManageModal

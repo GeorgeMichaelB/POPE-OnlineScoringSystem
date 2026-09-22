@@ -81,13 +81,18 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
     new Set(students.map((s) => s.confessionFather).filter(Boolean) as string[])
   );
 
+  const q = searchQuery.toLowerCase().trim();
   const filteredStudents = students.filter((s) => {
     const matchesQuery =
-      s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.school.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      Boolean(s.confessionFather && s.confessionFather.toLowerCase().includes(searchQuery.toLowerCase()));
+      !q ||
+      s.name.toLowerCase().includes(q) ||
+      (s.arabicName && s.arabicName.toLowerCase().includes(q)) ||
+      s.id.toLowerCase().includes(q) ||
+      (s.series && s.series.toLowerCase().includes(q)) ||
+      s.school.toLowerCase().includes(q) ||
+      s.address.toLowerCase().includes(q) ||
+      Boolean(s.isDeacon && ('شماس'.includes(q) || 'deacon'.includes(q))) ||
+      Boolean(s.confessionFather && s.confessionFather.toLowerCase().includes(q));
 
     const matchesPriest =
       selectedPriestFilter === 'ALL' || s.confessionFather === selectedPriestFilter;
@@ -151,7 +156,7 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
           />
           <input
             type="text"
-            placeholder="Search boys by name, passport, confession father..."
+            placeholder="Search by English/Arabic name, ID, series, father..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="form-input"
@@ -269,6 +274,11 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
                         }}
                       >
                         {student.name}
+                        {student.arabicName && (
+                          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600, marginLeft: '6px' }}>
+                            ({student.arabicName})
+                          </span>
+                        )}
                       </h4>
                       <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
                         {student.id}
@@ -309,6 +319,21 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
                   >
                     <Trophy size={12} /> {scoreData.totalScore} Points
                   </span>
+
+                  {student.isDeacon && (
+                    <span
+                      className="badge"
+                      style={{
+                        background: '#ede9fe',
+                        color: '#6d28d9',
+                        border: '1px solid #ddd6fe',
+                        fontSize: '0.72rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✝️ شماس
+                    </span>
+                  )}
 
                   {student.loveLanguage && (
                     <span

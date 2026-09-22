@@ -43,10 +43,14 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
     return b.nextBirthdayDate.getMonth() === currentMonth;
   });
 
+  const q = searchQuery.toLowerCase().trim();
   const filteredBirthdays = allUpcoming.filter((info) => {
     const matchesSearch =
-      info.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      info.student.id.toLowerCase().includes(searchQuery.toLowerCase());
+      !q ||
+      info.student.name.toLowerCase().includes(q) ||
+      (info.student.arabicName && info.student.arabicName.toLowerCase().includes(q)) ||
+      info.student.id.toLowerCase().includes(q) ||
+      (info.student.series && info.student.series.toLowerCase().includes(q));
 
     if (!matchesSearch) return false;
 
@@ -58,7 +62,8 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
   const getWhatsAppLink = (phone: string, student: Student, turningAge: number) => {
     const clean = phone.replace(/[^0-9]/g, '');
     const formattedPhone = clean.startsWith('0') ? `2${clean}` : clean;
-    const message = `سلام ومحبة من كنيسة ربنا وفصل البابا ساويرس! ✝️\nبنهني بطلنا الجميل ${student.name} بمناسبة عيد ميلاده الـ ${turningAge}! 🎉🎂\nكل سنة وهو طيب ومفرح قلوبكم وقلب ربنا، وسنة مباركة جديدة في حضن الكنيسة! ✨🙏`;
+    const displayName = student.arabicName ? `${student.arabicName} (${student.name})` : student.name;
+    const message = `سلام ومحبة من كنيسة ربنا وفصل البابا ساويرس! ✝️\nبنهني بطلنا الجميل ${displayName} بمناسبة عيد ميلاده الـ ${turningAge}! 🎉🎂\nكل سنة وهو طيب ومفرح قلوبكم وقلب ربنا، وسنة مباركة جديدة في حضن الكنيسة! ✨🙏`;
     return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
   };
 
@@ -402,7 +407,7 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
         <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
           <input
             type="text"
-            placeholder="Search boys by name or ID..."
+            placeholder="Search boys by English or Arabic name, ID, series..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="form-input"
@@ -508,8 +513,13 @@ export const BirthdaysView: React.FC<BirthdaysViewProps> = ({
                   </div>
 
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{item.student.name}</span>
+                      {item.student.arabicName && (
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          ({item.student.arabicName})
+                        </span>
+                      )}
                       {isAlert && (
                         <span
                           style={{
