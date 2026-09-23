@@ -121,46 +121,61 @@ export function calculateStudentScore(
   summerClubRecords: SummerClubRecord[] = [],
   confessionRecords: ConfessionRecord[] = []
 ) {
-  // Friday Class points
+  // Friday Class points (only if enabled)
+  const isFridayEnabled = settings.fridayClassEnabled !== false;
   const fridayCount = fridayRecords.filter((r) => r.studentId === studentId && r.sundaySchool).length;
-  const fridayPoints = fridayCount * (settings.fridayClassPoints || 0);
+  const fridayPoints = isFridayEnabled ? fridayCount * (settings.fridayClassPoints || 0) : 0;
 
-  // Odas / Liturgy points
+  // Odas / Liturgy points (only if enabled)
+  const isOdasEnabled = settings.odasEnabled !== false;
   const odasCount = fridayRecords.filter((r) => r.studentId === studentId && r.odas).length;
-  const odasPoints = odasCount * (settings.odasPoints || 0);
+  const odasPoints = isOdasEnabled ? odasCount * (settings.odasPoints || 0) : 0;
 
-  // Saturday Dars Ktab points
+  // Saturday Dars Ktab points (only if enabled)
+  const isDarsKtabEnabled = settings.darsKtabEnabled !== false;
   const darsKtabCount = darsKtabRecords.filter((r) => r.studentId === studentId && r.darsKtab).length;
-  const darsKtabPoints = darsKtabCount * (settings.darsKtabPoints || 0);
+  const darsKtabPoints = isDarsKtabEnabled ? darsKtabCount * (settings.darsKtabPoints || 0) : 0;
 
-  // Saturday Ashya points
+  // Saturday Ashya points (only if enabled)
+  const isAshyaEnabled = settings.ashyaEnabled !== false;
   const ashyaCount = darsKtabRecords.filter((r) => r.studentId === studentId && r.ashya).length;
-  const ashyaPoints = ashyaCount * (settings.ashyaPoints || 0);
+  const ashyaPoints = isAshyaEnabled ? ashyaCount * (settings.ashyaPoints || 0) : 0;
 
-  // Thursday Mal3ab points
+  // Thursday Mal3ab points (only if enabled)
+  const isMal3abEnabled = settings.mal3abEnabled !== false;
   const mal3abAttendedCount = mal3abRecords.filter((r) => r.studentId === studentId && r.attended).length;
-  const mal3abPoints = mal3abAttendedCount * (settings.mal3abPoints ?? 10);
+  const mal3abPoints = isMal3abEnabled ? mal3abAttendedCount * (settings.mal3abPoints ?? 10) : 0;
+
+  const isMal3abMatchEnabled = settings.mal3abMatchEnabled !== false;
   const mal3abMatchCount = mal3abRecords.filter((r) => r.studentId === studentId && r.matchPlayed).length;
-  const mal3abMatchPoints = mal3abMatchCount * (settings.mal3abMatchPoints ?? 5);
+  const mal3abMatchPoints = isMal3abMatchEnabled ? mal3abMatchCount * (settings.mal3abMatchPoints ?? 5) : 0;
 
-  // Summer Club points
+  // Summer Club points (only if enabled)
+  const isSummerClubEnabled = settings.summerClubEnabled !== false;
   const summerClubAttendedCount = summerClubRecords.filter((r) => r.studentId === studentId && r.attended).length;
-  const summerClubPoints = summerClubAttendedCount * (settings.summerClubPoints ?? 10);
-  const summerClubActivityCount = summerClubRecords.filter((r) => r.studentId === studentId && r.activity).length;
-  const summerClubActivityPoints = summerClubActivityCount * (settings.summerClubActivityPoints ?? 5);
+  const summerClubPoints = isSummerClubEnabled ? summerClubAttendedCount * (settings.summerClubPoints ?? 10) : 0;
 
-  // Monthly Confession points (سر ومتابعة الاعتراف الشهري)
+  const isSummerClubActivityEnabled = settings.summerClubActivityEnabled !== false;
+  const summerClubActivityCount = summerClubRecords.filter((r) => r.studentId === studentId && r.activity).length;
+  const summerClubActivityPoints = isSummerClubActivityEnabled ? summerClubActivityCount * (settings.summerClubActivityPoints ?? 5) : 0;
+
+  // Monthly Confession points (only if enabled)
+  const isConfessionEnabled = settings.confessionEnabled !== false;
   const studentConfessions = confessionRecords.filter((r) => r.studentId === studentId && r.attended);
   const confessionCount = studentConfessions.length;
-  const confessionPoints = confessionCount * (settings.confessionPoints ?? 20);
+  const confessionPoints = isConfessionEnabled ? confessionCount * (settings.confessionPoints ?? 20) : 0;
 
-  // Custom Events points
+  // Custom Events points (only if enabled)
+  const isCustomEventsEnabled = settings.customEventsEnabled !== false;
   const eventCount = customEvents.filter((e) => e.attendeeIds.includes(studentId)).length;
-  const eventPoints = eventCount * (settings.customEventPoints || 0);
+  const eventPoints = isCustomEventsEnabled ? eventCount * (settings.customEventPoints || 0) : 0;
 
-  // Manual Custom Points entered by servant
+  // Manual Custom Points entered by servant (only if enabled)
+  const isCustomPointsEnabled = settings.customPointsEnabled !== false;
   const studentCustomEntries = customPointEntries.filter((p) => p.studentId === studentId);
-  const customPointsTotal = studentCustomEntries.reduce((sum, item) => sum + (Number(item.points) || 0), 0);
+  const customPointsTotal = isCustomPointsEnabled
+    ? studentCustomEntries.reduce((sum, item) => sum + (Number(item.points) || 0), 0)
+    : 0;
 
   const totalScore =
     fridayPoints +

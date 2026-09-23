@@ -14,8 +14,22 @@ import {
   ChevronRight,
   Check,
   Sparkles,
-  UserCheck
+  UserCheck,
+  CalendarCheck,
+  BookOpen,
+  Award,
+  Sun,
+  Palette,
+  MapPin,
+  Star,
+  HeartHandshake,
+  RotateCcw,
+  CheckSquare,
+  XSquare,
+  Minus,
+  X
 } from 'lucide-react';
+import { DEFAULT_POINT_SETTINGS } from '../services/db';
 import type {
   Student,
   AttendanceRecord,
@@ -185,8 +199,227 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
     setSelectedConfessionMonth(`${year}-${String(month).padStart(2, '0')}`);
   };
 
-  const handleSaveRules = (e: React.FormEvent) => {
-    e.preventDefault();
+  const toggleActivity = (enabledKey: keyof PointSettings) => {
+    setTempSettings((prev) => ({
+      ...prev,
+      [enabledKey]: prev[enabledKey] === false ? true : false,
+    }));
+  };
+
+  const updateActivityPoints = (pointsKey: keyof PointSettings, newPoints: number) => {
+    const clamped = Math.max(0, Math.min(100, isNaN(newPoints) ? 0 : newPoints));
+    setTempSettings((prev) => ({
+      ...prev,
+      [pointsKey]: clamped,
+    }));
+  };
+
+  const stepActivityPoints = (pointsKey: keyof PointSettings, delta: number) => {
+    const current = Number(tempSettings[pointsKey]) || 0;
+    updateActivityPoints(pointsKey, current + delta);
+  };
+
+  const handleEnableAllActivities = () => {
+    setTempSettings((prev) => ({
+      ...prev,
+      fridayClassEnabled: true,
+      odasEnabled: true,
+      darsKtabEnabled: true,
+      ashyaEnabled: true,
+      mal3abEnabled: true,
+      mal3abMatchEnabled: true,
+      summerClubEnabled: true,
+      summerClubActivityEnabled: true,
+      confessionEnabled: true,
+      customEventsEnabled: true,
+      customPointsEnabled: true,
+    }));
+  };
+
+  const handleDisableAllActivities = () => {
+    setTempSettings((prev) => ({
+      ...prev,
+      fridayClassEnabled: false,
+      odasEnabled: false,
+      darsKtabEnabled: false,
+      ashyaEnabled: false,
+      mal3abEnabled: false,
+      mal3abMatchEnabled: false,
+      summerClubEnabled: false,
+      summerClubActivityEnabled: false,
+      confessionEnabled: false,
+      customEventsEnabled: false,
+      customPointsEnabled: false,
+    }));
+  };
+
+  const handleResetToDefaults = () => {
+    setTempSettings({ ...DEFAULT_POINT_SETTINGS });
+  };
+
+  const activitiesConfig = [
+    {
+      id: 'fridayClass',
+      name: 'Friday Sunday School Class',
+      arabicName: 'فصل مدارس الأحد (الجمعة)',
+      categoryLabel: 'Church & Class / كنيسة وفصل',
+      icon: CalendarCheck,
+      iconBg: '#ecfdf5',
+      iconColor: '#059669',
+      enabledKey: 'fridayClassEnabled' as keyof PointSettings,
+      pointsKey: 'fridayClassPoints' as keyof PointSettings,
+      defaultPoints: 10,
+      description: 'Points awarded when student attends the Friday Sunday School class',
+      unitLabel: 'pts / class (نقطة / فصل)',
+    },
+    {
+      id: 'odas',
+      name: 'Holy Liturgy / Odas',
+      arabicName: 'القداس الإلهي (الجمعة / الأحد)',
+      categoryLabel: 'Church & Class / كنيسة وفصل',
+      icon: Church,
+      iconBg: '#fef3c7',
+      iconColor: '#d97706',
+      enabledKey: 'odasEnabled' as keyof PointSettings,
+      pointsKey: 'odasPoints' as keyof PointSettings,
+      defaultPoints: 15,
+      description: 'Points awarded when student attends holy divine liturgy',
+      unitLabel: 'pts / liturgy (نقطة / قداس)',
+    },
+    {
+      id: 'darsKtab',
+      name: 'Saturday Dars Ktab',
+      arabicName: 'درس الكتاب المقدس (السبت)',
+      categoryLabel: 'Church & Class / كنيسة وفصل',
+      icon: BookOpen,
+      iconBg: '#eff6ff',
+      iconColor: '#2563eb',
+      enabledKey: 'darsKtabEnabled' as keyof PointSettings,
+      pointsKey: 'darsKtabPoints' as keyof PointSettings,
+      defaultPoints: 10,
+      description: 'Points awarded when student attends Saturday Bible study',
+      unitLabel: 'pts / lesson (نقطة / حصة)',
+    },
+    {
+      id: 'ashya',
+      name: 'Saturday Ashya (Vespers)',
+      arabicName: 'صلاة العشية (السبت)',
+      categoryLabel: 'Church & Class / كنيسة وفصل',
+      icon: Sparkles,
+      iconBg: '#f0f9ff',
+      iconColor: '#0284c7',
+      enabledKey: 'ashyaEnabled' as keyof PointSettings,
+      pointsKey: 'ashyaPoints' as keyof PointSettings,
+      defaultPoints: 5,
+      description: 'Points awarded when student attends Saturday evening vespers prayer',
+      unitLabel: 'pts / prayer (نقطة / عشية)',
+    },
+    {
+      id: 'mal3ab',
+      name: 'Thursday Mal3ab Attendance',
+      arabicName: 'حضور يوم الملعب والنشاط الرياضي (الخميس)',
+      categoryLabel: 'Sports & Field / الملعب والرياضة',
+      icon: Trophy,
+      iconBg: '#f0fdfa',
+      iconColor: '#0d9488',
+      enabledKey: 'mal3abEnabled' as keyof PointSettings,
+      pointsKey: 'mal3abPoints' as keyof PointSettings,
+      defaultPoints: 10,
+      description: 'Points awarded when student shows up and participates in Thursday field',
+      unitLabel: 'pts / field day (نقطة / يوم ملعب)',
+    },
+    {
+      id: 'mal3abMatch',
+      name: 'Thursday Mal3ab Matches & Tournaments',
+      arabicName: 'مباريات وبطولات الملعب',
+      categoryLabel: 'Sports & Field / الملعب والرياضة',
+      icon: Award,
+      iconBg: '#ecfeff',
+      iconColor: '#0891b2',
+      enabledKey: 'mal3abMatchEnabled' as keyof PointSettings,
+      pointsKey: 'mal3abMatchPoints' as keyof PointSettings,
+      defaultPoints: 5,
+      description: 'Bonus points awarded when student plays competitive tournament matches',
+      unitLabel: 'pts / match (نقطة / مباراة)',
+    },
+    {
+      id: 'summerClub',
+      name: 'Summer Club Attendance',
+      arabicName: 'حضور النادي الصيفي',
+      categoryLabel: 'Summer Club / النادي الصيفي',
+      icon: Sun,
+      iconBg: '#fff7ed',
+      iconColor: '#ea580c',
+      enabledKey: 'summerClubEnabled' as keyof PointSettings,
+      pointsKey: 'summerClubPoints' as keyof PointSettings,
+      defaultPoints: 10,
+      description: 'Points awarded for each summer club gathering day attended',
+      unitLabel: 'pts / day (نقطة / يوم نادي)',
+    },
+    {
+      id: 'summerClubActivity',
+      name: 'Summer Club Workshops & Crafts',
+      arabicName: 'ورش وأنشطة النادي الصيفي',
+      categoryLabel: 'Summer Club / النادي الصيفي',
+      icon: Palette,
+      iconBg: '#fdf2f8',
+      iconColor: '#db2777',
+      enabledKey: 'summerClubActivityEnabled' as keyof PointSettings,
+      pointsKey: 'summerClubActivityPoints' as keyof PointSettings,
+      defaultPoints: 5,
+      description: 'Points awarded when student completes workshops, crafts or projects',
+      unitLabel: 'pts / activity (نقطة / نشاط)',
+    },
+    {
+      id: 'confession',
+      name: 'Monthly Confession',
+      arabicName: 'سر الاعتراف الشهري',
+      categoryLabel: 'Spiritual Sacraments / أسرار كنسية',
+      icon: HeartHandshake,
+      iconBg: '#fdf4ff',
+      iconColor: '#9333ea',
+      enabledKey: 'confessionEnabled' as keyof PointSettings,
+      pointsKey: 'confessionPoints' as keyof PointSettings,
+      defaultPoints: 20,
+      description: 'Spiritual incentive points awarded when student attends monthly confession with Abouna',
+      unitLabel: 'pts / month (نقطة / شهرياً)',
+    },
+    {
+      id: 'customEvents',
+      name: 'Church Trips & Special Events',
+      arabicName: 'الرحلات والمناسبات الخاصة',
+      categoryLabel: 'Events & Trips / رحلات ومناسبات',
+      icon: MapPin,
+      iconBg: '#f0fdf4',
+      iconColor: '#16a34a',
+      enabledKey: 'customEventsEnabled' as keyof PointSettings,
+      pointsKey: 'customEventPoints' as keyof PointSettings,
+      defaultPoints: 20,
+      description: 'Points awarded when student joins feasts, spiritual trips and class outings',
+      unitLabel: 'pts / trip (نقطة / رحلة)',
+    },
+    {
+      id: 'customPoints',
+      name: 'Servant Extra Points & Bonuses',
+      arabicName: 'نقاط إضافية وتشجيعية من الخدام',
+      categoryLabel: 'Custom & Bonus / تشجيع وبونص',
+      icon: Star,
+      iconBg: '#faf5ff',
+      iconColor: '#7c3aed',
+      enabledKey: 'customPointsEnabled' as keyof PointSettings,
+      pointsKey: undefined,
+      defaultPoints: undefined,
+      description: 'Allows servants to award custom on-the-fly bonuses for outstanding behavior',
+      unitLabel: 'Flexible points (مبلغ متغير)',
+    },
+  ];
+
+  const activeActivitiesCount = activitiesConfig.filter(
+    (item) => tempSettings[item.enabledKey] !== false
+  ).length;
+
+  const handleSaveRules = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     onSavePointSettings(tempSettings);
     setSettingsSavedMessage(true);
     setTimeout(() => setSettingsSavedMessage(false), 2500);
@@ -316,10 +549,11 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
               setTempSettings(pointSettings);
               setIsSettingsOpen(!isSettingsOpen);
             }}
-            className="btn btn-secondary btn-sm"
-            title="Customize automatic points for attendance and confession"
+            className={`btn btn-sm ${isSettingsOpen ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+            title="Choose which activities earn scores and how many points"
           >
-            <Sliders size={15} /> Customize Rules ({pointSettings.confessionPoints ?? 20} pts confession)
+            <Sliders size={15} /> Customize Activity Points & Rules (تحديد الأنشطة والنقاط)
           </button>
 
           <button
@@ -400,159 +634,344 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
         </button>
       </div>
 
-      {/* Rules Customizer Accordion Panel */}
+      {/* Activity Scoring Rules Customizer Panel */}
       {isSettingsOpen && (
-        <div className="card" style={{ background: '#f8fafc', border: '1px solid #cbd5e1' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Sliders size={16} /> Customize Automated Points Rules (تعديل قواعد احتساب النقاط)
-            </h3>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Points recalculate automatically across all boys
-            </span>
+        <div
+          className="card"
+          style={{
+            background: '#ffffff',
+            border: '2px solid var(--color-primary)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+            padding: '1.25rem',
+            borderRadius: 'var(--radius-lg)',
+            animation: 'fadeIn 0.2s ease-in-out',
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '1rem',
+              paddingBottom: '1rem',
+              borderBottom: '1px solid var(--border-light)',
+              marginBottom: '1.25rem',
+            }}
+          >
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--color-primary-light)',
+                    color: 'var(--color-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Sliders size={20} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, margin: 0 }}>
+                    Activity Scoring & Rules Configuration (تحديد الأنشطة واحتساب النقاط)
+                  </h3>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>
+                    Choose which activities earn points, turn off activities that should not award points, and set the exact points per attendance.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions & Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  padding: '0.35rem 0.75rem',
+                  borderRadius: 'var(--radius-full)',
+                  background: activeActivitiesCount > 0 ? '#ecfdf5' : '#fef2f2',
+                  color: activeActivitiesCount > 0 ? '#059669' : '#dc2626',
+                  border: `1px solid ${activeActivitiesCount > 0 ? '#a7f3d0' : '#fecaca'}`,
+                }}
+              >
+                {activeActivitiesCount} of {activitiesConfig.length} activities active ({activeActivitiesCount} نشط)
+              </span>
+
+              <button
+                type="button"
+                onClick={handleEnableAllActivities}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                title="Enable all activities"
+              >
+                <CheckSquare size={13} /> Enable All (تفعيل الكل)
+              </button>
+
+              <button
+                type="button"
+                onClick={handleDisableAllActivities}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                title="Disable all activities"
+              >
+                <XSquare size={13} /> Disable All (تعطيل الكل)
+              </button>
+
+              <button
+                type="button"
+                onClick={handleResetToDefaults}
+                className="btn btn-secondary btn-sm"
+                style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                title="Reset points to default values"
+              >
+                <RotateCcw size={13} /> Reset Defaults (الافتراضي)
+              </button>
+            </div>
           </div>
 
+          {/* Activities Grid */}
           <form onSubmit={handleSaveRules}>
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                gap: '0.85rem',
-                marginBottom: '1rem',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.25rem',
               }}
             >
-              {/* Confession Rule (Prominent) */}
-              <div style={{ background: '#fdf4ff', padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid #f0abfc' }}>
-                <label className="form-label" style={{ fontSize: '0.75rem', color: '#86198f', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Church size={13} /> Monthly Confession (سر الاعتراف)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={tempSettings.confessionPoints ?? 20}
-                  onChange={(e) =>
-                    setTempSettings({ ...tempSettings, confessionPoints: Number(e.target.value) })
-                  }
-                  className="form-input"
-                  style={{ fontWeight: 800, color: '#86198f', borderColor: '#f0abfc' }}
-                />
-              </div>
+              {activitiesConfig.map((item) => {
+                const isEnabled = tempSettings[item.enabledKey] !== false;
+                const pointsVal: number = item.pointsKey ? Number(tempSettings[item.pointsKey] ?? item.defaultPoints ?? 0) : 0;
+                const IconComp = item.icon;
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Friday Class (الجمعة)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={tempSettings.fridayClassPoints}
-                  onChange={(e) =>
-                    setTempSettings({ ...tempSettings, fridayClassPoints: Number(e.target.value) })
-                  }
-                  className="form-input"
-                  style={{ fontWeight: 700 }}
-                />
-              </div>
+                return (
+                  <div
+                    key={item.id}
+                    style={{
+                      borderRadius: 'var(--radius-md)',
+                      border: isEnabled ? '1.5px solid #cbd5e1' : '1.5px dashed #cbd5e1',
+                      background: isEnabled ? '#ffffff' : '#f8fafc',
+                      padding: '1rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '0.85rem',
+                      transition: 'all 0.2s ease',
+                      boxShadow: isEnabled ? '0 1px 3px rgba(0,0,0,0.05)' : 'none',
+                      opacity: isEnabled ? 1 : 0.75,
+                    }}
+                  >
+                    {/* Activity Top Row: Icon + Names + Toggle Button */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                        <div
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 'var(--radius-md)',
+                            background: isEnabled ? item.iconBg : '#f1f5f9',
+                            color: isEnabled ? item.iconColor : '#94a3b8',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <IconComp size={20} />
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            {item.categoryLabel}
+                          </div>
+                          <div style={{ fontWeight: 800, fontSize: '0.925rem', color: isEnabled ? 'var(--text-dark)' : '#64748b' }}>
+                            {item.arabicName}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: isEnabled ? 'var(--text-muted)' : '#94a3b8' }}>
+                            {item.name}
+                          </div>
+                        </div>
+                      </div>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Odas / Liturgy (القداس)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={tempSettings.odasPoints}
-                  onChange={(e) =>
-                    setTempSettings({ ...tempSettings, odasPoints: Number(e.target.value) })
-                  }
-                  className="form-input"
-                  style={{ fontWeight: 700 }}
-                />
-              </div>
+                      {/* Interactive ON / OFF Switch */}
+                      <button
+                        type="button"
+                        onClick={() => toggleActivity(item.enabledKey)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease',
+                          border: isEnabled ? '1px solid #059669' : '1px solid #cbd5e1',
+                          background: isEnabled ? '#059669' : '#f1f5f9',
+                          color: isEnabled ? '#ffffff' : '#64748b',
+                          flexShrink: 0,
+                        }}
+                        title={isEnabled ? 'Click to disable scoring for this activity' : 'Click to enable scoring for this activity'}
+                      >
+                        {isEnabled ? (
+                          <>
+                            <Check size={13} strokeWidth={3} />
+                            <span>يحتسب درجات</span>
+                          </>
+                        ) : (
+                          <>
+                            <X size={13} strokeWidth={2.5} />
+                            <span>معطّل (0 درجات)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Saturday Dars Ktab (درس كتاب)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={tempSettings.darsKtabPoints}
-                  onChange={(e) =>
-                    setTempSettings({ ...tempSettings, darsKtabPoints: Number(e.target.value) })
-                  }
-                  className="form-input"
-                  style={{ fontWeight: 700 }}
-                />
-              </div>
+                    {/* Short Description */}
+                    <div style={{ fontSize: '0.72rem', color: isEnabled ? '#475569' : '#94a3b8', lineHeight: 1.35 }}>
+                      {item.description}
+                    </div>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Saturday Ashya (عشية)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={tempSettings.ashyaPoints}
-                  onChange={(e) =>
-                    setTempSettings({ ...tempSettings, ashyaPoints: Number(e.target.value) })
-                  }
-                  className="form-input"
-                  style={{ fontWeight: 700 }}
-                />
-              </div>
+                    {/* Points Stepper / Value Controller */}
+                    <div
+                      style={{
+                        paddingTop: '0.65rem',
+                        borderTop: '1px solid var(--border-light)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      {item.pointsKey ? (
+                        <>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isEnabled ? 'var(--text-dark)' : '#94a3b8' }}>
+                            {isEnabled ? 'Points (النقاط لكل مرة):' : 'Scoring disabled (لا درجات):'}
+                          </span>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Thursday Mal3ab (الملعب)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={tempSettings.mal3abPoints ?? 10}
-                  onChange={(e) =>
-                    setTempSettings({ ...tempSettings, mal3abPoints: Number(e.target.value) })
-                  }
-                  className="form-input"
-                  style={{ fontWeight: 700 }}
-                />
-              </div>
+                          {isEnabled ? (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => stepActivityPoints(item.pointsKey!, -5)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ width: 28, height: 28, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                title="Decrease 5 points"
+                              >
+                                <Minus size={13} />
+                              </button>
 
-              <div>
-                <label className="form-label" style={{ fontSize: '0.75rem' }}>
-                  Events & Trips (رحلات)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={tempSettings.customEventPoints}
-                  onChange={(e) =>
-                    setTempSettings({ ...tempSettings, customEventPoints: Number(e.target.value) })
-                  }
-                  className="form-input"
-                  style={{ fontWeight: 700 }}
-                />
-              </div>
+                              <input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={pointsVal}
+                                onChange={(e) => updateActivityPoints(item.pointsKey!, Number(e.target.value))}
+                                className="form-input"
+                                style={{
+                                  width: 60,
+                                  height: 30,
+                                  textAlign: 'center',
+                                  padding: '0.2rem',
+                                  fontWeight: 800,
+                                  fontSize: '0.9rem',
+                                  color: 'var(--color-primary)',
+                                }}
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() => stepActivityPoints(item.pointsKey!, 5)}
+                                className="btn btn-secondary btn-sm"
+                                style={{ width: 28, height: 28, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                title="Increase 5 points"
+                              >
+                                <Plus size={13} />
+                              </button>
+
+                              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary)' }}>
+                                pts
+                              </span>
+                            </div>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                color: '#94a3b8',
+                                background: '#e2e8f0',
+                                padding: '0.2rem 0.5rem',
+                                borderRadius: 'var(--radius-sm)',
+                              }}
+                            >
+                              0 نقطة
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isEnabled ? 'var(--text-dark)' : '#94a3b8' }}>
+                            {isEnabled ? '✅ تشجيع الخدام مفعّل في المجموع' : '⛔ بونص الخدام معطل من المجموع'}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 700,
+                              color: isEnabled ? '#7c3aed' : '#94a3b8',
+                              background: isEnabled ? '#faf5ff' : '#e2e8f0',
+                              padding: '0.2rem 0.5rem',
+                              borderRadius: 'var(--radius-sm)',
+                            }}
+                          >
+                            {isEnabled ? 'نقاط مرنة' : '0 نقطة'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-              <button
-                type="button"
-                onClick={() => setIsSettingsOpen(false)}
-                className="btn btn-secondary btn-sm"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary btn-sm">
-                <Save size={14} /> Save Point Rules
-              </button>
+            {/* Bottom Form Actions */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--border-light)',
+              }}
+            >
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                💡 Click "Save Activity Rules" to recalculate total scores for all {students.length} boys immediately.
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Cancel (إلغاء)
+                </button>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}
+                >
+                  <Save size={15} /> Save Activity Rules (حفظ إعدادات الأنشطة والنقاط)
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -685,7 +1104,7 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                       SCORE REWARD (النقاط عند الحضور)
                     </div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#86198f' }}>
-                      +{pointSettings.confessionPoints ?? 20} Points
+                      {pointSettings.confessionEnabled !== false ? `+${pointSettings.confessionPoints ?? 20} Points` : '0 Points (معطل)'}
                     </div>
                   </div>
                 </div>
@@ -763,7 +1182,9 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                 MONTHLY CONFESSION SCHEDULE & ATTENDANCE ({formatMonthYear(selectedConfessionMonth)})
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Click button to award +{pointSettings.confessionPoints ?? 20} pts when boy goes to confession
+                {pointSettings.confessionEnabled !== false
+                  ? `Click button to award +${pointSettings.confessionPoints ?? 20} pts when boy goes to confession`
+                  : 'Monthly confession attendance tracking (Points scoring is currently disabled)'}
               </span>
             </div>
 
@@ -923,7 +1344,7 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                               }}
                               title="Click to toggle / unmark"
                             >
-                              <Check size={14} /> تم الاعتراف (+{pointSettings.confessionPoints ?? 20}p)
+                              <Check size={14} /> تم الاعتراف{pointSettings.confessionEnabled !== false ? ` (+${pointSettings.confessionPoints ?? 20}p)` : ''}
                             </button>
 
                             <button
@@ -957,7 +1378,7 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                               boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
                             }}
                           >
-                            <CheckCircle2 size={15} /> راح الاعتراف (+{pointSettings.confessionPoints ?? 20} pts)
+                            <CheckCircle2 size={15} /> راح الاعتراف{pointSettings.confessionEnabled !== false ? ` (+${pointSettings.confessionPoints ?? 20} pts)` : ''}
                           </button>
                         )}
                       </div>
@@ -1085,17 +1506,40 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
 
                         {/* Breakdown Chips */}
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '3px' }}>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--color-success)', fontWeight: 600 }}>
-                            Fri: +{item.fridayPoints}
-                          </span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--color-warning)', fontWeight: 600 }}>
-                            Odas: +{item.odasPoints}
-                          </span>
-                          <span style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: 600 }}>
-                            Dars: +{item.darsKtabPoints}
-                          </span>
+                          {pointSettings.fridayClassEnabled !== false && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-success)', fontWeight: 600 }}>
+                              Fri: +{item.fridayPoints}
+                            </span>
+                          )}
+                          {pointSettings.odasEnabled !== false && (
+                            <span style={{ fontSize: '0.72rem', color: 'var(--color-warning)', fontWeight: 600 }}>
+                              Odas: +{item.odasPoints}
+                            </span>
+                          )}
+                          {pointSettings.darsKtabEnabled !== false && (
+                            <span style={{ fontSize: '0.72rem', color: '#1d4ed8', fontWeight: 600 }}>
+                              Dars: +{item.darsKtabPoints}
+                            </span>
+                          )}
+                          {pointSettings.ashyaEnabled !== false && item.ashyaPoints > 0 && (
+                            <span style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: 600 }}>
+                              Ashya: +{item.ashyaPoints}
+                            </span>
+                          )}
+                          {(pointSettings.mal3abEnabled !== false || pointSettings.mal3abMatchEnabled !== false) &&
+                            (item.mal3abPoints + item.mal3abMatchPoints > 0) && (
+                              <span style={{ fontSize: '0.72rem', color: '#0d9488', fontWeight: 600 }}>
+                                Mal3ab: +{item.mal3abPoints + item.mal3abMatchPoints}
+                              </span>
+                            )}
+                          {(pointSettings.summerClubEnabled !== false || pointSettings.summerClubActivityEnabled !== false) &&
+                            (item.summerClubPoints + item.summerClubActivityPoints > 0) && (
+                              <span style={{ fontSize: '0.72rem', color: '#ea580c', fontWeight: 600 }}>
+                                Club: +{item.summerClubPoints + item.summerClubActivityPoints}
+                              </span>
+                            )}
                           {/* Confession Points Badge */}
-                          {item.confessionPoints > 0 && (
+                          {pointSettings.confessionEnabled !== false && item.confessionPoints > 0 && (
                             <span
                               style={{
                                 fontSize: '0.72rem',
@@ -1114,7 +1558,12 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                               <Church size={11} /> Confession: +{item.confessionPoints} ({item.confessionCount})
                             </span>
                           )}
-                          {item.customPointsTotal !== 0 && (
+                          {pointSettings.customEventsEnabled !== false && item.eventPoints > 0 && (
+                            <span style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 600 }}>
+                              Events: +{item.eventPoints}
+                            </span>
+                          )}
+                          {pointSettings.customPointsEnabled !== false && item.customPointsTotal !== 0 && (
                             <span style={{ fontSize: '0.72rem', color: '#7c3aed', fontWeight: 600 }}>
                               Bonus: {item.customPointsTotal > 0 ? `+${item.customPointsTotal}` : item.customPointsTotal}
                             </span>

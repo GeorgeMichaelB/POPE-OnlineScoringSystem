@@ -102,16 +102,37 @@ export interface ConfessionRecord {
 
 // Scoring System Rules (Points automatically awarded for attendance activities)
 export interface PointSettings {
+  fridayClassEnabled?: boolean;
   fridayClassPoints: number; // e.g. 10 pts
+
+  odasEnabled?: boolean;
   odasPoints: number; // e.g. 15 pts
+
+  darsKtabEnabled?: boolean;
   darsKtabPoints: number; // e.g. 10 pts
+
+  ashyaEnabled?: boolean;
   ashyaPoints: number; // e.g. 5 pts
-  customEventPoints: number; // e.g. 20 pts
+
+  mal3abEnabled?: boolean;
   mal3abPoints?: number; // e.g. 10 pts
+
+  mal3abMatchEnabled?: boolean;
   mal3abMatchPoints?: number; // e.g. 5 pts
+
+  summerClubEnabled?: boolean;
   summerClubPoints?: number; // e.g. 10 pts
+
+  summerClubActivityEnabled?: boolean;
   summerClubActivityPoints?: number; // e.g. 5 pts
+
+  confessionEnabled?: boolean;
   confessionPoints?: number; // e.g. 20 pts (حضور سر الاعتراف الشهري)
+
+  customEventsEnabled?: boolean;
+  customEventPoints: number; // e.g. 20 pts
+
+  customPointsEnabled?: boolean; // Manual extra points entered by servant
 }
 
 // Manual or Custom Point Additions/Deductions entered by the servant

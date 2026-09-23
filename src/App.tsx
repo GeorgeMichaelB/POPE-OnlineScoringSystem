@@ -80,16 +80,27 @@ export const App: React.FC = () => {
   const [customEvents, setCustomEvents] = useState<CustomEvent[]>([]);
   const [visits, setVisits] = useState<VisitRecord[]>([]);
   const [pointSettings, setPointSettings] = useState<PointSettings>({
+    fridayClassEnabled: true,
     fridayClassPoints: 10,
+    odasEnabled: true,
     odasPoints: 15,
+    darsKtabEnabled: true,
     darsKtabPoints: 10,
+    ashyaEnabled: true,
     ashyaPoints: 5,
-    customEventPoints: 20,
+    mal3abEnabled: true,
     mal3abPoints: 10,
+    mal3abMatchEnabled: true,
     mal3abMatchPoints: 5,
+    summerClubEnabled: true,
     summerClubPoints: 10,
+    summerClubActivityEnabled: true,
     summerClubActivityPoints: 5,
+    confessionEnabled: true,
     confessionPoints: 20,
+    customEventsEnabled: true,
+    customEventPoints: 20,
+    customPointsEnabled: true,
   });
   const [confessions, setConfessions] = useState<ConfessionRecord[]>([]);
   const [customPoints, setCustomPoints] = useState<CustomPointEntry[]>([]);

@@ -34,6 +34,7 @@ import type {
   PointSettings,
   VisitRecord
 } from '../types';
+import { DEFAULT_POINT_SETTINGS } from '../services/db';
 import {
   calculateAge,
   calculateAttendanceStats,
@@ -69,17 +70,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   confessions = [],
   customEvents = [],
   customPoints = [],
-  pointSettings = {
-    fridayClassPoints: 10,
-    odasPoints: 15,
-    darsKtabPoints: 10,
-    ashyaPoints: 5,
-    customEventPoints: 20,
-    mal3abPoints: 10,
-    mal3abMatchPoints: 5,
-    summerClubPoints: 10,
-    summerClubActivityPoints: 5,
-  },
+  pointSettings = DEFAULT_POINT_SETTINGS,
   visits,
   isOpen,
   onClose,
@@ -423,18 +414,18 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 </div>
               </div>
 
-                              {/* Father of Confession & Monthly Day */}
-                <div style={{ padding: '0.75rem', background: '#fdf4ff', borderRadius: 'var(--radius-sm)', border: '1px solid #f0abfc' }}>
-                  <div style={{ fontSize: '0.75rem', color: '#a21caf', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}>
-                    <Church size={13} color="#a21caf" /> أب الاعتراف (CONFESSION FATHER)
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#86198f', marginTop: '2px' }}>
-                    {student.confessionFather || 'غير مسجل'}
-                  </div>
-                  <div style={{ fontSize: '0.72rem', color: '#a21caf', marginTop: '2px' }}>
-                    {student.confessionMonthlyDay ? `يوم ${student.confessionMonthlyDay} من كل شهر` : 'اليوم 15 من كل شهر'}
-                  </div>
+              {/* Father of Confession & Monthly Day */}
+              <div style={{ padding: '0.75rem', background: '#fdf4ff', borderRadius: 'var(--radius-sm)', border: '1px solid #f0abfc' }}>
+                <div style={{ fontSize: '0.75rem', color: '#a21caf', display: 'flex', alignItems: 'center', gap: '0.3rem', fontWeight: 700 }}>
+                  <Church size={13} color="#a21caf" /> أب الاعتراف (CONFESSION FATHER)
                 </div>
+                <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#86198f', marginTop: '2px' }}>
+                  {student.confessionFather || 'غير مسجل'}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#a21caf', marginTop: '2px' }}>
+                  {student.confessionMonthlyDay ? `يوم ${student.confessionMonthlyDay} من كل شهر` : 'اليوم 15 من كل شهر'}
+                </div>
+              </div>
 
               {/* Pastoral Insights: Weak Points, Hobbies, Notes */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>

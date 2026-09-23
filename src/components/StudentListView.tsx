@@ -26,6 +26,7 @@ import type {
   PointSettings,
   VisitRecord
 } from '../types';
+import { DEFAULT_POINT_SETTINGS } from '../services/db';
 import {
   calculateAge,
   calculateAttendanceStats,
@@ -60,13 +61,7 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
   confessions = [],
   customEvents = [],
   customPoints = [],
-  pointSettings = {
-    fridayClassPoints: 10,
-    odasPoints: 15,
-    darsKtabPoints: 10,
-    ashyaPoints: 5,
-    customEventPoints: 20,
-  },
+  pointSettings = DEFAULT_POINT_SETTINGS,
   visits,
   onSelectStudent,
   onAddNewStudent,
@@ -386,7 +381,7 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
                         gap: '0.2rem',
                       }}
                     >
-                      <CheckCircle2 size={12} /> تم الاعتراف (+{pointSettings.confessionPoints ?? 20}p)
+                      <CheckCircle2 size={12} /> تم الاعتراف{pointSettings.confessionEnabled !== false ? ` (+${pointSettings.confessionPoints ?? 20}p)` : ''}
                     </span>
                   ) : (
                     <span

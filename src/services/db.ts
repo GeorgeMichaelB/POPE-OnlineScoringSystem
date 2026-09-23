@@ -40,17 +40,28 @@ export const DEFAULT_SUMMER_CLUB_SETTINGS: SummerClubSettings = {
   day2Weekday: 4, // Thursday (الخميس) default
 };
 
-const DEFAULT_POINT_SETTINGS: PointSettings = {
+export const DEFAULT_POINT_SETTINGS: PointSettings = {
+  fridayClassEnabled: true,
   fridayClassPoints: 10,
+  odasEnabled: true,
   odasPoints: 15,
+  darsKtabEnabled: true,
   darsKtabPoints: 10,
+  ashyaEnabled: true,
   ashyaPoints: 5,
-  customEventPoints: 20,
+  mal3abEnabled: true,
   mal3abPoints: 10,
+  mal3abMatchEnabled: true,
   mal3abMatchPoints: 5,
+  summerClubEnabled: true,
   summerClubPoints: 10,
+  summerClubActivityEnabled: true,
   summerClubActivityPoints: 5,
+  confessionEnabled: true,
   confessionPoints: 20,
+  customEventsEnabled: true,
+  customEventPoints: 20,
+  customPointsEnabled: true,
 };
 
 const INITIAL_CUSTOM_POINTS: CustomPointEntry[] = [];
