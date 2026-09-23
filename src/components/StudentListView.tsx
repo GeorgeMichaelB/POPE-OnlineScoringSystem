@@ -147,7 +147,7 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
       </div>
 
       {/* Search & Priest Filter Bar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center' }}>
+      <div className="student-filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.65rem', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, maxWidth: 360, minWidth: 220 }}>
           <Search
             size={16}
@@ -188,9 +188,10 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
         </div>
       ) : (
         <div
+          className="student-list-grid"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
             gap: '1rem',
           }}
         >
@@ -437,6 +438,7 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
 
                 {/* Card Actions Footer */}
                 <div
+                  className="student-card-footer"
                   style={{
                     display: 'flex',
                     alignItems: 'center',

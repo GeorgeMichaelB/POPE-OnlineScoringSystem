@@ -829,135 +829,139 @@ export const App: React.FC = () => {
       {currentView !== 'heroes' && (
         <header className="app-header no-print">
           <div className="header-inner">
-            <div className="church-brand">
-              <div className="brand-icon">
-                <BookOpen size={18} />
+            <div className="header-main-bar">
+              <div className="church-brand">
+                <div className="brand-icon">
+                  <BookOpen size={18} />
+                </div>
+                <div className="brand-titles">
+                  <h1>Pope Saweros Class</h1>
+                  <p>Online Scoring & Attendance System (Grade 4)</p>
+                </div>
               </div>
-              <div className="brand-titles">
-                <h1>Pope Saweros Class</h1>
-                <p>Online Scoring & Attendance System (Grade 4)</p>
-              </div>
-            </div>
 
-            {/* Unified Navigation Droplist */}
-            <NavDroplist
-              currentView={currentView}
-              onChangeView={setCurrentView}
-              customEventsCount={customEvents.length}
-              studentsCount={students.length}
-              auditLogsCount={auditLogs.length}
-              birthdayAlertCount={urgentBirthdayAlerts.length}
-              isAdmin={currentUser?.role === 'admin'}
-            />
-
-            {/* Right Header Actions */}
-            <div className="header-actions">
-              {/* Install App to Device Button */}
-              <button
-                type="button"
-                onClick={() => setIsInstallModalOpen(true)}
-                className="btn btn-sm btn-install-pwa"
-                title="Install App to Apps Menu (تثبيت التطبيق على الجهاز)"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.35rem',
-                  padding: '0.35rem 0.65rem',
-                  borderRadius: '8px',
-                }}
-              >
-                <Download size={14} />
-                <span className="hide-on-mobile">{isAppInstalled ? 'Installed' : 'Install App'}</span>
-              </button>
-
-              {/* Urgent Birthday Alert Indicator (if any boy has birthday <= 3 days) */}
-              {urgentBirthdayAlerts.length > 0 && (
+              {/* Right Header Actions */}
+              <div className="header-actions">
+                {/* Install App to Device Button */}
                 <button
                   type="button"
-                  onClick={() => setCurrentView('birthdays')}
-                  className="btn btn-sm"
-                  title={`${urgentBirthdayAlerts.length} upcoming birthday alerts in next 3 days!`}
+                  onClick={() => setIsInstallModalOpen(true)}
+                  className="btn btn-sm btn-install-pwa"
+                  title="Install App to Apps Menu (تثبيت التطبيق على الجهاز)"
                   style={{
-                    backgroundColor: '#fff1f2',
-                    border: '1px solid #fecdd3',
-                    color: '#be123c',
-                    fontWeight: 700,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.35rem',
                     padding: '0.35rem 0.65rem',
                     borderRadius: '8px',
-                    boxShadow: '0 1px 3px rgba(225, 29, 72, 0.1)',
                   }}
                 >
-                  <Cake size={15} color="#e11d48" />
-                  <span className="hide-on-mobile" style={{ fontSize: '0.78rem' }}>
-                    {urgentBirthdayAlerts.length} Birthday{urgentBirthdayAlerts.length > 1 ? 's' : ''}!
-                  </span>
-                  <span className="show-on-mobile-only" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
-                    {urgentBirthdayAlerts.length}
-                  </span>
+                  <Download size={14} />
+                  <span className="hide-on-mobile">{isAppInstalled ? 'Installed' : 'Install App'}</span>
                 </button>
-              )}
 
-              {/* Servant Account Badge */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  padding: '0.35rem 0.55rem',
-                  borderRadius: '8px',
-                  background: 'var(--bg-subtle)',
-                  border: '1px solid var(--border-light)',
-                  fontSize: '0.78rem',
-                  fontWeight: 600,
-                  color: 'var(--text-secondary)',
-                }}
-                title={`Logged in as ${currentUser?.name}`}
-              >
-                {currentUser?.role === 'admin' ? (
-                  <Crown size={14} color="#d97706" />
-                ) : (
-                  <Users size={14} color="#2563eb" />
+                {/* Urgent Birthday Alert Indicator (if any boy has birthday <= 3 days) */}
+                {urgentBirthdayAlerts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('birthdays')}
+                    className="btn btn-sm"
+                    title={`${urgentBirthdayAlerts.length} upcoming birthday alerts in next 3 days!`}
+                    style={{
+                      backgroundColor: '#fff1f2',
+                      border: '1px solid #fecdd3',
+                      color: '#be123c',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '8px',
+                      boxShadow: '0 1px 3px rgba(225, 29, 72, 0.1)',
+                    }}
+                  >
+                    <Cake size={15} color="#e11d48" />
+                    <span className="hide-on-mobile" style={{ fontSize: '0.78rem' }}>
+                      {urgentBirthdayAlerts.length} Birthday{urgentBirthdayAlerts.length > 1 ? 's' : ''}!
+                    </span>
+                    <span className="show-on-mobile-only" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
+                      {urgentBirthdayAlerts.length}
+                    </span>
+                  </button>
                 )}
-                <span className="hide-on-mobile">{currentUser?.username}</span>
+
+                {/* Servant Account Badge */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.35rem 0.55rem',
+                    borderRadius: '8px',
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border-light)',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    color: 'var(--text-secondary)',
+                  }}
+                  title={`Logged in as ${currentUser?.name}`}
+                >
+                  {currentUser?.role === 'admin' ? (
+                    <Crown size={14} color="#d97706" />
+                  ) : (
+                    <Users size={14} color="#2563eb" />
+                  )}
+                  <span className="hide-on-mobile">{currentUser?.username}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentView === 'dars_ktab') openDarsKtabScanner();
+                    else if (currentView === 'mal3ab') openMal3abScanner();
+                    else if (currentView === 'summer_club') openSummerClubScanner(summerClubSubpage);
+                    else if (currentView === 'events') openEventScanner();
+                    else if (currentView === 'visits') openVisitScanner();
+                    else openFridayScanner();
+                  }}
+                  className="btn btn-secondary btn-sm"
+                  title="Quick Scan Passport QR"
+                >
+                  <QrCode size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(true)}
+                  className="btn btn-secondary btn-sm"
+                  title="Servant Settings & Data Backup"
+                >
+                  <Settings size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="btn btn-secondary btn-sm"
+                  title="Log Out (تسجيل الخروج)"
+                  style={{ color: '#dc2626', borderColor: 'rgba(220, 38, 38, 0.3)' }}
+                >
+                  <LogOut size={16} />
+                </button>
               </div>
+            </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (currentView === 'dars_ktab') openDarsKtabScanner();
-                  else if (currentView === 'mal3ab') openMal3abScanner();
-                  else if (currentView === 'summer_club') openSummerClubScanner(summerClubSubpage);
-                  else if (currentView === 'events') openEventScanner();
-                  else if (currentView === 'visits') openVisitScanner();
-                  else openFridayScanner();
-                }}
-                className="btn btn-secondary btn-sm"
-                title="Quick Scan Passport QR"
-              >
-                <QrCode size={16} />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsSettingsOpen(true)}
-                className="btn btn-secondary btn-sm"
-                title="Servant Settings & Data Backup"
-              >
-                <Settings size={16} />
-              </button>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="btn btn-secondary btn-sm"
-                title="Log Out (تسجيل الخروج)"
-                style={{ color: '#dc2626', borderColor: 'rgba(220, 38, 38, 0.3)' }}
-              >
-                <LogOut size={16} />
-              </button>
+            {/* Unified Navigation Droplist Bar */}
+            <div className="header-nav-droplist-wrapper">
+              <NavDroplist
+                currentView={currentView}
+                onChangeView={setCurrentView}
+                customEventsCount={customEvents.length}
+                studentsCount={students.length}
+                auditLogsCount={auditLogs.length}
+                birthdayAlertCount={urgentBirthdayAlerts.length}
+                isAdmin={currentUser?.role === 'admin'}
+              />
             </div>
           </div>
         </header>

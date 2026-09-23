@@ -532,7 +532,7 @@ export const SummerClubView: React.FC<SummerClubViewProps> = ({
             return (
               <div
                 key={student.id}
-                className="card"
+                className="card roster-card-row"
                 style={{
                   padding: '0.9rem 1.15rem',
                   display: 'flex',
@@ -633,7 +633,7 @@ export const SummerClubView: React.FC<SummerClubViewProps> = ({
                 </div>
 
                 {/* Two Action Toggles: 1. Club Attendance, 2. Workshop Activity */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div className="roster-card-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   {/* Toggle 1: Attended Club */}
                   <button
                     type="button"

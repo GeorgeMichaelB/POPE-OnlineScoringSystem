@@ -263,6 +263,7 @@ export const DarsKtabView: React.FC<DarsKtabViewProps> = ({
               return (
                 <div
                   key={student.id}
+                  className="roster-card-row"
                   style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -366,14 +367,14 @@ export const DarsKtabView: React.FC<DarsKtabViewProps> = ({
                   </div>
 
                   {/* Dual Action: Ashya & Dars Ktab Toggles */}
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div className="roster-card-actions" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {/* Ashya Toggle */}
                     <button
                       type="button"
                       onClick={() => onToggleRecord(student.id, 'ashya', !isAshyaPresent)}
                       className={`btn btn-sm ${isAshyaPresent ? 'badge-warning' : 'btn-secondary'}`}
                       style={{
-                        padding: '0.4rem 0.75rem',
+                        padding: '0.4rem 0.65rem',
                         borderRadius: 'var(--radius-full)',
                         fontWeight: 600,
                       }}
@@ -393,7 +394,7 @@ export const DarsKtabView: React.FC<DarsKtabViewProps> = ({
                           : 'btn-secondary'
                       }`}
                       style={{
-                        padding: '0.4rem 0.75rem',
+                        padding: '0.4rem 0.65rem',
                         borderRadius: 'var(--radius-full)',
                         fontWeight: 600,
                         background: isDarsKtabPresent ? '#2563eb' : undefined,
@@ -402,7 +403,7 @@ export const DarsKtabView: React.FC<DarsKtabViewProps> = ({
                       title="Toggle Dars Ktab (Bible Study) Attendance"
                     >
                       <BookOpen size={14} />
-                      <span>{isDarsKtabPresent ? 'Dars Ktab: Attended' : 'Dars Ktab: Absent'}</span>
+                      <span>{isDarsKtabPresent ? 'Dars: Attended' : 'Dars: Absent'}</span>
                     </button>
                   </div>
                 </div>

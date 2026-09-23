@@ -269,6 +269,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
               return (
                 <div
                   key={student.id}
+                  className="roster-card-row"
                   style={{
                     display: 'flex',
                     flexWrap: 'wrap',
@@ -288,7 +289,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                       alignItems: 'center',
                       gap: '0.75rem',
                       cursor: 'pointer',
-                      flex: '1 1 220px',
+                      flex: '1 1 200px',
                     }}
                   >
                     {student.photoUrl ? (
@@ -366,14 +367,14 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                   </div>
 
                   {/* Dual Attendance Action Buttons */}
-                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div className="roster-card-actions" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     {/* Sunday School Attendance Toggle */}
                     <button
                       type="button"
                       onClick={() => onToggleAttendance(student.id, 'sundaySchool', !isSundaySchoolPresent)}
                       className={`btn btn-sm ${isSundaySchoolPresent ? 'badge-success' : 'btn-secondary'}`}
                       style={{
-                        padding: '0.4rem 0.75rem',
+                        padding: '0.4rem 0.65rem',
                         borderRadius: 'var(--radius-full)',
                         fontWeight: 600,
                         borderWidth: isSundaySchoolPresent ? '1px' : '1px',
@@ -382,11 +383,11 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                     >
                       {isSundaySchoolPresent ? (
                         <>
-                          <CheckCircle2 size={14} /> Sunday School: Attended
+                          <CheckCircle2 size={14} /> <span><span className="hide-on-mobile">Sunday </span>Class: Attended</span>
                         </>
                       ) : (
                         <>
-                          <XCircle size={14} color="var(--text-muted)" /> Sunday School: Absent
+                          <XCircle size={14} color="var(--text-muted)" /> <span><span className="hide-on-mobile">Sunday </span>Class: Absent</span>
                         </>
                       )}
                     </button>
@@ -397,14 +398,22 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                       onClick={() => onToggleAttendance(student.id, 'odas', !isOdasPresent)}
                       className={`btn btn-sm ${isOdasPresent ? 'badge-warning' : 'btn-secondary'}`}
                       style={{
-                        padding: '0.4rem 0.75rem',
+                        padding: '0.4rem 0.65rem',
                         borderRadius: 'var(--radius-full)',
                         fontWeight: 600,
+                        borderWidth: isOdasPresent ? '1px' : '1px',
                       }}
-                      title="Toggle Liturgy / Communion attendance"
+                      title="Toggle Holy Liturgy (Odas) attendance"
                     >
-                      <Church size={14} />
-                      <span>{isOdasPresent ? 'Odas: Attended' : 'Odas: Absent'}</span>
+                      {isOdasPresent ? (
+                        <>
+                          <CheckCircle2 size={14} /> <span>Liturgy: Attended</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={14} color="var(--text-muted)" /> <span>Liturgy: Absent</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

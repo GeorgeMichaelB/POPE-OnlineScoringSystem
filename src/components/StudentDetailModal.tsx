@@ -193,7 +193,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               className="btn btn-secondary btn-sm"
               title="Print or Save PDF Report"
             >
-              <Printer size={15} /> Print Report
+              <Printer size={15} /> <span className="hide-on-mobile">Print Report</span>
             </button>
             <button
               type="button"

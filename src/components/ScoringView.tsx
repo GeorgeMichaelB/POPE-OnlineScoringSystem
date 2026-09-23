@@ -337,6 +337,7 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
 
       {/* Tabs Navigation Bar */}
       <div
+        className="scoring-tabs-container"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -776,6 +777,7 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                 return (
                   <div
                     key={student.id}
+                    className="confession-student-row"
                     style={{
                       display: 'flex',
                       flexWrap: 'wrap',
@@ -855,107 +857,110 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Monthly Assigned Day Selector */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: '0 0 auto' }}>
-                      <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                        اليوم الشهري:
-                      </span>
-                      <select
-                        value={scheduledDay}
-                        onChange={(e) => {
-                          const newDay = Number(e.target.value);
-                          if (onUpdateStudentConfessionDay) {
-                            onUpdateStudentConfessionDay(student.id, newDay, student.confessionFather);
-                          }
-                          // Also sync into confession record
-                          if (onToggleConfession) {
-                            onToggleConfession(
-                              student.id,
-                              selectedConfessionMonth,
-                              isAttended,
-                              newDay,
-                              confessionRecord?.confessionDate,
-                              student.confessionFather,
-                              confessionRecord?.notes
-                            );
-                          }
-                        }}
-                        className="form-select"
-                        style={{
-                          width: 'auto',
-                          fontSize: '0.8rem',
-                          padding: '0.25rem 0.5rem',
-                          borderColor: '#f0abfc',
-                          fontWeight: 700,
-                          color: '#701a75',
-                        }}
-                        title="Choose monthly confession day for this boy"
-                      >
-                        {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                          <option key={day} value={day}>
-                            يوم {day} (Day {day})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    {/* Controls Container (Day Selector & Confession Button) */}
+                    <div className="confession-student-controls">
+                      {/* Monthly Assigned Day Selector */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: '0 0 auto' }}>
+                        <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          اليوم الشهري:
+                        </span>
+                        <select
+                          value={scheduledDay}
+                          onChange={(e) => {
+                            const newDay = Number(e.target.value);
+                            if (onUpdateStudentConfessionDay) {
+                              onUpdateStudentConfessionDay(student.id, newDay, student.confessionFather);
+                            }
+                            // Also sync into confession record
+                            if (onToggleConfession) {
+                              onToggleConfession(
+                                student.id,
+                                selectedConfessionMonth,
+                                isAttended,
+                                newDay,
+                                confessionRecord?.confessionDate,
+                                student.confessionFather,
+                                confessionRecord?.notes
+                              );
+                            }
+                          }}
+                          className="form-select"
+                          style={{
+                            width: 'auto',
+                            fontSize: '0.8rem',
+                            padding: '0.25rem 0.5rem',
+                            borderColor: '#f0abfc',
+                            fontWeight: 700,
+                            color: '#701a75',
+                          }}
+                          title="Choose monthly confession day for this boy"
+                        >
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <option key={day} value={day}>
+                              يوم {day} (Day {day})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    {/* Confession Action Button & Status */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flex: '0 0 auto' }}>
-                      {isAttended ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      {/* Confession Action Button & Status */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flex: '0 0 auto' }}>
+                        {isAttended ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickToggleConfession(student, true)}
+                              className="btn btn-sm"
+                              style={{
+                                background: '#10b981',
+                                borderColor: '#059669',
+                                color: 'white',
+                                fontWeight: 700,
+                                fontSize: '0.8rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.35rem',
+                              }}
+                              title="Click to toggle / unmark"
+                            >
+                              <Check size={14} /> تم الاعتراف (+{pointSettings.confessionPoints ?? 20}p)
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingConfessionModal({
+                                  open: true,
+                                  student,
+                                  record: confessionRecord,
+                                  customDate: confessionRecord?.confessionDate || `${selectedConfessionMonth}-${String(scheduledDay).padStart(2, '0')}`,
+                                  customNotes: confessionRecord?.notes || '',
+                                })
+                              }
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                              title="Edit date or add confession pastoral note"
+                            >
+                              {confessionRecord?.confessionDate ? confessionRecord.confessionDate.slice(5) : 'Date'}
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
-                            onClick={() => handleQuickToggleConfession(student, true)}
-                            className="btn btn-sm"
+                            onClick={() => handleQuickToggleConfession(student, false)}
+                            className="btn btn-primary btn-sm"
                             style={{
-                              background: '#10b981',
-                              borderColor: '#059669',
-                              color: 'white',
-                              fontWeight: 700,
                               fontSize: '0.8rem',
                               display: 'flex',
                               alignItems: 'center',
                               gap: '0.35rem',
+                              boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
                             }}
-                            title="Click to toggle / unmark"
                           >
-                            <Check size={14} /> تم الاعتراف (+{pointSettings.confessionPoints ?? 20}p)
+                            <CheckCircle2 size={15} /> راح الاعتراف (+{pointSettings.confessionPoints ?? 20} pts)
                           </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEditingConfessionModal({
-                                open: true,
-                                student,
-                                record: confessionRecord,
-                                customDate: confessionRecord?.confessionDate || `${selectedConfessionMonth}-${String(scheduledDay).padStart(2, '0')}`,
-                                customNotes: confessionRecord?.notes || '',
-                              })
-                            }
-                            className="btn btn-secondary btn-sm"
-                            style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
-                            title="Edit date or add confession pastoral note"
-                          >
-                            {confessionRecord?.confessionDate ? confessionRecord.confessionDate.slice(5) : 'Date'}
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleQuickToggleConfession(student, false)}
-                          className="btn btn-primary btn-sm"
-                          style={{
-                            fontSize: '0.8rem',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.35rem',
-                            boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                          }}
-                        >
-                          <CheckCircle2 size={15} /> راح الاعتراف (+{pointSettings.confessionPoints ?? 20} pts)
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

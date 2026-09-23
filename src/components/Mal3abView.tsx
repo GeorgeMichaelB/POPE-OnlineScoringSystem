@@ -315,7 +315,7 @@ export const Mal3abView: React.FC<Mal3abViewProps> = ({
             return (
               <div
                 key={student.id}
-                className="card"
+                className="card roster-card-row"
                 style={{
                   padding: '0.9rem 1.15rem',
                   display: 'flex',
@@ -416,7 +416,7 @@ export const Mal3abView: React.FC<Mal3abViewProps> = ({
                 </div>
 
                 {/* Two Action Toggles: 1. Mal3ab Attendance, 2. Match Played */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div className="roster-card-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   {/* Toggle 1: Attended Mal3ab */}
                   <button
                     type="button"
@@ -466,7 +466,7 @@ export const Mal3abView: React.FC<Mal3abViewProps> = ({
                     }}
                   >
                     <Trophy size={16} color={isMatchPlayed ? '#b45309' : 'var(--text-muted)'} />
-                    <span>الماتش والروح الرياضية</span>
+                    <span><span className="hide-on-mobile">الماتش و</span>الروح الرياضية</span>
                   </button>
                 </div>
               </div>

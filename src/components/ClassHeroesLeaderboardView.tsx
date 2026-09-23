@@ -777,6 +777,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
           </div>
 
           <div
+            className="podium-container"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
@@ -787,6 +788,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
             {/* 2nd Place: Silver Challenger */}
             {top2 && (
               <div
+                className="podium-card-top2"
                 onClick={() => onOpenStudentDetail(top2.student)}
                 style={{
                   order: 1,
@@ -892,6 +894,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
             {/* 1st Place: Grand Gold Champion (Center & Elevated) */}
             {top1 && (
               <div
+                className="podium-card-top1"
                 onClick={() => onOpenStudentDetail(top1.student)}
                 style={{
                   order: 2,
@@ -1035,6 +1038,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
             {/* 3rd Place: Bronze Master */}
             {top3 && (
               <div
+                className="podium-card-top3"
                 onClick={() => onOpenStudentDetail(top3.student)}
                 style={{
                   order: 3,
