@@ -109,6 +109,44 @@ return {
   };
 }
 
+// Calculate Friday Class late deduction based on grace cutoff and interval points
+export function calculateFridayLateDeduction(
+  checkInMinutes: number | undefined,
+  settings: PointSettings
+): { isLate: boolean; lateMinutes: number; totalDeduction: number; awardedPoints: number } {
+  const basePoints = settings.fridayClassPoints || 10;
+
+  if (checkInMinutes === undefined || settings.fridayLateDeductionEnabled === false) {
+    return { isLate: false, lateMinutes: 0, totalDeduction: 0, awardedPoints: basePoints };
+  }
+
+  const cutoff = settings.fridayLateCutoffMinutes ?? 15;
+  if (checkInMinutes <= cutoff) {
+    return { isLate: false, lateMinutes: 0, totalDeduction: 0, awardedPoints: basePoints };
+  }
+
+  const lateMinutes = checkInMinutes - cutoff;
+  const initialPenalty = settings.fridayLatePenaltyPoints ?? 0;
+  const intervalMinutes = settings.fridayLateIntervalMinutes ?? 2;
+  const intervalPoints = settings.fridayLateIntervalPoints ?? 1;
+
+  let progressiveDeduction = 0;
+  if (intervalMinutes > 0 && intervalPoints > 0) {
+    const intervals = Math.floor(lateMinutes / intervalMinutes);
+    progressiveDeduction = intervals * intervalPoints;
+  }
+
+  const totalDeduction = initialPenalty + progressiveDeduction;
+  const awardedPoints = Math.max(0, basePoints - totalDeduction);
+
+  return {
+    isLate: true,
+    lateMinutes,
+    totalDeduction,
+    awardedPoints,
+  };
+}
+
 // Calculate scoring details for a boy
 export function calculateStudentScore(
   studentId: string,
@@ -123,8 +161,26 @@ export function calculateStudentScore(
 ) {
   // Friday Class points (only if enabled)
   const isFridayEnabled = settings.fridayClassEnabled !== false;
-  const fridayCount = fridayRecords.filter((r) => r.studentId === studentId && r.sundaySchool).length;
-  const fridayPoints = isFridayEnabled ? fridayCount * (settings.fridayClassPoints || 0) : 0;
+  const isLatePenaltyActive = settings.fridayLateDeductionEnabled !== false;
+  const baseFridayPoints = settings.fridayClassPoints || 10;
+
+  const studentFridayRecords = fridayRecords.filter((r) => r.studentId === studentId && r.sundaySchool);
+  const fridayCount = studentFridayRecords.length;
+  const fridayLateCount = studentFridayRecords.filter((r) => r.isLate).length;
+  const fridayOnTimeCount = fridayCount - fridayLateCount;
+
+  const fridayPoints = isFridayEnabled
+    ? studentFridayRecords.reduce((sum, r) => {
+        if (r.pointsAwarded !== undefined) {
+          return sum + r.pointsAwarded;
+        }
+        if (r.isLate && isLatePenaltyActive) {
+          const res = calculateFridayLateDeduction(r.checkInMinutes, settings);
+          return sum + res.awardedPoints;
+        }
+        return sum + baseFridayPoints;
+      }, 0)
+    : 0;
 
   // Odas / Liturgy points (only if enabled)
   const isOdasEnabled = settings.odasEnabled !== false;
@@ -194,6 +250,8 @@ export function calculateStudentScore(
     totalScore,
     fridayPoints,
     fridayCount,
+    fridayLateCount,
+    fridayOnTimeCount,
     odasPoints,
     odasCount,
     darsKtabPoints,

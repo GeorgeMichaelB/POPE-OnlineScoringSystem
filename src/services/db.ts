@@ -43,6 +43,12 @@ export const DEFAULT_SUMMER_CLUB_SETTINGS: SummerClubSettings = {
 export const DEFAULT_POINT_SETTINGS: PointSettings = {
   fridayClassEnabled: true,
   fridayClassPoints: 10,
+  fridayLateCutoffMinutes: 15,
+  fridayLatePenaltyPoints: 0,
+  fridayLateIntervalMinutes: 2,
+  fridayLateIntervalPoints: 1,
+  fridayLateDeductionEnabled: true,
+  fridayLateRequireTouchID: true,
   odasEnabled: true,
   odasPoints: 15,
   darsKtabEnabled: true,
@@ -860,11 +866,15 @@ class DatabaseService {
     studentId: string,
     date: string,
     sundaySchool: boolean,
-    odas: boolean
+    odas: boolean,
+    isLate?: boolean,
+    checkInMinutes?: number,
+    pointsAwarded?: number
   ): Promise<AttendanceRecord> {
     const records = await this.getAttendance();
     const recordId = `${studentId}_${date}`;
     const existingIndex = records.findIndex((r) => r.id === recordId || (r.studentId === studentId && r.date === date));
+    const existing = existingIndex >= 0 ? records[existingIndex] : null;
 
     const newRecord: AttendanceRecord = {
       id: recordId,
@@ -872,7 +882,10 @@ class DatabaseService {
       date,
       sundaySchool,
       odas,
-      timestamp: new Date().toISOString(),
+      timestamp: existing?.timestamp || new Date().toISOString(),
+      isLate: isLate !== undefined ? isLate : existing?.isLate ?? false,
+      checkInMinutes: checkInMinutes !== undefined ? checkInMinutes : existing?.checkInMinutes,
+      pointsAwarded: pointsAwarded !== undefined ? pointsAwarded : existing?.pointsAwarded,
     };
 
     if (existingIndex >= 0) {
@@ -883,6 +896,26 @@ class DatabaseService {
 
     await this.saveAllAttendance(records);
     return newRecord;
+  }
+
+  async updateAttendanceLateStatus(
+    studentId: string,
+    date: string,
+    isLate: boolean
+  ): Promise<AttendanceRecord | null> {
+    const records = await this.getAttendance();
+    const recordId = `${studentId}_${date}`;
+    const existingIndex = records.findIndex((r) => r.id === recordId || (r.studentId === studentId && r.date === date));
+    if (existingIndex < 0) return null;
+
+    const existing = records[existingIndex];
+    const updated: AttendanceRecord = {
+      ...existing,
+      isLate,
+    };
+    records[existingIndex] = updated;
+    await this.saveAllAttendance(records);
+    return updated;
   }
 
   // --- Saturday Dars Ktab Attendance ---

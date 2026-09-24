@@ -649,9 +649,9 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                           }}
                         >
                           <span style={{ fontWeight: 600 }}>{rec.date} (Friday)</span>
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <span className={`badge ${rec.sundaySchool ? 'badge-success' : 'badge-neutral'}`}>
-                              Friday Class: {rec.sundaySchool ? 'Present' : 'Absent'}
+                          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <span className={`badge ${rec.sundaySchool ? (rec.isLate ? 'badge-warning' : 'badge-success') : 'badge-neutral'}`}>
+                              Friday Class: {rec.sundaySchool ? (rec.isLate ? 'Late (Decreased Pts)' : 'Present (On-Time)') : 'Absent'}
                             </span>
                             <span className={`badge ${rec.odas ? 'badge-warning' : 'badge-neutral'}`}>
                               Odas: {rec.odas ? 'Attended' : 'Absent'}

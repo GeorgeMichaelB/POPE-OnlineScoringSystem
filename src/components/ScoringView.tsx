@@ -934,6 +934,86 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {item.id === 'fridayClass' && isEnabled && (
+                      <div
+                        style={{
+                          paddingTop: '0.65rem',
+                          borderTop: '1px dashed #cbd5e1',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.45rem',
+                          background: '#f8fafc',
+                          padding: '0.6rem 0.75rem',
+                          borderRadius: 'var(--radius-sm)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.35rem' }}>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#3730a3' }}>
+                            ⏱️ Friday Timer & Late Auto-Decrease (مؤقت الحضور والتأخير):
+                          </span>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600 }}>
+                            <input
+                              type="checkbox"
+                              checked={tempSettings.fridayLateDeductionEnabled !== false}
+                              onChange={(e) => setTempSettings((prev) => ({ ...prev, fridayLateDeductionEnabled: e.target.checked }))}
+                            />
+                            <span>خصم التأخير مفعّل</span>
+                          </label>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '0.45rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Grace:</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max="60"
+                              value={tempSettings.fridayLateCutoffMinutes ?? 15}
+                              onChange={(e) => setTempSettings((prev) => ({ ...prev, fridayLateCutoffMinutes: Number(e.target.value) }))}
+                              className="form-input"
+                              style={{ width: 44, height: 26, fontSize: '0.75rem', padding: '0.1rem', textAlign: 'center' }}
+                            />
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>min</span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Every:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="30"
+                              value={tempSettings.fridayLateIntervalMinutes ?? 2}
+                              onChange={(e) => setTempSettings((prev) => ({ ...prev, fridayLateIntervalMinutes: Number(e.target.value) }))}
+                              className="form-input"
+                              style={{ width: 44, height: 26, fontSize: '0.75rem', padding: '0.1rem', textAlign: 'center' }}
+                            />
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>min</span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Deduct:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max={pointsVal}
+                              value={tempSettings.fridayLateIntervalPoints ?? 1}
+                              onChange={(e) => setTempSettings((prev) => ({ ...prev, fridayLateIntervalPoints: Number(e.target.value) }))}
+                              className="form-input"
+                              style={{ width: 44, height: 26, fontSize: '0.75rem', padding: '0.1rem', textAlign: 'center' }}
+                            />
+                            <span style={{ fontSize: '0.7rem', color: '#64748b' }}>pt(s)</span>
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          Grace cutoff {tempSettings.fridayLateCutoffMinutes ?? 15}m • Deducts{' '}
+                          <strong style={{ color: '#d97706' }}>
+                            {tempSettings.fridayLateIntervalPoints ?? 1} pt every {tempSettings.fridayLateIntervalMinutes ?? 2}m late
+                          </strong>. Protected by Touch ID. If timer not started, full points!
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

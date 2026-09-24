@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
-import { X, Download, Upload, RefreshCw, User, Database, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Download, Upload, RefreshCw, User, Database, Check, Clock, Fingerprint, Sparkles } from 'lucide-react';
 import { db } from '../services/db';
+import type { PointSettings } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -9,6 +10,8 @@ interface SettingsModalProps {
   onUpdateServantName: (name: string) => void;
   onDataChanged: () => void;
   onOpenInstallModal?: () => void;
+  pointSettings?: PointSettings;
+  onSavePointSettings?: (settings: PointSettings) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -18,11 +21,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateServantName,
   onDataChanged,
   onOpenInstallModal,
+  pointSettings,
+  onSavePointSettings,
 }) => {
   const [servantName, setServantName] = useState(currentServantName);
   const [isSaved, setIsSaved] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Friday Class Timer & Late Progressive Penalty Settings
+  const [cutoffMinutes, setCutoffMinutes] = useState(pointSettings?.fridayLateCutoffMinutes ?? 15);
+  const [penaltyPoints, setPenaltyPoints] = useState(pointSettings?.fridayLatePenaltyPoints ?? 0);
+  const [intervalMinutes, setIntervalMinutes] = useState(pointSettings?.fridayLateIntervalMinutes ?? 2);
+  const [intervalPoints, setIntervalPoints] = useState(pointSettings?.fridayLateIntervalPoints ?? 1);
+  const [deductionEnabled, setDeductionEnabled] = useState(pointSettings?.fridayLateDeductionEnabled !== false);
+  const [requireTouchID, setRequireTouchID] = useState(pointSettings?.fridayLateRequireTouchID !== false);
+  const [isTimerSettingsSaved, setIsTimerSettingsSaved] = useState(false);
+
+  useEffect(() => {
+    if (pointSettings) {
+      setCutoffMinutes(pointSettings.fridayLateCutoffMinutes ?? 15);
+      setPenaltyPoints(pointSettings.fridayLatePenaltyPoints ?? 0);
+      setIntervalMinutes(pointSettings.fridayLateIntervalMinutes ?? 2);
+      setIntervalPoints(pointSettings.fridayLateIntervalPoints ?? 1);
+      setDeductionEnabled(pointSettings.fridayLateDeductionEnabled !== false);
+      setRequireTouchID(pointSettings.fridayLateRequireTouchID !== false);
+    }
+  }, [pointSettings]);
 
   if (!isOpen) return null;
 
@@ -33,6 +58,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     }
+  };
+
+  const handleSaveTimerSettings = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!pointSettings || !onSavePointSettings) return;
+    const updated: PointSettings = {
+      ...pointSettings,
+      fridayLateCutoffMinutes: Math.max(0, Number(cutoffMinutes) || 0),
+      fridayLatePenaltyPoints: Math.max(0, Number(penaltyPoints) || 0),
+      fridayLateIntervalMinutes: Math.max(1, Number(intervalMinutes) || 1),
+      fridayLateIntervalPoints: Math.max(1, Number(intervalPoints) || 1),
+      fridayLateDeductionEnabled: deductionEnabled,
+      fridayLateRequireTouchID: requireTouchID,
+    };
+    await onSavePointSettings(updated);
+    setIsTimerSettingsSaved(true);
+    setTimeout(() => setIsTimerSettingsSaved(false), 2000);
   };
 
   const handleExportBackup = async () => {
@@ -119,6 +161,280 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </p>
             </form>
           </div>
+
+          {/* Friday Class Timer & Late Points Configuration */}
+          {pointSettings && onSavePointSettings && (
+            <div
+              className="card"
+              style={{
+                padding: '1.15rem',
+                background: 'linear-gradient(135deg, rgba(238, 242, 255, 0.6), rgba(245, 243, 255, 0.4))',
+                border: '1.5px solid #c7d2fe',
+                borderRadius: 'var(--radius-md)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 'var(--radius-full)',
+                      background: '#4f46e5',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Clock size={16} />
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '0.925rem', fontWeight: 800, margin: 0, color: '#1e1b4b' }}>
+                      Friday Class Timer & Late Penalty
+                    </h4>
+                    <span style={{ fontSize: '0.75rem', color: '#4338ca', fontWeight: 600 }}>
+                      مؤقت حضور الجمعة وخصم التأخير التلقائي
+                    </span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      cursor: 'pointer',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      background: requireTouchID ? '#ede9fe' : '#f1f5f9',
+                      color: requireTouchID ? '#6d28d9' : '#64748b',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: 'var(--radius-full)',
+                      border: `1px solid ${requireTouchID ? '#ddd6fe' : '#cbd5e1'}`,
+                    }}
+                    title="Enforce native Touch ID fingerprint authentication to stop the class timer"
+                  >
+                    <Fingerprint size={14} />
+                    <input
+                      type="checkbox"
+                      checked={requireTouchID}
+                      onChange={(e) => {
+                        setRequireTouchID(e.target.checked);
+                      }}
+                    />
+                    <span>Touch ID Protected</span>
+                  </label>
+
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      background: deductionEnabled ? '#ecfdf5' : '#f1f5f9',
+                      color: deductionEnabled ? '#065f46' : '#64748b',
+                      padding: '0.25rem 0.65rem',
+                      borderRadius: 'var(--radius-full)',
+                      border: `1px solid ${deductionEnabled ? '#a7f3d0' : '#cbd5e1'}`,
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={deductionEnabled}
+                      onChange={(e) => {
+                        setDeductionEnabled(e.target.checked);
+                      }}
+                    />
+                    <span>{deductionEnabled ? 'Late Auto-Deduction On' : 'Deduction Off'}</span>
+                  </label>
+                </div>
+              </div>
+
+              <p style={{ fontSize: '0.78rem', color: '#475569', marginBottom: '1rem', lineHeight: 1.4 }}>
+                Customize your late rule: set a grace cutoff, and choose how many minutes late removes additional points (e.g. <strong>every 2 min late removes 1 point</strong>). When you start the timer, a full-screen mirrored camera preview will open, and the timer will only stop with your <strong>MacBook fingerprint</strong>!
+              </p>
+
+              <form onSubmit={handleSaveTimerSettings} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                  {/* Late Cutoff / Grace Period */}
+                  <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e0e7ff' }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3730a3', marginBottom: '0.35rem' }}>
+                      Grace Period Cutoff (وقت السماح الأولي)
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="number"
+                        min="0"
+                        max="120"
+                        value={cutoffMinutes}
+                        onChange={(e) => setCutoffMinutes(Number(e.target.value))}
+                        className="form-input"
+                        style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                      />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>min</span>
+                    </div>
+                    {/* Quick Presets */}
+                    <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                      {[0, 5, 10, 15, 20, 30].map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          onClick={() => setCutoffMinutes(m)}
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: cutoffMinutes === m ? '1px solid #4f46e5' : '1px solid #e2e8f0',
+                            background: cutoffMinutes === m ? '#4f46e5' : '#f8fafc',
+                            color: cutoffMinutes === m ? '#ffffff' : '#475569',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {m}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Interval Minutes (e.g. every 2 min) */}
+                  <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e0e7ff' }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3730a3', marginBottom: '0.35rem' }}>
+                      Every X Minutes Late (كل كام دقيقة تأخير)
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max="60"
+                        value={intervalMinutes}
+                        onChange={(e) => setIntervalMinutes(Number(e.target.value))}
+                        className="form-input"
+                        style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                      />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>min</span>
+                    </div>
+                    {/* Quick Presets */}
+                    <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                      {[1, 2, 3, 5, 10].map((mins) => (
+                        <button
+                          key={mins}
+                          type="button"
+                          onClick={() => setIntervalMinutes(mins)}
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: intervalMinutes === mins ? '1px solid #4f46e5' : '1px solid #e2e8f0',
+                            background: intervalMinutes === mins ? '#4f46e5' : '#f8fafc',
+                            color: intervalMinutes === mins ? '#ffffff' : '#475569',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                        >
+                          Every {mins}m
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Points Removed Per Interval */}
+                  <div style={{ background: '#ffffff', padding: '0.75rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e0e7ff' }}>
+                    <label className="form-label" style={{ fontSize: '0.75rem', fontWeight: 700, color: '#3730a3', marginBottom: '0.35rem' }}>
+                      Remove Y Points (خصم كام نقطة)
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <input
+                        type="number"
+                        min="1"
+                        max={pointSettings.fridayClassPoints || 10}
+                        value={intervalPoints}
+                        onChange={(e) => setIntervalPoints(Number(e.target.value))}
+                        className="form-input"
+                        style={{ fontWeight: 700, fontSize: '0.95rem' }}
+                      />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#64748b' }}>pts</span>
+                    </div>
+                    {/* Quick Presets */}
+                    <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                      {[1, 2, 3, 5].map((pts) => (
+                        <button
+                          key={pts}
+                          type="button"
+                          onClick={() => setIntervalPoints(pts)}
+                          style={{
+                            fontSize: '0.68rem',
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: 'var(--radius-sm)',
+                            border: intervalPoints === pts ? '1px solid #4f46e5' : '1px solid #e2e8f0',
+                            background: intervalPoints === pts ? '#4f46e5' : '#f8fafc',
+                            color: intervalPoints === pts ? '#ffffff' : '#475569',
+                            cursor: 'pointer',
+                            fontWeight: 600,
+                          }}
+                        >
+                          -{pts} pt
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progressive Deduction Timeline Preview */}
+                <div
+                  style={{
+                    background: '#f8fafc',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '0.75rem 0.9rem',
+                    border: '1px dashed #cbd5e1',
+                    fontSize: '0.78rem',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, color: '#334155', marginBottom: '0.45rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <Sparkles size={14} color="#6366f1" />
+                    <span>Live Deduction Schedule (جدول النقاط والتأخير):</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                    <div style={{ background: '#ecfdf5', padding: '0.35rem 0.5rem', borderRadius: 4, border: '1px solid #a7f3d0', color: '#065f46' }}>
+                      0 – {cutoffMinutes}m:{' '}
+                      <strong>{pointSettings.fridayClassPoints || 10} pts</strong> (Full)
+                    </div>
+                    <div style={{ background: '#fffbeb', padding: '0.35rem 0.5rem', borderRadius: 4, border: '1px solid #fde68a', color: '#92400e' }}>
+                      +{intervalMinutes}m late:{' '}
+                      <strong>{Math.max(0, (pointSettings.fridayClassPoints || 10) - intervalPoints)} pts</strong> (-{intervalPoints})
+                    </div>
+                    <div style={{ background: '#fff7ed', padding: '0.35rem 0.5rem', borderRadius: 4, border: '1px solid #fed7aa', color: '#9a3412' }}>
+                      +{intervalMinutes * 2}m late:{' '}
+                      <strong>{Math.max(0, (pointSettings.fridayClassPoints || 10) - intervalPoints * 2)} pts</strong> (-{intervalPoints * 2})
+                    </div>
+                    <div style={{ background: '#fef2f2', padding: '0.35rem 0.5rem', borderRadius: 4, border: '1px solid #fecaca', color: '#991b1b' }}>
+                      +{intervalMinutes * 3}m late:{' '}
+                      <strong>{Math.max(0, (pointSettings.fridayClassPoints || 10) - intervalPoints * 3)} pts</strong> (-{intervalPoints * 3})
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    💡 <strong>Timer Not Started:</strong> Full {pointSettings.fridayClassPoints || 10} pts for all boys • <strong>Stop Timer:</strong> Protected by MacBook Touch ID
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                  <button type="submit" className="btn btn-primary btn-sm" style={{ padding: '0.45rem 1.15rem' }}>
+                    {isTimerSettingsSaved ? (
+                      <>
+                        <Check size={14} /> Saved Successfully!
+                      </>
+                    ) : (
+                      'Save Late & Timer Rules'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
 
           {/* Install to Device / Apps Menu */}
           {onOpenInstallModal && (

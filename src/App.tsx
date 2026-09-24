@@ -35,7 +35,9 @@ import {
   getNearestThursdayDateString,
   getNearestWeekdayDateString,
   getUrgentBirthdayAlerts,
+  calculateFridayLateDeduction,
 } from './utils/helpers';
+import { authenticateWithMacTouchID } from './services/biometrics';
 
 import { AttendanceView } from './components/AttendanceView';
 import { DarsKtabView } from './components/DarsKtabView';
@@ -51,6 +53,7 @@ import { HeroManageModal } from './components/HeroManageModal';
 import { LoginView } from './components/LoginView';
 import { AuditLogView } from './components/AuditLogView';
 import { QRScannerModal } from './components/QRScannerModal';
+import { FridayFullscreenScanner } from './components/FridayFullscreenScanner';
 import { StudentFormModal } from './components/StudentFormModal';
 import { StudentDetailModal } from './components/StudentDetailModal';
 import { SettingsModal } from './components/SettingsModal';
@@ -127,7 +130,155 @@ export const App: React.FC = () => {
   const [activeVisitStudentId, setActiveVisitStudentId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
+  // Friday Class Live Attendance Timer State (per session date)
+  const [fridayTimerStartTime, setFridayTimerStartTime] = useState<number | null>(() => {
+    const saved = localStorage.getItem(`pss_friday_timer_${fridayDate}`);
+    return saved ? Number(saved) : null;
+  });
+  const [fridayTimerRunning, setFridayTimerRunning] = useState<boolean>(() => {
+    const saved = localStorage.getItem(`pss_friday_timer_running_${fridayDate}`);
+    return saved === 'true';
+  });
+  const [fridayTimerElapsedSeconds, setFridayTimerElapsedSeconds] = useState<number>(() => {
+    const savedStart = localStorage.getItem(`pss_friday_timer_${fridayDate}`);
+    const savedRunning = localStorage.getItem(`pss_friday_timer_running_${fridayDate}`);
+    if (savedStart && savedRunning === 'true') {
+      return Math.max(0, Math.floor((Date.now() - Number(savedStart)) / 1000));
+    }
+    const savedElapsed = localStorage.getItem(`pss_friday_timer_elapsed_${fridayDate}`);
+    return savedElapsed ? Number(savedElapsed) : 0;
+  });
+
+  const [lastScanResult, setLastScanResult] = useState<{
+    student: Student;
+    date: string;
+    isLate: boolean;
+    pointsAwarded: number;
+    checkInMinutes?: number;
+    timerActive: boolean;
+  } | null>(null);
+
+  // Sync Timer when Friday Date changes
+  useEffect(() => {
+    const savedStart = localStorage.getItem(`pss_friday_timer_${fridayDate}`);
+    const savedRunning = localStorage.getItem(`pss_friday_timer_running_${fridayDate}`);
+    if (savedStart && savedRunning === 'true') {
+      const startTime = Number(savedStart);
+      setFridayTimerStartTime(startTime);
+      setFridayTimerRunning(true);
+      setFridayTimerElapsedSeconds(Math.max(0, Math.floor((Date.now() - startTime) / 1000)));
+    } else if (savedStart && savedRunning === 'false') {
+      const startTime = Number(savedStart);
+      const savedElapsed = localStorage.getItem(`pss_friday_timer_elapsed_${fridayDate}`);
+      setFridayTimerStartTime(startTime);
+      setFridayTimerRunning(false);
+      setFridayTimerElapsedSeconds(savedElapsed ? Number(savedElapsed) : 0);
+    } else {
+      setFridayTimerStartTime(null);
+      setFridayTimerRunning(false);
+      setFridayTimerElapsedSeconds(0);
+    }
+  }, [fridayDate]);
+
+  // Timer Tick Interval
+  useEffect(() => {
+    if (!fridayTimerRunning || !fridayTimerStartTime) return;
+    const interval = setInterval(() => {
+      setFridayTimerElapsedSeconds(Math.max(0, Math.floor((Date.now() - fridayTimerStartTime) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [fridayTimerRunning, fridayTimerStartTime]);
+
+  const handleStartFridayTimer = () => {
+    const now = Date.now();
+    const adjustedStart = fridayTimerElapsedSeconds > 0 ? now - fridayTimerElapsedSeconds * 1000 : now;
+    setFridayTimerStartTime(adjustedStart);
+    setFridayTimerRunning(true);
+    localStorage.setItem(`pss_friday_timer_${fridayDate}`, String(adjustedStart));
+    localStorage.setItem(`pss_friday_timer_running_${fridayDate}`, 'true');
+    localStorage.removeItem(`pss_friday_timer_elapsed_${fridayDate}`);
+    sound.playSuccessChime();
+
+    // 🚀 Launch Fullscreen Mirrored Camera & Live Timer HUD together!
+    setIsFridayFullscreenScannerOpen(true);
+  };
+
+  const handleStopFridayTimer = async (bypassTouchID = false) => {
+    if (!bypassTouchID && pointSettings.fridayLateRequireTouchID !== false) {
+      const auth = await authenticateWithMacTouchID('Verify MacBook fingerprint (Touch ID) to stop Friday class timer');
+      if (!auth.success) {
+        sound.playAlertChime();
+        alert(auth.error || 'Timer cannot be stopped without MacBook Touch ID fingerprint verification.');
+        return;
+      }
+      sound.playSuccessChime();
+    }
+
+    setFridayTimerRunning(false);
+    localStorage.setItem(`pss_friday_timer_running_${fridayDate}`, 'false');
+    localStorage.setItem(`pss_friday_timer_elapsed_${fridayDate}`, String(fridayTimerElapsedSeconds));
+  };
+
+  const handleResetFridayTimer = async () => {
+    if (fridayTimerRunning && pointSettings.fridayLateRequireTouchID !== false) {
+      const auth = await authenticateWithMacTouchID('Verify MacBook fingerprint (Touch ID) to reset Friday class timer');
+      if (!auth.success) {
+        sound.playAlertChime();
+        alert(auth.error || 'Timer cannot be reset without MacBook Touch ID fingerprint verification.');
+        return;
+      }
+      sound.playSuccessChime();
+    }
+
+    setFridayTimerStartTime(null);
+    setFridayTimerRunning(false);
+    setFridayTimerElapsedSeconds(0);
+    localStorage.removeItem(`pss_friday_timer_${fridayDate}`);
+    localStorage.removeItem(`pss_friday_timer_running_${fridayDate}`);
+    localStorage.removeItem(`pss_friday_timer_elapsed_${fridayDate}`);
+  };
+
+  const handleToggleFridayLateStatus = async (studentId: string) => {
+    const existing = attendance.find(
+      (r) => r.studentId === studentId && r.date === fridayDate
+    );
+    if (!existing || !existing.sundaySchool) return;
+
+    const newLateStatus = !existing.isLate;
+    const deduction = calculateFridayLateDeduction(
+      newLateStatus ? (existing.checkInMinutes ?? ((pointSettings.fridayLateCutoffMinutes ?? 15) + 1)) : 0,
+      pointSettings
+    );
+    const awardedPoints = newLateStatus ? deduction.awardedPoints : (pointSettings.fridayClassPoints || 10);
+
+    const updated = await db.recordAttendance(
+      studentId,
+      fridayDate,
+      existing.sundaySchool,
+      existing.odas,
+      newLateStatus,
+      existing.checkInMinutes,
+      awardedPoints
+    );
+    setAttendance((prev) => {
+      const filtered = prev.filter((r) => r.id !== updated.id);
+      return [...filtered, updated];
+    });
+
+    const student = students.find((s) => s.id === studentId);
+    await db.addLogEntry({
+      username: currentUser?.username || '@servant',
+      servantName: currentUser?.name || currentServantName,
+      action: 'ATTENDANCE_LATE_TOGGLE',
+      details: `Changed late status for ${student?.name || studentId} to ${newLateStatus ? 'Late' : 'On-Time'} (${awardedPoints} pts)`,
+      category: 'attendance',
+    });
+    const updatedLogs = await db.getAuditLogs();
+    setAuditLogs(updatedLogs);
+  };
+
   // Modal triggers
+  const [isFridayFullscreenScannerOpen, setIsFridayFullscreenScannerOpen] = useState(false);
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const [qrScanMode, setQrScanMode] = useState<
     'attendance' | 'dars_ktab' | 'mal3ab' | 'summer_club_day1' | 'summer_club_day2' | 'event' | 'visit' | 'register'
@@ -315,7 +466,10 @@ export const App: React.FC = () => {
   const handleToggleFridayAttendance = async (
     studentId: string,
     type: 'sundaySchool' | 'odas',
-    value: boolean
+    value: boolean,
+    explicitIsLate?: boolean,
+    explicitCheckInMinutes?: number,
+    explicitPointsAwarded?: number
   ) => {
     const existing = attendance.find(
       (r) => r.studentId === studentId && r.date === fridayDate
@@ -324,7 +478,47 @@ export const App: React.FC = () => {
     const ssValue = type === 'sundaySchool' ? value : existing?.sundaySchool ?? false;
     const odasValue = type === 'odas' ? value : existing?.odas ?? false;
 
-    const updated = await db.recordAttendance(studentId, fridayDate, ssValue, odasValue);
+    let isLate = existing?.isLate ?? false;
+    let checkInMinutes = existing?.checkInMinutes;
+    let pointsAwarded = existing?.pointsAwarded;
+
+    if (type === 'sundaySchool') {
+      if (value) {
+        if (explicitIsLate !== undefined) {
+          isLate = explicitIsLate;
+          checkInMinutes = explicitCheckInMinutes;
+          pointsAwarded =
+            explicitPointsAwarded !== undefined
+              ? explicitPointsAwarded
+              : calculateFridayLateDeduction(checkInMinutes, pointSettings).awardedPoints;
+        } else if (fridayTimerStartTime && fridayTimerRunning) {
+          const elapsedMinutes = (Date.now() - fridayTimerStartTime) / 60000;
+          checkInMinutes = Math.floor(elapsedMinutes);
+          const deduction = calculateFridayLateDeduction(checkInMinutes, pointSettings);
+          isLate = deduction.isLate;
+          pointsAwarded = deduction.awardedPoints;
+        } else {
+          // If timer not started, full points!
+          isLate = false;
+          checkInMinutes = undefined;
+          pointsAwarded = pointSettings.fridayClassPoints || 10;
+        }
+      } else {
+        isLate = false;
+        checkInMinutes = undefined;
+        pointsAwarded = undefined;
+      }
+    }
+
+    const updated = await db.recordAttendance(
+      studentId,
+      fridayDate,
+      ssValue,
+      odasValue,
+      isLate,
+      checkInMinutes,
+      pointsAwarded
+    );
     setAttendance((prev) => {
       const filtered = prev.filter((r) => r.id !== updated.id);
       return [...filtered, updated];
@@ -336,11 +530,12 @@ export const App: React.FC = () => {
 
     // Audit Log
     const student = students.find((s) => s.id === studentId);
+    const lateText = isLate ? ' (Late - Decreased Points)' : ' (On-Time)';
     await db.addLogEntry({
       username: currentUser?.username || '@servant',
       servantName: currentUser?.name || currentServantName,
       action: 'ATTENDANCE_FRIDAY',
-      details: `Updated Friday attendance for ${student?.name || studentId} (${fridayDate}): Class=${ssValue ? 'Present' : 'Absent'}, Odas=${odasValue ? 'Present' : 'Absent'}`,
+      details: `Updated Friday attendance for ${student?.name || studentId} (${fridayDate}): Class=${ssValue ? `Present${lateText}` : 'Absent'}, Odas=${odasValue ? 'Present' : 'Absent'}`,
       category: 'attendance',
     });
     const updatedLogs = await db.getAuditLogs();
@@ -737,7 +932,29 @@ export const App: React.FC = () => {
     setLastScannedStudent(foundStudent);
 
     if (qrScanMode === 'attendance') {
-      handleToggleFridayAttendance(foundStudent.id, 'sundaySchool', true);
+      let isLate = false;
+      let checkInMinutes: number | undefined = undefined;
+      let pointsAwarded = pointSettings.fridayClassPoints || 10;
+      const timerActive = Boolean(fridayTimerStartTime && fridayTimerRunning);
+
+      if (timerActive && fridayTimerStartTime) {
+        const elapsedMinutes = (Date.now() - fridayTimerStartTime) / 60000;
+        checkInMinutes = Math.floor(elapsedMinutes);
+        const deduction = calculateFridayLateDeduction(checkInMinutes, pointSettings);
+        isLate = deduction.isLate;
+        pointsAwarded = deduction.awardedPoints;
+      }
+
+      setLastScanResult({
+        student: foundStudent,
+        date: fridayDate,
+        isLate,
+        pointsAwarded,
+        checkInMinutes,
+        timerActive,
+      });
+
+      handleToggleFridayAttendance(foundStudent.id, 'sundaySchool', true, isLate, checkInMinutes, pointsAwarded);
       setCurrentView('attendance');
     } else if (qrScanMode === 'dars_ktab') {
       handleToggleDarsKtab(foundStudent.id, 'darsKtab', true);
@@ -1005,11 +1222,21 @@ export const App: React.FC = () => {
             students={students}
             attendance={attendance}
             onToggleAttendance={handleToggleFridayAttendance}
+            onToggleLateStatus={handleToggleFridayLateStatus}
             onOpenQRScanner={openFridayScanner}
+            onOpenFullscreenScanner={() => setIsFridayFullscreenScannerOpen(true)}
             onSelectStudent={(student) => setSelectedStudentForDetail(student)}
             selectedDate={fridayDate}
             onChangeDate={setFridayDate}
             lastScannedStudent={lastScannedStudent}
+            lastScanResult={lastScanResult}
+            pointSettings={pointSettings}
+            fridayTimerStartTime={fridayTimerStartTime}
+            fridayTimerRunning={fridayTimerRunning}
+            fridayTimerElapsedSeconds={fridayTimerElapsedSeconds}
+            onStartTimer={handleStartFridayTimer}
+            onStopTimer={handleStopFridayTimer}
+            onResetTimer={handleResetFridayTimer}
           />
         )}
 
@@ -1219,6 +1446,23 @@ export const App: React.FC = () => {
       )}
 
       {/* Modals */}
+      {/* Friday Fullscreen Mirrored Scanner & Live Digital Timer HUD */}
+      <FridayFullscreenScanner
+        isOpen={isFridayFullscreenScannerOpen}
+        onClose={() => setIsFridayFullscreenScannerOpen(false)}
+        onStopTimer={() => handleStopFridayTimer(true)}
+        students={students}
+        attendance={attendance}
+        pointSettings={pointSettings}
+        selectedDate={fridayDate}
+        timerStartTime={fridayTimerStartTime}
+        timerRunning={fridayTimerRunning}
+        timerElapsedSeconds={fridayTimerElapsedSeconds}
+        onRecordAttendance={(studentId, type, value, isLate, checkInMinutes, pointsAwarded) => {
+          handleToggleFridayAttendance(studentId, type, value, isLate, checkInMinutes, pointsAwarded);
+        }}
+      />
+
       <QRScannerModal
         isOpen={isQRScannerOpen}
         onClose={() => setIsQRScannerOpen(false)}
@@ -1294,6 +1538,8 @@ export const App: React.FC = () => {
         }}
         onDataChanged={loadAllData}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        pointSettings={pointSettings}
+        onSavePointSettings={handleSavePointSettings}
       />
 
       <InstallPromptModal

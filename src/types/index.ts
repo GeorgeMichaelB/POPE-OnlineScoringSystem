@@ -37,6 +37,9 @@ export interface AttendanceRecord {
   sundaySchool: boolean; // Main Class Attendance (Friday)
   odas: boolean; // Liturgy / Communion
   timestamp: string; // Check-in time
+  isLate?: boolean; // Scanned / checked in after class timer threshold
+  checkInMinutes?: number; // Minutes elapsed from timer start when checked in
+  pointsAwarded?: number; // Actual points calculated and awarded for this session
 }
 
 // Saturday Dars Ktab & Ashya Attendance
@@ -104,6 +107,12 @@ export interface ConfessionRecord {
 export interface PointSettings {
   fridayClassEnabled?: boolean;
   fridayClassPoints: number; // e.g. 10 pts
+  fridayLateCutoffMinutes?: number; // e.g. 15 mins (late threshold / grace period after timer start)
+  fridayLatePenaltyPoints?: number; // e.g. 0 or 1 pt (initial deduction at cutoff)
+  fridayLateIntervalMinutes?: number; // e.g. 2 mins (cut points every X mins late)
+  fridayLateIntervalPoints?: number; // e.g. 1 pt (points removed per interval)
+  fridayLateDeductionEnabled?: boolean; // whether late point deduction is enabled (default true)
+  fridayLateRequireTouchID?: boolean; // whether MacBook Touch ID fingerprint is required to stop timer (default true)
 
   odasEnabled?: boolean;
   odasPoints: number; // e.g. 15 pts

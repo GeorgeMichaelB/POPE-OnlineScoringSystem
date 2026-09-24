@@ -6,34 +6,97 @@ import {
   XCircle,
   Users,
   Church,
-  UserCheck
+  UserCheck,
+  Play,
+  RotateCcw,
+  Clock,
+  Check,
+  Maximize2,
+  Fingerprint,
 } from 'lucide-react';
-import type { Student, AttendanceRecord } from '../types';
-import { getFridaysList, getNearestFridayDateString } from '../utils/helpers';
+import type { Student, AttendanceRecord, PointSettings } from '../types';
+import { getFridaysList, getNearestFridayDateString, calculateFridayLateDeduction } from '../utils/helpers';
 import { WeekdayPicker } from './WeekdayPicker';
 
 interface AttendanceViewProps {
   students: Student[];
   attendance: AttendanceRecord[];
   onToggleAttendance: (studentId: string, type: 'sundaySchool' | 'odas', value: boolean) => void;
+  onToggleLateStatus?: (studentId: string) => void;
   onOpenQRScanner: () => void;
+  onOpenFullscreenScanner?: () => void;
   onSelectStudent: (student: Student) => void;
   selectedDate: string;
   onChangeDate: (date: string) => void;
   lastScannedStudent: Student | null;
+  lastScanResult?: {
+    student: Student;
+    date: string;
+    isLate: boolean;
+    pointsAwarded: number;
+    checkInMinutes?: number;
+    timerActive: boolean;
+  } | null;
+  pointSettings: PointSettings;
+  fridayTimerStartTime: number | null;
+  fridayTimerRunning: boolean;
+  fridayTimerElapsedSeconds: number;
+  onStartTimer: () => void;
+  onStopTimer: () => void;
+  onResetTimer: () => void;
 }
 
 export const AttendanceView: React.FC<AttendanceViewProps> = ({
   students,
   attendance,
   onToggleAttendance,
+  onToggleLateStatus,
   onOpenQRScanner,
+  onOpenFullscreenScanner,
   onSelectStudent,
   selectedDate,
   onChangeDate,
   lastScannedStudent,
+  lastScanResult,
+  pointSettings,
+  fridayTimerStartTime,
+  fridayTimerRunning,
+  fridayTimerElapsedSeconds,
+  onStartTimer,
+  onStopTimer,
+  onResetTimer,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Rules from settings
+  const cutoffMinutes = pointSettings.fridayLateCutoffMinutes ?? 15;
+  const cutoffSeconds = cutoffMinutes * 60;
+  const intervalMinutes = pointSettings.fridayLateIntervalMinutes ?? 2;
+  const intervalPoints = pointSettings.fridayLateIntervalPoints ?? 1;
+  const fullPoints = pointSettings.fridayClassPoints || 10;
+  const defaultLatePoints = Math.max(0, fullPoints - intervalPoints);
+  const isLateDeductionActive = pointSettings.fridayLateDeductionEnabled !== false;
+
+  const isTimerStarted = Boolean(fridayTimerStartTime);
+  const isLatePeriod = isTimerStarted && isLateDeductionActive && fridayTimerElapsedSeconds >= cutoffSeconds;
+  const elapsedMinutes = Math.floor(fridayTimerElapsedSeconds / 60);
+  const currentDeduction = calculateFridayLateDeduction(elapsedMinutes, pointSettings);
+  const liveAwardedPoints = currentDeduction.awardedPoints;
+
+  const remainingSeconds = Math.max(0, cutoffSeconds - fridayTimerElapsedSeconds);
+  const remMins = Math.floor(remainingSeconds / 60);
+  const remSecs = remainingSeconds % 60;
+
+  const formatTimerSeconds = (totalSeconds: number): string => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    if (mins < 60) {
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${String(hrs).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
 
   // Records for current date
   const dateRecords = attendance.filter((r) => r.date === selectedDate);
@@ -86,20 +149,242 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
             currentDefaultDate={getNearestFridayDateString()}
           />
 
-          {/* Rapid QR Scan Button */}
-          <button
-            type="button"
-            onClick={onOpenQRScanner}
-            className="btn btn-primary"
+          {/* Action Buttons: Fullscreen Scanner & Standard QR Scan */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            {onOpenFullscreenScanner && (
+              <button
+                type="button"
+                onClick={onOpenFullscreenScanner}
+                className="btn btn-secondary"
+                style={{
+                  padding: '0.65rem 1.15rem',
+                  borderColor: '#818cf8',
+                  color: '#4f46e5',
+                  fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+                title="Launch live mirrored camera and full screen digital timer HUD"
+              >
+                <Maximize2 size={17} />
+                <span>Fullscreen Scanner 🪞</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onOpenQRScanner}
+              className="btn btn-primary"
+              style={{
+                boxShadow: 'var(--shadow-md)',
+                padding: '0.65rem 1.25rem',
+              }}
+            >
+              <QrCode size={18} />
+              <span>Scan Passport QR (Friday)</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Friday Class Timer Bar (User enters class & sees Start Button) */}
+        {!isTimerStarted ? (
+          <div
             style={{
-              boxShadow: 'var(--shadow-md)',
-              padding: '0.65rem 1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.85rem',
+              background: 'linear-gradient(135deg, rgba(79, 70, 229, 0.07), rgba(99, 102, 241, 0.03))',
+              border: '1.5px dashed #c7d2fe',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.9rem 1.15rem',
+              marginBottom: '1rem',
             }}
           >
-            <QrCode size={18} />
-            <span>Scan Passport QR (Friday)</span>
-          </button>
-        </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={onStartTimer}
+                className="btn btn-primary"
+                style={{
+                  background: 'linear-gradient(135deg, #4f46e5, #4338ca)',
+                  boxShadow: '0 4px 14px rgba(79, 70, 229, 0.3)',
+                  padding: '0.65rem 1.35rem',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <Play size={17} fill="currentColor" />
+                <span>Start Class Timer (بدء وقت الفصل)</span>
+              </button>
+
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '0.825rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  Grace Period: <span style={{ color: '#4f46e5' }}>{cutoffMinutes} min</span> • Interval Deduction:{' '}
+                  <span style={{ color: '#d97706' }}>-{intervalPoints} pt every {intervalMinutes}m late</span>
+                </span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                  If timer is not started, scanning awards full {fullPoints} pts. Starts fullscreen mirrored camera scanner automatically.
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span className="badge badge-neutral" style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Configured in Settings ⚙️
+              </span>
+              <span className="badge badge-primary" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                <Fingerprint size={12} />
+                <span>Touch ID Protected</span>
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '0.85rem',
+              background: isLatePeriod
+                ? 'linear-gradient(135deg, rgba(254, 243, 199, 0.6), rgba(253, 230, 138, 0.3))'
+                : 'linear-gradient(135deg, rgba(236, 253, 245, 0.7), rgba(209, 250, 229, 0.4))',
+              border: isLatePeriod ? '1.5px solid #f59e0b' : '1.5px solid #10b981',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.85rem 1.15rem',
+              marginBottom: '1rem',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flexWrap: 'wrap' }}>
+              {/* Digital Timer Clock Display */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  background: 'var(--bg-card)',
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--border-medium)',
+                  fontFamily: 'monospace',
+                  fontSize: '1.45rem',
+                  fontWeight: 800,
+                  color: isLatePeriod ? '#b45309' : '#047857',
+                  letterSpacing: '1px',
+                }}
+              >
+                <Clock size={19} className={fridayTimerRunning ? 'timer-pulse' : ''} />
+                <span>{formatTimerSeconds(fridayTimerElapsedSeconds)}</span>
+              </div>
+
+              {/* Status Indicator */}
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
+                  {isLatePeriod ? (
+                    <span
+                      className="badge badge-warning"
+                      style={{ fontWeight: 800, fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}
+                    >
+                      ⏱️ LATE SCANNING ACTIVE • Now awarding {liveAwardedPoints} pts (-{currentDeduction.totalDeduction} pts)
+                    </span>
+                  ) : (
+                    <span
+                      className="badge badge-success"
+                      style={{ fontWeight: 800, fontSize: '0.8rem', padding: '0.2rem 0.6rem' }}
+                    >
+                      🟢 ON-TIME PERIOD (Full +{fullPoints} pts)
+                    </span>
+                  )}
+
+                  <span style={{ fontSize: '0.78rem', color: isLatePeriod ? '#92400e' : '#065f46', fontWeight: 700 }}>
+                    {isLatePeriod
+                      ? `Late by ${currentDeduction.lateMinutes}m • (-${intervalPoints} pt every ${intervalMinutes}m)`
+                      : `${remMins}m ${remSecs}s until late cutoff`}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+                  Timer active for session {selectedDate} • Grace threshold {cutoffMinutes}m • Touch ID required to stop
+                </div>
+              </div>
+            </div>
+
+            {/* Timer Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+              {onOpenFullscreenScanner && (
+                <button
+                  type="button"
+                  onClick={onOpenFullscreenScanner}
+                  className="btn btn-primary btn-sm"
+                  style={{
+                    background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+                    boxShadow: '0 2px 8px rgba(79, 70, 229, 0.35)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontWeight: 700,
+                    padding: '0.4rem 0.8rem',
+                  }}
+                  title="Open Fullscreen Mirrored Camera Scanner & Live Timer HUD"
+                >
+                  <Maximize2 size={13} />
+                  <span>Fullscreen Scanner 🪞</span>
+                </button>
+              )}
+
+              {fridayTimerRunning ? (
+                <button
+                  type="button"
+                  onClick={onStopTimer}
+                  className="btn btn-secondary btn-sm"
+                  style={{
+                    padding: '0.4rem 0.75rem',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    color: '#dc2626',
+                    borderColor: '#fca5a5',
+                  }}
+                  title="Stop timer (Requires MacBook Touch ID fingerprint)"
+                >
+                  <Fingerprint size={13} />
+                  <span>Stop Timer</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onStartTimer}
+                  className="btn btn-primary btn-sm"
+                  style={{ padding: '0.4rem 0.75rem', fontWeight: 600 }}
+                  title="Resume timer & open fullscreen scanner"
+                >
+                  <Play size={13} fill="currentColor" />
+                  <span>Resume</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={onResetTimer}
+                className="btn btn-secondary btn-sm"
+                style={{ padding: '0.4rem 0.65rem' }}
+                title="Reset timer to 00:00"
+              >
+                <RotateCcw size={13} />
+                <span>Reset</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Stats Row */}
         <div
@@ -141,6 +426,12 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
               {sundaySchoolPresentCount} / {totalStudents}{' '}
               <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>({ssPercent}%)</span>
             </div>
+            {dateRecords.some((r) => r.sundaySchool && r.isLate) && (
+              <div style={{ fontSize: '0.7rem', color: '#b45309', fontWeight: 600, marginTop: '0.15rem' }}>
+                {sundaySchoolPresentCount - dateRecords.filter((r) => r.sundaySchool && r.isLate).length} on-time •{' '}
+                {dateRecords.filter((r) => r.sundaySchool && r.isLate).length} late
+              </div>
+            )}
           </div>
 
           <div
@@ -168,7 +459,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
         <div
           style={{
             background: 'var(--bg-card)',
-            border: '2px solid var(--color-success)',
+            border: lastScanResult?.isLate ? '2px solid #f59e0b' : '2px solid var(--color-success)',
             borderRadius: 'var(--radius-md)',
             padding: '0.85rem 1.15rem',
             display: 'flex',
@@ -182,26 +473,69 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <div
               style={{
-                width: 38,
-                height: 38,
+                width: 40,
+                height: 40,
                 borderRadius: '50%',
-                background: 'var(--color-success-bg)',
-                color: 'var(--color-success)',
+                background: lastScanResult?.isLate ? '#fef3c7' : 'var(--color-success-bg)',
+                color: lastScanResult?.isLate ? '#b45309' : 'var(--color-success)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontWeight: 700,
+                fontWeight: 800,
+                fontSize: '1.1rem',
               }}
             >
-              ✓
+              {lastScanResult?.isLate ? '⏱️' : '✓'}
             </div>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontWeight: 700, fontSize: '1rem' }}>{lastScannedStudent.name}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{lastScannedStudent.name}</span>
                 <span className="badge badge-neutral">{lastScannedStudent.id}</span>
+                {lastScanResult?.timerActive ? (
+                  lastScanResult.isLate ? (
+                    <span
+                      className="badge"
+                      style={{
+                        background: '#fef3c7',
+                        color: '#92400e',
+                        border: '1px solid #fde68a',
+                        fontWeight: 800,
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      ⏱️ Scanned Late ({lastScanResult.checkInMinutes ?? 0}m) • Decreased to +{lastScanResult.pointsAwarded} pts (-{fullPoints - lastScanResult.pointsAwarded} pts)
+                    </span>
+                  ) : (
+                    <span
+                      className="badge"
+                      style={{
+                        background: '#ecfdf5',
+                        color: '#065f46',
+                        border: '1px solid #a7f3d0',
+                        fontWeight: 800,
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      ✓ On-Time ({lastScanResult.checkInMinutes ?? 0}m) • Full +{lastScanResult.pointsAwarded} pts awarded
+                    </span>
+                  )
+                ) : (
+                  <span
+                    className="badge"
+                    style={{
+                      background: '#ecfdf5',
+                      color: '#065f46',
+                      border: '1px solid #a7f3d0',
+                      fontWeight: 700,
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    ✓ Full +{lastScanResult?.pointsAwarded ?? fullPoints} pts awarded (Timer was not started)
+                  </span>
+                )}
               </div>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                {lastScannedStudent.category} • Checked in for {selectedDate}
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.2rem 0 0 0' }}>
+                {lastScannedStudent.category || 'Pope Saweros Class'} • Friday Session {selectedDate}
               </p>
             </div>
           </div>
@@ -391,6 +725,45 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                         </>
                       )}
                     </button>
+
+                    {/* On-Time / Late Status Badge (clickable to excuse or mark late) */}
+                    {isSundaySchoolPresent && (
+                      <button
+                        type="button"
+                        onClick={() => onToggleLateStatus && onToggleLateStatus(student.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.35rem 0.65rem',
+                          borderRadius: 'var(--radius-full)',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          cursor: onToggleLateStatus ? 'pointer' : 'default',
+                          border: record?.isLate ? '1px solid #fcd34d' : '1px solid #a7f3d0',
+                          background: record?.isLate ? '#fef3c7' : '#ecfdf5',
+                          color: record?.isLate ? '#92400e' : '#065f46',
+                          transition: 'all 0.15s ease',
+                        }}
+                        title={
+                          record?.isLate
+                            ? 'Marked Late (decreased points). Click to change to On-Time'
+                            : 'Marked On-Time (full points). Click to change to Late'
+                        }
+                      >
+                        {record?.isLate ? (
+                          <>
+                            <Clock size={12} />
+                            <span>Late (+{record?.pointsAwarded ?? defaultLatePoints} pts)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Check size={12} strokeWidth={2.5} />
+                            <span>On-Time (+{fullPoints} pts)</span>
+                          </>
+                        )}
+                      </button>
+                    )}
 
                     {/* Odas / Liturgy Attendance Toggle */}
                     <button

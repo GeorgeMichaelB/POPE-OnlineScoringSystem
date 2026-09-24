@@ -895,3 +895,19 @@ button {
     transform: none !important;
   }
 }
+
+/* Friday Class Timer Pulse Animation */
+@keyframes timerPulseGlow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.15);
+  }
+}
+
+.timer-pulse {
+  animation: timerPulseGlow 1.6s infinite ease-in-out;
+}
