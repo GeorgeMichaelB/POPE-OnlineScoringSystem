@@ -1,7 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Calendar, MapPin, School, Phone, Heart, ShieldAlert, Sparkles, FileText, Camera, Church } from 'lucide-react';
+import {
+  X,
+  Save,
+  User,
+  Calendar,
+  MapPin,
+  School,
+  Phone,
+  Heart,
+  ShieldAlert,
+  Sparkles,
+  FileText,
+  Camera,
+  Church,
+  Download,
+  Wand2,
+  RefreshCw
+} from 'lucide-react';
 import type { Student, LoveLanguage } from '../types';
 import { calculateAge, getTodayDateString } from '../utils/helpers';
+import {
+  generateStudentId,
+  parseFullName,
+  getInitialLetter,
+  generateQRCodeDataURL,
+  downloadSingleStudentQR
+} from '../utils/qr';
 
 interface StudentFormModalProps {
   isOpen: boolean;
@@ -9,6 +33,8 @@ interface StudentFormModalProps {
   onSave: (student: Student) => void;
   initialQrCode?: string;
   existingStudent?: Student | null;
+  existingStudents?: Student[];
+  className?: string;
 }
 
 const LOVE_LANGUAGES: LoveLanguage[] = [
@@ -26,6 +52,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   onSave,
   initialQrCode = '',
   existingStudent = null,
+  existingStudents = [],
+  className = 'Pope Saweros Class',
 }) => {
   const [formData, setFormData] = useState<Student>({
     id: '',
@@ -35,7 +63,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     dob: '2016-01-01',
     address: '',
     school: '',
-    category: 'Pope Saweros Class',
+    category: className,
     boyPhone: '',
     dadPhone: '',
     momPhone: '',
@@ -50,9 +78,14 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     createdAt: new Date().toISOString(),
   });
 
+  const [manuallyEditedId, setManuallyEditedId] = useState(false);
+  const [qrPreviewUrl, setQrPreviewUrl] = useState<string>('');
+  const [isDownloadingQR, setIsDownloadingQR] = useState(false);
+
   useEffect(() => {
     if (existingStudent) {
       setFormData(existingStudent);
+      setManuallyEditedId(true);
     } else {
       setFormData({
         id: initialQrCode || '',
@@ -62,7 +95,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         dob: '2016-01-01',
         address: '',
         school: '',
-        category: 'Pope Saweros Class',
+        category: className,
         boyPhone: '',
         dadPhone: '',
         momPhone: '',
@@ -76,11 +109,65 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         isDeacon: false,
         createdAt: new Date().toISOString(),
       });
+      setManuallyEditedId(!!initialQrCode);
     }
-  }, [existingStudent, initialQrCode, isOpen]);
+  }, [existingStudent, initialQrCode, isOpen, className]);
+
+  // Generate QR preview when ID changes
+  useEffect(() => {
+    if (formData.id.trim()) {
+      generateQRCodeDataURL(formData.id.trim())
+        .then((url) => setQrPreviewUrl(url))
+        .catch(() => setQrPreviewUrl(''));
+    } else {
+      setQrPreviewUrl('');
+    }
+  }, [formData.id]);
 
   const handleChange = <K extends keyof Student>(field: K, value: Student[K]) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      // If user hasn't manually edited the ID and we are registering a new boy:
+      // Auto-compute ID from Boy + Dad + Grandpa name initials
+      if (!existingStudent && !manuallyEditedId && (field === 'name' || field === 'arabicName' || field === 'dob')) {
+        const parsed = parseFullName(next.name || next.arabicName || '');
+        if (parsed.boyName) {
+          const otherIds = existingStudents.map((s) => s.id);
+          const autoId = generateStudentId(parsed.boyName, parsed.dadName, parsed.grandpaName, next.dob, otherIds);
+          next.id = autoId;
+        }
+      }
+
+      return next;
+    });
+  };
+
+  const handleAutoGenerateId = () => {
+    const parsed = parseFullName(formData.name || formData.arabicName || '');
+    if (!parsed.boyName) {
+      alert('Please enter at least the student’s name first.');
+      return;
+    }
+    const otherIds = existingStudents.filter((s) => s.id !== existingStudent?.id).map((s) => s.id);
+    const autoId = generateStudentId(parsed.boyName, parsed.dadName, parsed.grandpaName, formData.dob, otherIds);
+    setFormData((prev) => ({ ...prev, id: autoId }));
+    setManuallyEditedId(false);
+  };
+
+  const handleDownloadQR = async () => {
+    if (!formData.name.trim() || !formData.id.trim()) {
+      alert('Please provide student name and ID before downloading the QR code.');
+      return;
+    }
+    setIsDownloadingQR(true);
+    try {
+      await downloadSingleStudentQR(formData, className);
+    } catch {
+      alert('Failed to download QR code.');
+    } finally {
+      setIsDownloadingQR(false);
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,62 +263,189 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                 : 'Assign unique Student ID & register boy'}
             </div>
 
-            {/* Passport QR Badge, Series & Category */}
+            {/* Passport QR Badge, Auto-ID & Preview */}
             <div
               style={{
-                background: 'var(--color-primary-light)',
-                border: '1px solid var(--border-medium)',
-                padding: '0.75rem 1rem',
+                background: 'linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%)',
+                border: '1px solid #bfdbfe',
+                padding: '0.85rem 1rem',
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                flexDirection: 'column',
                 gap: '0.75rem',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Student ID *:
-                </span>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. AWI1012"
-                  value={formData.id}
-                  onChange={(e) => handleChange('id', e.target.value)}
-                  className="form-input"
-                  style={{
-                    width: '140px',
-                    padding: '0.25rem 0.5rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.5px',
-                    background: 'white',
-                  }}
-                />
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                }}
+              >
+                {/* ID Input & Auto-ID Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e3a8a' }}>
+                    Student ID *:
+                  </span>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Auto-generated ID"
+                    value={formData.id}
+                    onChange={(e) => {
+                      setManuallyEditedId(true);
+                      handleChange('id', e.target.value.toUpperCase());
+                    }}
+                    className="form-input"
+                    style={{
+                      width: '130px',
+                      padding: '0.3rem 0.55rem',
+                      fontWeight: 800,
+                      letterSpacing: '1px',
+                      background: 'white',
+                      border: '1.5px solid #3b82f6',
+                      color: '#1e40af',
+                      textTransform: 'uppercase',
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAutoGenerateId}
+                    className="btn btn-secondary btn-sm"
+                    title="Auto-generate ID from initials (Boy + Dad + Grandpa) & DOB"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      padding: '0.3rem 0.6rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: '#2563eb',
+                      background: 'white',
+                      border: '1px solid #93c5fd',
+                    }}
+                  >
+                    <Wand2 size={13} />
+                    Auto-ID
+                  </button>
+                </div>
+
+                {/* Series Code */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Series:
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Auto-Series"
+                    value={formData.series || ''}
+                    onChange={(e) => handleChange('series', e.target.value)}
+                    className="form-input"
+                    style={{
+                      width: '120px',
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.8rem',
+                      background: 'white',
+                    }}
+                  />
+                </div>
+
+                {/* Class Display */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#1e3a8a' }}>
+                  <strong>Class:</strong> {className}
+                </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  Series Code:
-                </span>
-                <input
-                  type="text"
-                  placeholder="e.g. APSAW2743401"
-                  value={formData.series || ''}
-                  onChange={(e) => handleChange('series', e.target.value)}
-                  className="form-input"
-                  style={{
-                    width: '150px',
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.85rem',
-                    background: 'white',
-                  }}
-                />
-              </div>
+              {/* Initials Formula & Live QR Preview Strip */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.75rem',
+                  paddingTop: '0.5rem',
+                  borderTop: '1px dashed #cbd5e1',
+                }}
+              >
+                {/* Initials breakdown pill */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  <span style={{ fontWeight: 600 }}>Formula:</span>
+                  {(() => {
+                    const parsed = parseFullName(formData.name || formData.arabicName || '');
+                    const b = getInitialLetter(parsed.boyName) || '?';
+                    const d = getInitialLetter(parsed.dadName) || '?';
+                    const g = getInitialLetter(parsed.grandpaName) || '?';
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                          Boy [{b}]
+                        </span>
+                        <span>+</span>
+                        <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                          Dad [{d}]
+                        </span>
+                        <span>+</span>
+                        <span style={{ background: '#ede9fe', color: '#5b21b6', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                          Grandpa [{g}]
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                <strong>Class:</strong> Pope Saweros (Grade 4)
+                {/* Live QR Code Mini Preview & Download Button */}
+                {formData.id.trim() && qrPreviewUrl && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        background: 'white',
+                        padding: '4px 6px',
+                        borderRadius: 'var(--radius-sm)',
+                        border: '1px solid #cbd5e1',
+                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      }}
+                    >
+                      <img src={qrPreviewUrl} alt="QR Code Preview" style={{ width: 44, height: 44, display: 'block' }} />
+                      <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#1e293b', letterSpacing: '0.5px' }}>
+                        ID: {formData.id}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadQR}
+                      disabled={isDownloadingQR}
+                      className="btn btn-secondary btn-sm"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        fontSize: '0.75rem',
+                        padding: '0.35rem 0.65rem',
+                        background: '#ffffff',
+                        border: '1px solid #3b82f6',
+                        color: '#1d4ed8',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {isDownloadingQR ? (
+                        <>
+                          <RefreshCw size={13} className="spin" /> Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Download size={13} /> Download QR Badge
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -244,7 +458,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Andy Wael Ibrahim"
+                  placeholder="Enter boy's full English name"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   className="form-input"
@@ -257,7 +471,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="مثال: أندي وائل إبراهيم"
+                  placeholder="اسم المخدوم باللغة العربية"
                   value={formData.arabicName || ''}
                   onChange={(e) => handleChange('arabicName', e.target.value)}
                   className="form-input"

@@ -7,11 +7,16 @@ import {
   AlertCircle,
   Camera,
   CheckCircle2,
+  Smartphone,
+  KeyRound,
 } from 'lucide-react';
 import type { Student, AttendanceRecord, PointSettings } from '../types';
 import { sound } from '../services/sound';
 import { calculateFridayLateDeduction } from '../utils/helpers';
-import { authenticateWithMacTouchID } from '../services/biometrics';
+import {
+  authenticateWithBiometricsOrScreenLock,
+  getDeviceBiometricLabel,
+} from '../services/biometrics';
 
 interface FridayFullscreenScannerProps {
   isOpen: boolean;
@@ -262,23 +267,25 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
     }, 3200);
   };
 
-  // Touch ID Verification for Stopping Timer
+  // Universal Biometric / Screen Lock Verification for Stopping Timer
   const handleInitiateStopTimer = async () => {
     setTouchIDError(null);
     setIsVerifyingTouchID(true);
 
-    const requireTouchID = pointSettings.fridayLateRequireTouchID !== false;
+    const requireBiometrics = pointSettings.fridayLateRequireTouchID !== false;
 
-    if (!requireTouchID) {
-      // If Touch ID is disabled in settings, allow immediate stop
+    if (!requireBiometrics) {
+      // If biometrics/touch ID is disabled in settings, allow immediate stop
       setIsVerifyingTouchID(false);
       onStopTimer();
       onClose();
       return;
     }
 
-    // Trigger native MacBook Touch ID
-    const result = await authenticateWithMacTouchID('Verify fingerprint to stop Friday class timer');
+    const deviceLabel = getDeviceBiometricLabel();
+
+    // Trigger native Phone Biometrics (Face ID/Fingerprint), Screen Lock, or MacBook Touch ID
+    const result = await authenticateWithBiometricsOrScreenLock(`Verify ${deviceLabel} to stop Friday class timer`);
 
     if (result.success) {
       sound.playSuccessChime();
@@ -287,7 +294,9 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
       onClose();
     } else {
       sound.playAlertChime();
-      setTouchIDError(result.error || 'Fingerprint verification failed. Timer cannot be stopped without authorization.');
+      setTouchIDError(result.error || `${deviceLabel} verification failed. You can also use your device screen lock passcode or servant password.`);
+      // Reveal passcode fallback drawer automatically so user is never stuck
+      setIsFallbackPasswordOpen(true);
     }
   };
 
@@ -488,10 +497,10 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
               gap: '0.45rem',
               borderRadius: 'var(--radius-md)',
             }}
-            title="Stop Timer & End Session (Requires MacBook Fingerprint Touch ID)"
+            title={`Stop Timer & End Session (Requires ${getDeviceBiometricLabel()})`}
           >
             <Fingerprint size={16} />
-            <span>Stop Timer (Touch ID)</span>
+            <span>Stop Timer (Biometrics / Lock)</span>
           </button>
         </div>
       </div>
@@ -814,7 +823,7 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
               color: '#ffffff',
             }}
           >
-            {/* Glowing Touch ID Icon */}
+            {/* Glowing Biometric & Device Screenlock Icon */}
             <div
               style={{
                 width: 80,
@@ -828,16 +837,21 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
                 justifyContent: 'center',
                 boxShadow: '0 0 30px rgba(99, 102, 241, 0.4)',
                 animation: 'timerPulseGlow 2s infinite ease-in-out',
+                gap: '0.25rem',
               }}
             >
-              <Fingerprint size={46} color="#a5b4fc" />
+              <Fingerprint size={38} color="#a5b4fc" />
+              <Smartphone size={24} color="#818cf8" />
             </div>
 
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, margin: '0 0 0.5rem 0', color: '#f8fafc' }}>
-              MacBook Touch ID Required
+              Device Biometrics or Screen Lock Required
+              <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#a5b4fc', marginTop: '0.25rem' }}>
+                بصمة الجهاز أو قفل الشاشة
+              </span>
             </h3>
             <p style={{ fontSize: '0.875rem', color: '#94a3b8', lineHeight: 1.5, margin: '0 0 1.5rem 0' }}>
-              The timer will not stop until you place your finger on your <strong>MacBook Touch ID sensor</strong>.
+              Verify using <strong>{getDeviceBiometricLabel()}</strong>, Face ID, Fingerprint, or your device screen lock passcode to authorize stopping the timer.
             </p>
 
             {touchIDError && (
@@ -874,7 +888,7 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
                 }}
               >
                 <Fingerprint size={18} />
-                <span>Scan Fingerprint on Touch ID</span>
+                <span>Verify Biometrics / Screen Lock</span>
               </button>
 
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -894,7 +908,7 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
 
                 <button
                   type="button"
-                  onClick={() => setIsFallbackPasswordOpen(true)}
+                  onClick={() => setIsFallbackPasswordOpen((prev) => !prev)}
                   className="btn btn-secondary"
                   style={{
                     background: 'transparent',
@@ -902,24 +916,25 @@ export const FridayFullscreenScanner: React.FC<FridayFullscreenScannerProps> = (
                     color: '#94a3b8',
                     fontSize: '0.78rem',
                   }}
-                  title="Use admin password if Touch ID sensor is not responding"
+                  title="Use screen lock passcode or servant password"
                 >
-                  Password Override
+                  <KeyRound size={13} style={{ marginRight: '0.3rem', display: 'inline' }} />
+                  Passcode Override
                 </button>
               </div>
             </div>
 
-            {/* Admin Password Fallback Drawer */}
+            {/* Admin Password / Screenlock Fallback Drawer */}
             {isFallbackPasswordOpen && (
               <form onSubmit={handleFallbackPasswordSubmit} style={{ marginTop: '1.25rem', paddingTop: '1.25rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
                 <label style={{ fontSize: '0.78rem', color: '#cbd5e1', display: 'block', marginBottom: '0.35rem' }}>
-                  Servant Master Password Override:
+                  Device Screen Lock PIN / Passcode or Servant Password:
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <input
                     type="password"
                     required
-                    placeholder="Enter password..."
+                    placeholder="Enter PIN, passcode, or password..."
                     value={adminPasswordInput}
                     onChange={(e) => setAdminPasswordInput(e.target.value)}
                     className="form-input"

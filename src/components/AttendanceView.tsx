@@ -241,7 +241,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
               </span>
               <span className="badge badge-primary" style={{ fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                 <Fingerprint size={12} />
-                <span>Touch ID Protected</span>
+                <span>Biometrics / Screen Lock Protected</span>
               </span>
             </div>
           </div>
@@ -312,7 +312,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                 </div>
 
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Timer active for session {selectedDate} • Grace threshold {cutoffMinutes}m • Touch ID required to stop
+                  Timer active for session {selectedDate} • Grace threshold {cutoffMinutes}m • Biometrics / Screen Lock required to stop
                 </div>
               </div>
             </div>
@@ -354,7 +354,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                     color: '#dc2626',
                     borderColor: '#fca5a5',
                   }}
-                  title="Stop timer (Requires MacBook Touch ID fingerprint)"
+                  title="Stop timer (Requires Phone/Device Biometrics or Screen Lock)"
                 >
                   <Fingerprint size={13} />
                   <span>Stop Timer</span>

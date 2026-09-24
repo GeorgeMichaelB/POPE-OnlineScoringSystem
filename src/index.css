@@ -911,3 +911,240 @@ button {
 .timer-pulse {
   animation: timerPulseGlow 1.6s infinite ease-in-out;
 }
+
+/* ===================================================================
+   COMPREHENSIVE ADAPTIVE & RESPONSIVE DESIGN SYSTEM
+   Supports: Phones (320px-480px), Phablets (481px-640px),
+   Tablets (641px-1024px), Laptops (1025px-1599px),
+   Ultra-Wides & Full HD Projectors (1600px-2559px),
+   and 4K Ultra HD Church TVs (>= 2560px & >= 3840px)
+   =================================================================== */
+
+/* 1. Base Tap-Target & Touch Ergonomics */
+@media (max-width: 768px) {
+  /* Prevent iOS Safari auto-zooming on focus while maintaining clean typography */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Increase button tap targets */
+  .btn {
+    min-height: 38px;
+    touch-action: manipulation;
+  }
+}
+
+/* 2. Fluid Modals on Phones & Small Tablets */
+@media (max-width: 640px) {
+  .modal-overlay {
+    padding: 0.5rem 0.35rem !important;
+    align-items: flex-end !important; /* Bottom-sheet aesthetic on mobile */
+  }
+
+  .modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 94dvh !important;
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  .modal-header {
+    padding: 0.85rem 1rem !important;
+  }
+
+  .modal-body {
+    padding: 0.85rem 1rem !important;
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1rem !important;
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+    gap: 0.5rem !important;
+  }
+
+  .modal-footer .btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+  }
+}
+
+/* 3. Small Phones (< 400px, e.g. iPhone SE, Galaxy Mini) */
+@media (max-width: 400px) {
+  .header-inner {
+    padding: 0.35rem 0.4rem !important;
+  }
+
+  .brand-titles h1 {
+    font-size: 0.8rem !important;
+  }
+
+  .brand-icon {
+    width: 26px !important;
+    height: 26px !important;
+  }
+
+  .roster-card-actions {
+    grid-template-columns: 1fr !important; /* Single column full-width buttons on small phones */
+    gap: 0.4rem !important;
+  }
+
+  .roster-card-actions .btn {
+    font-size: 0.75rem !important;
+    padding: 0.5rem 0.5rem !important;
+    min-height: 42px !important;
+  }
+
+  .auth-portal-card {
+    padding: 1.5rem 1rem !important;
+    border-radius: 14px !important;
+  }
+
+  .btn {
+    padding: 0.4rem 0.6rem !important;
+    font-size: 0.78rem !important;
+  }
+}
+
+/* 4. Auth & Login Portal Responsiveness */
+@media (max-width: 480px) {
+  .auth-portal-card {
+    padding: 1.75rem 1.15rem !important;
+    border-radius: 16px !important;
+  }
+}
+
+/* 5. Fluid Responsive Table Containers */
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
+}
+
+.table-responsive-wrapper table {
+  width: 100%;
+  min-width: 600px; /* Ensures tables don't squash columns on mobile */
+  border-collapse: collapse;
+}
+
+/* 6. Tablet Layout Balance (641px - 1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .main-content {
+    padding: 1.5rem 1.25rem 3rem;
+  }
+
+  .podium-container {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .student-list-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* 7. Laptops & Desktops (1025px - 1599px) */
+@media (min-width: 1025px) {
+  .podium-container {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+
+  .student-list-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)) !important;
+  }
+}
+
+/* 8. Ultra-Wide Displays, Full HD Projectors & Church TVs (>= 1600px) */
+@media (min-width: 1600px) {
+  .main-content {
+    max-width: 1560px;
+    padding: 2.25rem 2rem;
+  }
+
+  .header-inner {
+    max-width: 1560px;
+  }
+
+  /* Expand Hall of Champions presentation */
+  .leaderboard-roster-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.85rem !important;
+  }
+
+  .podium-container {
+    gap: 2.5rem !important;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+}
+
+/* 9. 2K Displays & Full Church Projection Mode (>= 1920px) */
+@media (min-width: 1920px) {
+  .main-content {
+    max-width: 1800px;
+    padding: 2.75rem 2.5rem;
+  }
+
+  .header-inner {
+    max-width: 1800px;
+  }
+
+  /* High-DPI TV Scaling for Hall of Champions */
+  .heroes-fullscreen-mode {
+    padding: 2rem !important;
+  }
+
+  .podium-card-top1 {
+    transform: translateY(-24px) scale(1.08) !important;
+  }
+
+  .podium-card-top1:hover {
+    transform: translateY(-30px) scale(1.1) !important;
+  }
+
+  .podium-card-top2:hover,
+  .podium-card-top3:hover {
+    transform: translateY(-10px) scale(1.03) !important;
+  }
+}
+
+/* 10. 4K Ultra HD Smart TVs & Giant Church Projectors (>= 2560px & >= 3840px) */
+@media (min-width: 2560px) {
+  .main-content {
+    max-width: 2400px;
+    padding: 3.5rem 3rem;
+  }
+
+  .header-inner {
+    max-width: 2400px;
+  }
+
+  /* 3-Column Leaderboard on 4K Screens so 45+ boys fit without scrolling! */
+  .leaderboard-roster-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.15rem !important;
+  }
+
+  .card {
+    padding: 1.75rem;
+    border-radius: 20px;
+  }
+
+  .btn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.05rem;
+    border-radius: 10px;
+  }
+}
+

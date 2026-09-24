@@ -12,7 +12,9 @@ import {
   Check,
   Flame,
   Sun,
-  Cake
+  Cake,
+  ShieldAlert,
+  Download
 } from 'lucide-react';
 
 export type AppView =
@@ -26,7 +28,10 @@ export type AppView =
   | 'visits'
   | 'students'
   | 'birthdays'
-  | 'log';
+  | 'log'
+  | 'superadmin';
+
+export type NavItemId = AppView | 'install_pwa';
 
 interface NavDroplistProps {
   currentView: AppView;
@@ -36,10 +41,13 @@ interface NavDroplistProps {
   auditLogsCount: number;
   birthdayAlertCount: number;
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
+  onInstallApp?: () => void;
+  isAppInstalled?: boolean;
 }
 
 interface NavItem {
-  id: AppView;
+  id: NavItemId;
   labelEn: string;
   labelAr: string;
   badge?: string | number;
@@ -62,6 +70,9 @@ export const NavDroplist: React.FC<NavDroplistProps> = ({
   auditLogsCount,
   birthdayAlertCount,
   isAdmin,
+  isSuperAdmin,
+  onInstallApp,
+  isAppInstalled,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -203,12 +214,52 @@ export const NavDroplist: React.FC<NavDroplistProps> = ({
     });
   }
 
+  if (isSuperAdmin) {
+    navGroups.push({
+      groupNameEn: 'SaaS Platform Control',
+      groupNameAr: 'لوحة التحكم الإشرافية العامة',
+      items: [
+        {
+          id: 'superadmin',
+          labelEn: 'SuperAdmin Portal',
+          labelAr: 'إدارة المنصة وكافة الصفوف',
+          badge: 'MASTER',
+          badgeColor: '#a855f7',
+          icon: <ShieldAlert size={16} color="#a855f7" />,
+          highlight: true,
+        },
+      ],
+    });
+  }
+
+  // Add Application & Device (PWA) Install Section
+  navGroups.push({
+    groupNameEn: 'Device & Mobile App',
+    groupNameAr: 'تثبيت البرنامج على الجهاز (PWA)',
+    items: [
+      {
+        id: 'install_pwa',
+        labelEn: isAppInstalled ? 'App Installed (PWA)' : 'Install as App (PWA)',
+        labelAr: isAppInstalled ? 'التطبيق مُثبت كبرنامج' : 'تثبيت التطبيق على الجهاز (PWA)',
+        badge: isAppInstalled ? 'Installed' : 'Install',
+        badgeColor: isAppInstalled ? '#10b981' : '#0284c7',
+        icon: <Download size={16} color={isAppInstalled ? '#10b981' : '#0284c7'} />,
+        highlight: !isAppInstalled,
+      },
+    ],
+  });
+
   // Find current item details
   const allItems = navGroups.flatMap((g) => g.items);
   const currentItem = allItems.find((i) => i.id === currentView) || allItems[0];
 
-  const handleSelect = (view: AppView) => {
-    onChangeView(view);
+  const handleSelect = (itemId: NavItemId) => {
+    if (itemId === 'install_pwa') {
+      onInstallApp?.();
+      setIsOpen(false);
+      return;
+    }
+    onChangeView(itemId as AppView);
     setIsOpen(false);
   };
 
@@ -257,7 +308,7 @@ export const NavDroplist: React.FC<NavDroplistProps> = ({
         <div className="nav-droplist-menu" role="listbox">
           <div className="nav-droplist-menu-header">
             <span>Navigation Menu (اختر الصفحة)</span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>10 Sections</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>11 Sections</span>
           </div>
 
           <div className="nav-droplist-menu-scroll">
@@ -306,6 +357,52 @@ export const NavDroplist: React.FC<NavDroplistProps> = ({
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* Quick PWA Install Footer in Dropdown */}
+          <div
+            className="nav-droplist-footer"
+            style={{
+              padding: '0.6rem 0.75rem',
+              borderTop: '1px solid var(--border-light)',
+              background: 'rgba(2, 132, 199, 0.05)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onInstallApp?.();
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.45rem 0.75rem',
+                background: isAppInstalled
+                  ? 'rgba(16, 185, 129, 0.12)'
+                  : 'linear-gradient(135deg, rgba(2, 132, 199, 0.18) 0%, rgba(14, 165, 233, 0.28) 100%)',
+                border: isAppInstalled
+                  ? '1px solid rgba(16, 185, 129, 0.3)'
+                  : '1px solid rgba(2, 132, 199, 0.4)',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                color: isAppInstalled ? '#10b981' : '#38bdf8',
+                fontWeight: 700,
+                fontSize: '0.8rem',
+                gap: '0.5rem',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Download size={14} />
+                <span>{isAppInstalled ? 'App Installed (PWA)' : 'Install as App (PWA)'}</span>
+              </div>
+              <span style={{ fontSize: '0.72rem', opacity: 0.85 }} className="ar-text">
+                {isAppInstalled ? 'مُثبت كبرنامج' : 'تثبيت البرنامج'}
+              </span>
+            </button>
           </div>
         </div>
       )}

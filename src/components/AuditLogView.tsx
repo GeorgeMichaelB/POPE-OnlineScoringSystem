@@ -14,7 +14,11 @@ import {
   KeyRound,
   Flame,
   Sun,
-  Church
+  Church,
+  BookOpen,
+  Users,
+  Shield,
+  Database
 } from 'lucide-react';
 import type { AuditLogEntry, LogCategory } from '../types';
 
@@ -43,7 +47,7 @@ const CATEGORY_CONFIG: Record<
   mal3ab: {
     label: 'Mal3ab (الملعب والرياضة)',
     color: '#16a34a',
-    bg: 'rgba(22, 163, 74, 0.12)',
+    bg: 'rgba(225, 163, 74, 0.12)',
     icon: <Flame size={15} color="#16a34a" />,
   },
   summer_club: {
@@ -87,6 +91,30 @@ const CATEGORY_CONFIG: Record<
     color: '#475569',
     bg: 'rgba(71, 85, 105, 0.12)',
     icon: <User size={15} color="#475569" />,
+  },
+  classes: {
+    label: 'Class Management (إدارة الفصول)',
+    color: '#6366f1',
+    bg: 'rgba(99, 102, 241, 0.12)',
+    icon: <BookOpen size={15} color="#6366f1" />,
+  },
+  servants: {
+    label: 'Servants & Approvals (الخدام والاعتماد)',
+    color: '#0ea5e9',
+    bg: 'rgba(14, 165, 233, 0.12)',
+    icon: <Users size={15} color="#0ea5e9" />,
+  },
+  superadmin: {
+    label: 'Super Admin Operations (إدارة المنصة)',
+    color: '#dc2626',
+    bg: 'rgba(220, 38, 38, 0.12)',
+    icon: <Shield size={15} color="#dc2626" />,
+  },
+  backups: {
+    label: 'Daily Backups & Restore (النسخ الاحتياطي اليومي)',
+    color: '#10b981',
+    bg: 'rgba(16, 185, 129, 0.12)',
+    icon: <Database size={15} color="#10b981" />,
   },
 };
 

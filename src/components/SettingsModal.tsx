@@ -150,7 +150,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   value={servantName}
                   onChange={(e) => setServantName(e.target.value)}
                   className="form-input"
-                  placeholder="e.g. Servant Mina"
+                  placeholder="Enter servant display name"
                 />
                 <button type="submit" className="btn btn-primary btn-sm">
                   {isSaved ? <Check size={14} /> : 'Save'}
@@ -214,7 +214,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       borderRadius: 'var(--radius-full)',
                       border: `1px solid ${requireTouchID ? '#ddd6fe' : '#cbd5e1'}`,
                     }}
-                    title="Enforce native Touch ID fingerprint authentication to stop the class timer"
+                    title="Enforce phone/device biometrics (Face ID, Fingerprint, Touch ID) or screen lock to stop the class timer"
                   >
                     <Fingerprint size={14} />
                     <input
@@ -224,7 +224,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         setRequireTouchID(e.target.checked);
                       }}
                     />
-                    <span>Touch ID Protected</span>
+                    <span>Biometrics / Screen Lock Protected</span>
                   </label>
 
                   <label
@@ -417,7 +417,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                    💡 <strong>Timer Not Started:</strong> Full {pointSettings.fridayClassPoints || 10} pts for all boys • <strong>Stop Timer:</strong> Protected by MacBook Touch ID
+                    💡 <strong>Timer Not Started:</strong> Full {pointSettings.fridayClassPoints || 10} pts for all boys • <strong>Stop Timer:</strong> Protected by Phone / Laptop Biometrics & Screen Lock
                   </div>
                 </div>
 

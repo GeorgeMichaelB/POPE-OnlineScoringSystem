@@ -465,7 +465,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))',
               gap: '1.25rem',
             }}
           >
@@ -780,7 +780,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
             className="podium-container"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
               gap: '1.5rem',
               alignItems: 'end',
             }}
@@ -1192,7 +1192,7 @@ export const ClassHeroesLeaderboardView: React.FC<ClassHeroesLeaderboardViewProp
           </div>
 
           {/* Roster Cards / Rows */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="leaderboard-roster-grid" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {filteredScoreboard.length === 0 ? (
               <div
                 style={{

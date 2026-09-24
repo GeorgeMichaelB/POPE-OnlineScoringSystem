@@ -12,7 +12,9 @@ import {
   Trophy,
   Church,
   CheckCircle2,
-  Clock
+  Clock,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import type {
   Student,
@@ -34,9 +36,14 @@ import {
   getStudentVisits,
   getCurrentMonthString
 } from '../utils/helpers';
+import {
+  downloadSingleStudentQR,
+  downloadAllStudentsQRZip
+} from '../utils/qr';
 
 interface StudentListViewProps {
   students: Student[];
+  className?: string;
   attendance: AttendanceRecord[];
   darsKtab?: DarsKtabRecord[];
   mal3ab?: Mal3abRecord[];
@@ -54,6 +61,7 @@ interface StudentListViewProps {
 
 export const StudentListView: React.FC<StudentListViewProps> = ({
   students,
+  className = 'Pope Saweros Class',
   attendance,
   darsKtab = [],
   mal3ab = [],
@@ -70,6 +78,40 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPriestFilter, setSelectedPriestFilter] = useState('ALL');
+  const [isDownloadingAllQRs, setIsDownloadingAllQRs] = useState(false);
+  const [zipProgress, setZipProgress] = useState('');
+  const [downloadingStudentId, setDownloadingStudentId] = useState<string | null>(null);
+
+  const handleDownloadAllQRs = async () => {
+    if (students.length === 0) {
+      alert('No students to download.');
+      return;
+    }
+    setIsDownloadingAllQRs(true);
+    setZipProgress(`0 / ${students.length}`);
+    try {
+      await downloadAllStudentsQRZip(students, className, (curr, total) => {
+        setZipProgress(`${curr} / ${total}`);
+      });
+    } catch {
+      alert('Failed to generate ZIP file of QR codes.');
+    } finally {
+      setIsDownloadingAllQRs(false);
+      setZipProgress('');
+    }
+  };
+
+  const handleDownloadSingleQR = async (e: React.MouseEvent, student: Student) => {
+    e.stopPropagation();
+    setDownloadingStudentId(student.id);
+    try {
+      await downloadSingleStudentQR(student, className);
+    } catch {
+      alert(`Failed to download QR code for ${student.name}`);
+    } finally {
+      setDownloadingStudentId(null);
+    }
+  };
 
   const currentMonth = getCurrentMonthString();
   const uniquePriests = Array.from(
@@ -117,18 +159,47 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
         <div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Sunday School Boys Roster</h2>
           <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-            Pope Saweros Class (Grade 4) • Total registered boys: {students.length}
+            {className} • Total registered boys: {students.length}
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65rem' }}>
+          <button
+            type="button"
+            onClick={handleDownloadAllQRs}
+            disabled={isDownloadingAllQRs}
+            className="btn btn-secondary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.45rem',
+              color: '#1d4ed8',
+              background: '#eff6ff',
+              borderColor: '#bfdbfe',
+              fontWeight: 600,
+            }}
+            title="Download all boys' QR badges as a ZIP file named after each boy"
+          >
+            {isDownloadingAllQRs ? (
+              <>
+                <RefreshCw size={15} className="spin" />
+                <span>Packing ZIP ({zipProgress})...</span>
+              </>
+            ) : (
+              <>
+                <Download size={15} />
+                <span>Download All QR Codes (ZIP)</span>
+              </>
+            )}
+          </button>
+
           <button
             type="button"
             onClick={onScanNewPassport}
             className="btn btn-secondary"
             title="Scan a new passport QR code to register a boy"
           >
-            <QrCode size={16} /> Scan New Passport
+            <QrCode size={16} /> Scan Passport
           </button>
 
           <button
@@ -492,6 +563,20 @@ export const StudentListView: React.FC<StudentListViewProps> = ({
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDownloadSingleQR(e, student)}
+                      disabled={downloadingStudentId === student.id}
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '0.3rem 0.5rem', color: '#1d4ed8', background: '#eff6ff', borderColor: '#bfdbfe' }}
+                      title={`Download QR Badge (${student.name.replace(/\s+/g, '_')}_QR.png)`}
+                    >
+                      {downloadingStudentId === student.id ? (
+                        <RefreshCw size={12} className="spin" />
+                      ) : (
+                        <QrCode size={12} />
+                      )}
+                    </button>
                     <button
                       type="button"
                       onClick={() => onStartVisit(student)}

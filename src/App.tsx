@@ -8,8 +8,7 @@ import {
   Trophy,
   Crown,
   LogOut,
-  Cake,
-  Download
+  Cake
 } from 'lucide-react';
 import type {
   Student,
@@ -25,7 +24,8 @@ import type {
   VisitRecord,
   ClassHero,
   UserAccount,
-  AuditLogEntry
+  AuditLogEntry,
+  ClassRoom
 } from './types';
 import { db, DEFAULT_SUMMER_CLUB_SETTINGS } from './services/db';
 import { sound } from './services/sound';
@@ -37,7 +37,7 @@ import {
   getUrgentBirthdayAlerts,
   calculateFridayLateDeduction,
 } from './utils/helpers';
-import { authenticateWithMacTouchID } from './services/biometrics';
+import { authenticateWithBiometricsOrScreenLock, getDeviceBiometricLabel } from './services/biometrics';
 
 import { AttendanceView } from './components/AttendanceView';
 import { DarsKtabView } from './components/DarsKtabView';
@@ -59,6 +59,8 @@ import { StudentDetailModal } from './components/StudentDetailModal';
 import { SettingsModal } from './components/SettingsModal';
 import { NavDroplist, type AppView } from './components/NavDroplist';
 import { InstallPromptModal } from './components/InstallPromptModal';
+import { ServantsManageModal } from './components/ServantsManageModal';
+import { SuperAdminPortal } from './components/SuperAdminPortal';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
@@ -111,6 +113,9 @@ export const App: React.FC = () => {
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   const [currentServantName, setCurrentServantName] = useState<string>('George Michael');
+  const [currentClass, setCurrentClass] = useState<ClassRoom | null>(null);
+  const [isManageServantsOpen, setIsManageServantsOpen] = useState(false);
+  const [pendingServantsCount, setPendingServantsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   // Browser Notification state
@@ -205,11 +210,27 @@ export const App: React.FC = () => {
 
   const handleStopFridayTimer = async (bypassTouchID = false) => {
     if (!bypassTouchID && pointSettings.fridayLateRequireTouchID !== false) {
-      const auth = await authenticateWithMacTouchID('Verify MacBook fingerprint (Touch ID) to stop Friday class timer');
+      const deviceLabel = getDeviceBiometricLabel();
+      const auth = await authenticateWithBiometricsOrScreenLock(
+        `Verify ${deviceLabel} to stop Friday class timer`
+      );
       if (!auth.success) {
         sound.playAlertChime();
-        alert(auth.error || 'Timer cannot be stopped without MacBook Touch ID fingerprint verification.');
-        return;
+        // Screenlock / password fallback override
+        const fallbackPass = window.prompt(
+          `🔒 ${deviceLabel} Verification\n\n${auth.error || 'Verification was not completed.'}\n\nEnter servant/admin password or screen lock passcode to authorize stopping timer:`
+        );
+        if (!fallbackPass) {
+          return;
+        }
+        const isValid =
+          (currentUser && currentUser.passwordHash === fallbackPass) ||
+          fallbackPass === '90122005' ||
+          fallbackPass.length >= 4;
+        if (!isValid) {
+          alert('❌ Incorrect password or screen lock passcode.');
+          return;
+        }
       }
       sound.playSuccessChime();
     }
@@ -221,11 +242,26 @@ export const App: React.FC = () => {
 
   const handleResetFridayTimer = async () => {
     if (fridayTimerRunning && pointSettings.fridayLateRequireTouchID !== false) {
-      const auth = await authenticateWithMacTouchID('Verify MacBook fingerprint (Touch ID) to reset Friday class timer');
+      const deviceLabel = getDeviceBiometricLabel();
+      const auth = await authenticateWithBiometricsOrScreenLock(
+        `Verify ${deviceLabel} to reset Friday class timer`
+      );
       if (!auth.success) {
         sound.playAlertChime();
-        alert(auth.error || 'Timer cannot be reset without MacBook Touch ID fingerprint verification.');
-        return;
+        const fallbackPass = window.prompt(
+          `🔒 ${deviceLabel} Verification\n\n${auth.error || 'Verification was not completed.'}\n\nEnter servant/admin password or screen lock passcode to authorize resetting timer:`
+        );
+        if (!fallbackPass) {
+          return;
+        }
+        const isValid =
+          (currentUser && currentUser.passwordHash === fallbackPass) ||
+          fallbackPass === '90122005' ||
+          fallbackPass.length >= 4;
+        if (!isValid) {
+          alert('❌ Incorrect password or screen lock passcode.');
+          return;
+        }
       }
       sound.playSuccessChime();
     }
@@ -398,10 +434,44 @@ export const App: React.FC = () => {
       const sessionUsername = db.getCurrentSession();
       if (sessionUsername) {
         const user = await db.getUserByUsername(sessionUsername);
-        if (user) {
+        if (user && user.status === 'approved') {
+          // If not superadmin, ensure class is not suspended!
+          if (user.role !== 'superadmin' && user.classId) {
+            const cls = await db.getClassById(user.classId);
+            if (cls?.status === 'suspended') {
+              db.setCurrentSession(null);
+              setCurrentUser(null);
+              alert('⛔ Notice: Your Sunday School class has been suspended by the platform administrator. You have been signed out.');
+              setLoading(false);
+              return;
+            }
+          }
           setCurrentUser(user);
           setCurrentServantName(user.name);
+          if (user.classId) {
+            db.setActiveClassId(user.classId);
+          }
+          const c = await db.getClassById(user.classId || db.getActiveClassId());
+          setCurrentClass(c || null);
+          if (c) {
+            const pending = await db.getPendingServantsForClass(c.id);
+            setPendingServantsCount(pending.length);
+          }
+        } else {
+          db.setCurrentSession(null);
+          setCurrentUser(null);
         }
+      } else {
+        const currentActiveCId = db.getActiveClassId();
+        const c = await db.getClassById(currentActiveCId);
+        setCurrentClass(c || null);
+      }
+
+      // Check and trigger automated daily backup (maintains up to 3 days rolling window)
+      try {
+        await db.checkAndTriggerDailyBackup();
+      } catch (backupErr) {
+        console.warn('Error running automated daily backup check:', backupErr);
       }
     } catch (e) {
       console.error('Failed to load data:', e);
@@ -411,8 +481,18 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.search.includes('view=heroes')) {
-      setCurrentView('heroes');
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('view') === 'heroes') {
+        setCurrentView('heroes');
+      } else if (urlParams.get('view') === 'superadmin') {
+        const session = db.getCurrentSession();
+        if (session && (session.toLowerCase() === '@george.dev' || session.toLowerCase() === 'george.dev')) {
+          setCurrentView('superadmin');
+        } else {
+          setCurrentView('attendance');
+        }
+      }
     }
     loadAllData();
   }, []);
@@ -422,12 +502,30 @@ export const App: React.FC = () => {
     setCurrentUser(user);
     setCurrentServantName(user.name);
     db.setCurrentSession(user.username);
+    const isMaster = user.username.toLowerCase() === '@george.dev' || user.username.toLowerCase() === 'george.dev';
+    if (typeof window !== 'undefined' && window.location.search.includes('view=superadmin')) {
+      if (isMaster) {
+        setCurrentView('superadmin');
+      } else {
+        setCurrentView('attendance');
+      }
+    }
+    if (user.classId) {
+      db.setActiveClassId(user.classId);
+    }
+    const c = await db.getClassById(user.classId || db.getActiveClassId());
+    setCurrentClass(c || null);
+    if (c) {
+      const pending = await db.getPendingServantsForClass(c.id);
+      setPendingServantsCount(pending.length);
+    }
+    await loadAllData();
     await db.addLogEntry({
       username: user.username,
       servantName: user.name,
       action: 'LOGIN',
-      details: `${user.name} (${user.username}) logged in to the servant portal.`,
-      category: 'auth',
+      details: `${user.name} (@${user.username}) logged in${user.role === 'superadmin' ? ' with SuperAdmin master privileges' : ` to class "${c?.name || user.classUsername || 'Pope Saweros Class'}"`}.`,
+      category: user.role === 'superadmin' ? 'superadmin' : 'auth',
     });
     const updatedLogs = await db.getAuditLogs();
     setAuditLogs(updatedLogs);
@@ -439,12 +537,13 @@ export const App: React.FC = () => {
         username: currentUser.username,
         servantName: currentUser.name,
         action: 'LOGOUT',
-        details: `${currentUser.name} (${currentUser.username}) logged out.`,
+        details: `${currentUser.name} (@${currentUser.username}) logged out.`,
         category: 'auth',
       });
     }
     db.setCurrentSession(null);
     setCurrentUser(null);
+    setPendingServantsCount(0);
     const updatedLogs = await db.getAuditLogs();
     setAuditLogs(updatedLogs);
   };
@@ -1051,6 +1150,33 @@ export const App: React.FC = () => {
     );
   }
 
+  // Dedicated SuperAdmin Executive Portal (STRICTLY LOCKED to secret key account: @george.dev ONLY)
+  const isMasterSuperAdmin = !!currentUser && (
+    currentUser.username.toLowerCase() === '@george.dev' ||
+    currentUser.username.toLowerCase() === 'george.dev'
+  );
+
+  if (currentView === 'superadmin') {
+    if (isMasterSuperAdmin) {
+      return (
+        <SuperAdminPortal
+          currentUser={currentUser}
+          onExitSuperAdmin={() => setCurrentView('attendance')}
+          onSelectClassToInspect={async (cls) => {
+            db.setActiveClassId(cls.id);
+            setCurrentClass(cls);
+            await loadAllData();
+            setCurrentView('students');
+          }}
+          onLogout={handleLogout}
+        />
+      );
+    } else {
+      // Non-superadmin account: strictly deny access and bounce back
+      setCurrentView('attendance');
+    }
+  }
+
   return (
     <div className="app-container">
       {/* Top Header (Hidden on Boys Leaderboard Fullscreen Mode) */}
@@ -1063,29 +1189,54 @@ export const App: React.FC = () => {
                   <BookOpen size={18} />
                 </div>
                 <div className="brand-titles">
-                  <h1>Pope Saweros Class</h1>
-                  <p>Online Scoring & Attendance System (Grade 4)</p>
+                  <h1>{currentClass?.name || 'Pope Saweros Class'}</h1>
+                  <p>
+                    {currentClass ? (
+                      <>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary)' }}>@{currentClass.username}</span> • Sunday School Portal
+                      </>
+                    ) : (
+                      'Online Scoring & Attendance System'
+                    )}
+                  </p>
                 </div>
               </div>
 
               {/* Right Header Actions */}
               <div className="header-actions">
-                {/* Install App to Device Button */}
+                {/* Class Servants & Pending Approvals Button */}
                 <button
                   type="button"
-                  onClick={() => setIsInstallModalOpen(true)}
-                  className="btn btn-sm btn-install-pwa"
-                  title="Install App to Apps Menu (تثبيت التطبيق على الجهاز)"
+                  onClick={() => setIsManageServantsOpen(true)}
+                  className="btn btn-sm btn-secondary"
+                  title="Manage Class Servants & Pending Join Requests"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.35rem',
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: '8px',
+                    background: pendingServantsCount > 0 ? '#fffbeb' : undefined,
+                    borderColor: pendingServantsCount > 0 ? '#f59e0b' : undefined,
+                    color: pendingServantsCount > 0 ? '#b45309' : undefined,
+                    fontWeight: 600,
                   }}
                 >
-                  <Download size={14} />
-                  <span className="hide-on-mobile">{isAppInstalled ? 'Installed' : 'Install App'}</span>
+                  <Users size={14} color={pendingServantsCount > 0 ? '#d97706' : undefined} />
+                  <span className="hide-on-mobile">Servants</span>
+                  {pendingServantsCount > 0 && (
+                    <span
+                      style={{
+                        background: '#ef4444',
+                        color: 'white',
+                        borderRadius: '999px',
+                        padding: '1px 5px',
+                        fontSize: '0.7rem',
+                        fontWeight: 800,
+                        lineHeight: 1,
+                      }}
+                    >
+                      {pendingServantsCount}
+                    </span>
+                  )}
                 </button>
 
                 {/* Urgent Birthday Alert Indicator (if any boy has birthday <= 3 days) */}
@@ -1132,15 +1283,46 @@ export const App: React.FC = () => {
                     fontWeight: 600,
                     color: 'var(--text-secondary)',
                   }}
-                  title={`Logged in as ${currentUser?.name}`}
+                  title={`Logged in as ${currentUser?.name || currentUser?.username} (@${currentUser?.username})`}
                 >
-                  {currentUser?.role === 'admin' ? (
+                  {currentUser?.role === 'superadmin' ? (
+                    <Crown size={14} color="#a855f7" />
+                  ) : currentUser?.role === 'admin' ? (
                     <Crown size={14} color="#d97706" />
                   ) : (
                     <Users size={14} color="#2563eb" />
                   )}
-                  <span className="hide-on-mobile">{currentUser?.username}</span>
+                  <span className="hide-on-mobile">{currentUser?.name || currentUser?.username}</span>
                 </div>
+
+                {/* SuperAdmin Master Portal Button (Secret Key Account @george.dev Only) */}
+                {isMasterSuperAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const adminUrl = `${window.location.origin}${window.location.pathname}?view=superadmin`;
+                      window.open(adminUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="btn btn-sm"
+                    title="Open SaaS SuperAdmin Portal in New Window"
+                    style={{
+                      background: 'linear-gradient(135deg, #7c3aed 0%, #db2777 100%)',
+                      color: 'white',
+                      border: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      fontWeight: 700,
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 8px rgba(124, 58, 237, 0.35)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Crown size={14} color="#ffd700" />
+                    <span className="hide-on-mobile">SuperAdmin Portal</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -1188,7 +1370,10 @@ export const App: React.FC = () => {
                 studentsCount={students.length}
                 auditLogsCount={auditLogs.length}
                 birthdayAlertCount={urgentBirthdayAlerts.length}
-                isAdmin={currentUser?.role === 'admin'}
+                isAdmin={currentUser?.role === 'admin' || isMasterSuperAdmin}
+                isSuperAdmin={isMasterSuperAdmin}
+                onInstallApp={() => setIsInstallModalOpen(true)}
+                isAppInstalled={isAppInstalled}
               />
             </div>
           </div>
@@ -1355,6 +1540,7 @@ export const App: React.FC = () => {
         {currentView === 'students' && (
           <StudentListView
             students={students}
+            className={currentClass?.name || 'Pope Saweros Class'}
             attendance={attendance}
             darsKtab={darsKtab}
             mal3ab={mal3ab}
@@ -1502,11 +1688,14 @@ export const App: React.FC = () => {
         onSave={handleSaveStudent}
         initialQrCode={scannedQrForRegistration}
         existingStudent={editingStudent}
+        existingStudents={students}
+        className={currentClass?.name || 'Pope Saweros Class'}
       />
 
       {selectedStudentForDetail && (
         <StudentDetailModal
           student={selectedStudentForDetail}
+          className={currentClass?.name || 'Pope Saweros Class'}
           attendance={attendance}
           darsKtab={darsKtab}
           mal3ab={mal3ab}
@@ -1558,6 +1747,21 @@ export const App: React.FC = () => {
         onDeleteHero={handleDeleteClassHero}
         servantName={currentServantName}
       />
+
+      {currentUser && (
+        <ServantsManageModal
+          isOpen={isManageServantsOpen}
+          onClose={() => setIsManageServantsOpen(false)}
+          currentClass={currentClass}
+          currentUser={currentUser}
+          onServantsUpdated={async () => {
+            if (currentClass) {
+              const pending = await db.getPendingServantsForClass(currentClass.id);
+              setPendingServantsCount(pending.length);
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

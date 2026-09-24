@@ -1010,7 +1010,7 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                           Grace cutoff {tempSettings.fridayLateCutoffMinutes ?? 15}m • Deducts{' '}
                           <strong style={{ color: '#d97706' }}>
                             {tempSettings.fridayLateIntervalPoints ?? 1} pt every {tempSettings.fridayLateIntervalMinutes ?? 2}m late
-                          </strong>. Protected by Touch ID. If timer not started, full points!
+                          </strong>. Protected by Biometrics / Screen Lock. If timer not started, full points!
                         </div>
                       </div>
                     )}

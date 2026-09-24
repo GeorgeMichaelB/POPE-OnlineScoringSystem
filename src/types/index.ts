@@ -112,7 +112,7 @@ export interface PointSettings {
   fridayLateIntervalMinutes?: number; // e.g. 2 mins (cut points every X mins late)
   fridayLateIntervalPoints?: number; // e.g. 1 pt (points removed per interval)
   fridayLateDeductionEnabled?: boolean; // whether late point deduction is enabled (default true)
-  fridayLateRequireTouchID?: boolean; // whether MacBook Touch ID fingerprint is required to stop timer (default true)
+  fridayLateRequireTouchID?: boolean; // whether device biometrics (Face ID/Fingerprint/Touch ID) or screen lock is required to stop timer (default true)
 
   odasEnabled?: boolean;
   odasPoints: number; // e.g. 15 pts
@@ -186,20 +186,34 @@ export interface ClassHero {
 }
 
 // Multi-Servant Accounts & Roles
-export type UserRole = 'admin' | 'servant';
+export type UserRole = 'superadmin' | 'admin' | 'servant';
+export type UserStatus = 'approved' | 'pending' | 'rejected';
+
+export interface ClassRoom {
+  id: string; // e.g. "class_popesaweros" or `cls_${Date.now()}`
+  name: string; // e.g. "Pope Saweros Class (Grade 4)"
+  username: string; // unique slug e.g. "popesaweros4" (lowercased)
+  adminUsername: string; // Servant username of creator / class admin
+  createdAt: string;
+  description?: string;
+  status?: 'active' | 'suspended'; // Platform superadmin can suspend / reactivate
+}
 
 export interface UserAccount {
-  username: string; // e.g. "@george.michael", "@philo.ashraf", "@kiro.hossny", "@alfred.samy"
+  username: string; // unique username e.g. "@george.michael" or "@fady.nader"
   name: string; // Servant display name
-  role: UserRole; // 'admin' | 'servant'
+  role: UserRole; // 'superadmin' | 'admin' | 'servant'
   passwordHash: string; // Plain/hash password
-  mustChangePassword: boolean; // Must set custom password on first login
+  classId?: string; // ID of the class they belong to
+  classUsername?: string; // Unique username of the class they belong to
+  status?: UserStatus; // 'approved' | 'pending' | 'rejected' (defaults to 'approved')
+  mustChangePassword?: boolean; // Must set custom password on first login
   createdAt: string;
   lastLoginAt?: string;
 }
 
 // Activity Audit Log
-export type LogCategory = 'auth' | 'attendance' | 'scoring' | 'heroes' | 'events' | 'visits' | 'students' | 'mal3ab' | 'summer_club' | 'confession';
+export type LogCategory = 'auth' | 'attendance' | 'scoring' | 'heroes' | 'events' | 'visits' | 'students' | 'mal3ab' | 'summer_club' | 'confession' | 'classes' | 'servants' | 'superadmin' | 'backups';
 
 export interface AuditLogEntry {
   id: string;
@@ -210,5 +224,19 @@ export interface AuditLogEntry {
   details: string;
   category: LogCategory;
 }
+
+// Daily Rolling 3-Day Backup Snapshot
+export interface DailyBackupSnapshot {
+  id: string;
+  date: string; // YYYY-MM-DD
+  timestamp: string; // ISO timestamp
+  label: string;
+  totalClasses: number;
+  totalStudents: number;
+  totalUsers: number;
+  dataSizeKb: number;
+  payload: string; // Full JSON snapshot of platform
+}
+
 
 

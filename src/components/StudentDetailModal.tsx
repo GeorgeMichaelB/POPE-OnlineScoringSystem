@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Printer,
@@ -20,7 +20,10 @@ import {
   BookOpen,
   Flame,
   Award,
-  Trophy
+  Trophy,
+  QrCode,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import type {
   Student,
@@ -42,9 +45,16 @@ import {
   formatDuration,
   getStudentVisits,
 } from '../utils/helpers';
+import {
+  generateQRCodeDataURL,
+  downloadSingleStudentQR,
+  parseFullName,
+  getInitialLetter
+} from '../utils/qr';
 
 interface StudentDetailModalProps {
   student: Student;
+  className?: string;
   attendance: AttendanceRecord[];
   darsKtab?: DarsKtabRecord[];
   mal3ab?: Mal3abRecord[];
@@ -63,6 +73,7 @@ interface StudentDetailModalProps {
 
 export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   student,
+  className = 'Pope Saweros Class',
   attendance,
   darsKtab = [],
   mal3ab = [],
@@ -80,6 +91,27 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'attendance' | 'visits' | 'report'>('profile');
   const [selectedPhotoPreview, setSelectedPhotoPreview] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [isDownloadingQR, setIsDownloadingQR] = useState(false);
+
+  useEffect(() => {
+    if (student?.id) {
+      generateQRCodeDataURL(student.id)
+        .then(setQrDataUrl)
+        .catch(() => setQrDataUrl(''));
+    }
+  }, [student?.id]);
+
+  const handleDownloadQR = async () => {
+    setIsDownloadingQR(true);
+    try {
+      await downloadSingleStudentQR(student, className);
+    } catch {
+      alert('Failed to download student QR code.');
+    } finally {
+      setIsDownloadingQR(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -347,6 +379,142 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 >
                   <Play size={13} /> Start Home Visit
                 </button>
+              </div>
+
+              {/* Passport QR & ID Badge Section */}
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)',
+                  border: '1.5px solid #bfdbfe',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '1rem',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  {/* QR Card with ID Text Below */}
+                  <div
+                    style={{
+                      background: 'white',
+                      padding: '8px 10px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid #cbd5e1',
+                      boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {qrDataUrl ? (
+                      <img
+                        src={qrDataUrl}
+                        alt={`QR Code for ${student.name}`}
+                        style={{ width: 80, height: 80, display: 'block' }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 80,
+                          height: 80,
+                          background: '#f1f5f9',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <QrCode size={32} color="#94a3b8" />
+                      </div>
+                    )}
+                    <span
+                      style={{
+                        marginTop: 4,
+                        fontSize: '0.85rem',
+                        fontWeight: 800,
+                        letterSpacing: '1px',
+                        color: '#0f172a',
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      ID: {student.id}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Official Passport QR Badge
+                      </span>
+                      <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>
+                        Active for Check-In
+                      </span>
+                    </div>
+                    <h4 style={{ margin: '0.2rem 0', fontSize: '1.05rem', color: '#1e293b' }}>
+                      {student.name} {student.arabicName && <span style={{ color: '#475569' }}>({student.arabicName})</span>}
+                    </h4>
+
+                    {/* Initials breakdown */}
+                    {(() => {
+                      const parsed = parseFullName(student.name || student.arabicName || '');
+                      const b = getInitialLetter(parsed.boyName) || '?';
+                      const d = getInitialLetter(parsed.dadName) || '?';
+                      const g = getInitialLetter(parsed.grandpaName) || '?';
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', marginTop: '0.25rem', color: '#475569' }}>
+                          <span>Initials:</span>
+                          <span style={{ background: '#dbeafe', color: '#1e40af', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                            {parsed.boyName || 'Boy'} [{b}]
+                          </span>
+                          <span>+</span>
+                          <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                            {parsed.dadName || 'Dad'} [{d}]
+                          </span>
+                          <span>+</span>
+                          <span style={{ background: '#ede9fe', color: '#5b21b6', padding: '0.1rem 0.35rem', borderRadius: 4, fontWeight: 700 }}>
+                            {parsed.grandpaName || 'Grandpa'} [{g}]
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.75rem', color: '#64748b' }}>
+                      Scan during Sunday School, Dars Ktab, Mal3ab or Summer Club for instant scoring.
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleDownloadQR}
+                    disabled={isDownloadingQR}
+                    className="btn btn-primary btn-sm"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontWeight: 600,
+                      boxShadow: '0 2px 4px rgba(37,99,235,0.2)',
+                    }}
+                  >
+                    {isDownloadingQR ? (
+                      <>
+                        <RefreshCw size={14} className="spin" /> Generating PNG...
+                      </>
+                    ) : (
+                      <>
+                        <Download size={14} /> Download QR Badge (PNG)
+                      </>
+                    )}
+                  </button>
+                  <span style={{ fontSize: '0.7rem', color: '#64748b', textAlign: 'center' }}>
+                    Named: {student.name.trim().replace(/\s+/g, '_')}_QR.png
+                  </span>
+                </div>
               </div>
 
               {/* Personal & Family Info Grid */}

@@ -356,7 +356,7 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({
             <form onSubmit={handleManualSubmit} style={{ display: 'flex', gap: '0.5rem' }}>
               <input
                 type="text"
-                placeholder="Or type Student ID / Series (e.g. AWI1012 or APSAW2743401)..."
+                placeholder="Or type Student ID or Series code manually..."
                 value={manualCode}
                 onChange={(e) => setManualCode(e.target.value)}
                 className="form-input"
