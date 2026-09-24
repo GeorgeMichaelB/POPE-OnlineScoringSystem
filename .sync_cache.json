@@ -1,0 +1,14 @@
+{
+  "class_popesaweros": {
+    "ATTENDANCE_UPDATED": {
+      "data": [
+        {
+          "studentId": "AWI1012",
+          "sundaySchool": true
+        }
+      ],
+      "timestamp": 1790291739000,
+      "sender": "Philo Ashraf"
+    }
+  }
+}

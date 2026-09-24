@@ -38,6 +38,7 @@ import {
   calculateFridayLateDeduction,
 } from './utils/helpers';
 import { authenticateWithBiometricsOrScreenLock, getDeviceBiometricLabel } from './services/biometrics';
+import { syncService, type SyncMessage, type SyncConnectionStatus } from './services/sync';
 
 import { AttendanceView } from './components/AttendanceView';
 import { DarsKtabView } from './components/DarsKtabView';
@@ -135,6 +136,23 @@ export const App: React.FC = () => {
   const [activeVisitStudentId, setActiveVisitStudentId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
+  // Real-time Class Synchronization State
+  const [syncStatus, setSyncStatus] = useState<SyncConnectionStatus>('connecting');
+  const [syncServantsCount, setSyncServantsCount] = useState<number>(1);
+  const [syncToast, setSyncToast] = useState<{ text: string; id: number } | null>(null);
+
+  const showSyncToast = (text: string) => {
+    setSyncToast({ text, id: Date.now() });
+  };
+
+  useEffect(() => {
+    if (!syncToast) return;
+    const timer = setTimeout(() => {
+      setSyncToast(null);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [syncToast]);
+
   // Friday Class Live Attendance Timer State (per session date)
   const [fridayTimerStartTime, setFridayTimerStartTime] = useState<number | null>(() => {
     const saved = localStorage.getItem(`pss_friday_timer_${fridayDate}`);
@@ -204,6 +222,17 @@ export const App: React.FC = () => {
     localStorage.removeItem(`pss_friday_timer_elapsed_${fridayDate}`);
     sound.playSuccessChime();
 
+    syncService.publish({
+      classId: db.getActiveClassId(),
+      type: 'TIMER_STATE_UPDATED',
+      data: {
+        running: true,
+        startTime: adjustedStart,
+        elapsedSeconds: 0,
+      },
+      description: 'Started the Friday class live timer',
+    });
+
     // 🚀 Launch Fullscreen Mirrored Camera & Live Timer HUD together!
     setIsFridayFullscreenScannerOpen(true);
   };
@@ -238,6 +267,17 @@ export const App: React.FC = () => {
     setFridayTimerRunning(false);
     localStorage.setItem(`pss_friday_timer_running_${fridayDate}`, 'false');
     localStorage.setItem(`pss_friday_timer_elapsed_${fridayDate}`, String(fridayTimerElapsedSeconds));
+
+    syncService.publish({
+      classId: db.getActiveClassId(),
+      type: 'TIMER_STATE_UPDATED',
+      data: {
+        running: false,
+        startTime: fridayTimerStartTime,
+        elapsedSeconds: fridayTimerElapsedSeconds,
+      },
+      description: 'Stopped the Friday class timer',
+    });
   };
 
   const handleResetFridayTimer = async () => {
@@ -272,6 +312,17 @@ export const App: React.FC = () => {
     localStorage.removeItem(`pss_friday_timer_${fridayDate}`);
     localStorage.removeItem(`pss_friday_timer_running_${fridayDate}`);
     localStorage.removeItem(`pss_friday_timer_elapsed_${fridayDate}`);
+
+    syncService.publish({
+      classId: db.getActiveClassId(),
+      type: 'TIMER_STATE_UPDATED',
+      data: {
+        running: false,
+        startTime: null,
+        elapsedSeconds: 0,
+      },
+      description: 'Reset the Friday class timer',
+    });
   };
 
   const handleToggleFridayLateStatus = async (studentId: string) => {
@@ -448,9 +499,11 @@ export const App: React.FC = () => {
           }
           setCurrentUser(user);
           setCurrentServantName(user.name);
+          db.setSyncServant(user.username, user.name);
           if (user.classId) {
             db.setActiveClassId(user.classId);
           }
+          syncService.init(user.classId || db.getActiveClassId(), user);
           const c = await db.getClassById(user.classId || db.getActiveClassId());
           setCurrentClass(c || null);
           if (c) {
@@ -497,11 +550,122 @@ export const App: React.FC = () => {
     loadAllData();
   }, []);
 
+  // Real-time Class Synchronization Listener: what any servant does, all servants in the same class see immediately
+  useEffect(() => {
+    const unsubStatus = syncService.onStatusChange((status: SyncConnectionStatus, count?: number) => {
+      setSyncStatus(status);
+      if (count !== undefined) {
+        setSyncServantsCount(count);
+      }
+    });
+
+    const unsubMessages = syncService.subscribe(async (msg: SyncMessage) => {
+      switch (msg.type) {
+        case 'STUDENTS_UPDATED':
+          setStudents(msg.data as Student[]);
+          await db.applyRemoteUpdate('pss_students_v3', msg.data);
+          showSyncToast(`👥 ${msg.senderName} updated students roster`);
+          break;
+        case 'ATTENDANCE_UPDATED':
+          setAttendance(msg.data as AttendanceRecord[]);
+          await db.applyRemoteUpdate('pss_attendance_v2', msg.data);
+          showSyncToast(`✅ ${msg.senderName} updated attendance`);
+          sound.playSuccessChime();
+          break;
+        case 'DARS_KTAB_UPDATED':
+          setDarsKtab(msg.data as DarsKtabRecord[]);
+          await db.applyRemoteUpdate('pss_dars_ktab_v2', msg.data);
+          showSyncToast(`📖 ${msg.senderName} updated Dars Ktab`);
+          break;
+        case 'MAL3AB_UPDATED':
+          setMal3ab(msg.data as Mal3abRecord[]);
+          await db.applyRemoteUpdate('pss_mal3ab_v2', msg.data);
+          showSyncToast(`⚽ ${msg.senderName} updated Mal3ab`);
+          break;
+        case 'SUMMER_CLUB_UPDATED':
+          setSummerClub(msg.data as SummerClubRecord[]);
+          await db.applyRemoteUpdate('pss_summer_club_v2', msg.data);
+          showSyncToast(`☀️ ${msg.senderName} updated Summer Club`);
+          break;
+        case 'SUMMER_CLUB_SETTINGS_UPDATED':
+          setSummerClubSettings(msg.data as SummerClubSettings);
+          await db.applyRemoteUpdate('pss_summer_club_settings_v1', msg.data);
+          break;
+        case 'CONFESSIONS_UPDATED':
+          setConfessions(msg.data as ConfessionRecord[]);
+          await db.applyRemoteUpdate('pss_confessions_v2', msg.data);
+          showSyncToast(`✝️ ${msg.senderName} updated confessions`);
+          break;
+        case 'CUSTOM_EVENTS_UPDATED':
+          setCustomEvents(msg.data as CustomEvent[]);
+          await db.applyRemoteUpdate('pss_custom_events_v2', msg.data);
+          showSyncToast(`🎉 ${msg.senderName} updated special events`);
+          break;
+        case 'VISITS_UPDATED':
+          setVisits(msg.data as VisitRecord[]);
+          await db.applyRemoteUpdate('pss_visits_v2', msg.data);
+          showSyncToast(`🏠 ${msg.senderName} recorded a pastoral visit`);
+          break;
+        case 'POINT_SETTINGS_UPDATED':
+          setPointSettings(msg.data as PointSettings);
+          await db.applyRemoteUpdate('pss_point_settings_v1', msg.data);
+          showSyncToast(`⚙️ ${msg.senderName} updated scoring rules`);
+          break;
+        case 'CUSTOM_POINTS_UPDATED':
+          setCustomPoints(msg.data as CustomPointEntry[]);
+          await db.applyRemoteUpdate('pss_custom_points_v2', msg.data);
+          showSyncToast(`⭐ ${msg.senderName} updated bonus points`);
+          break;
+        case 'CLASS_HEROES_UPDATED':
+          setClassHeroes(msg.data as ClassHero[]);
+          await db.applyRemoteUpdate('pss_class_heroes_v2', msg.data);
+          showSyncToast(`🏆 ${msg.senderName} updated Class Heroes`);
+          break;
+        case 'AUDIT_LOGS_UPDATED':
+          setAuditLogs(msg.data as AuditLogEntry[]);
+          break;
+        case 'TIMER_STATE_UPDATED': {
+          const timerData = msg.data as { running: boolean; startTime: number | null; elapsedSeconds: number };
+          setFridayTimerRunning(timerData.running);
+          if (timerData.startTime !== undefined) setFridayTimerStartTime(timerData.startTime);
+          if (timerData.elapsedSeconds !== undefined) setFridayTimerElapsedSeconds(timerData.elapsedSeconds);
+          showSyncToast(`⏱️ ${msg.senderName} ${timerData.running ? 'started' : 'stopped'} the Friday timer`);
+          break;
+        }
+        case 'CLASSES_UPDATED': {
+          const classes = await db.getClasses();
+          const activeId = db.getActiveClassId();
+          const myClass = classes.find(c => c.id === activeId);
+          if (myClass?.status === 'suspended' && currentUser?.role !== 'superadmin') {
+            alert('⛔ Notice: Your Sunday School class has been suspended by the administrator.');
+            handleLogout();
+          } else {
+            setCurrentClass(myClass || null);
+          }
+          break;
+        }
+        case 'USERS_UPDATED': {
+          if (currentClass) {
+            const pending = await db.getPendingServantsForClass(currentClass.id);
+            setPendingServantsCount(pending.length);
+          }
+          break;
+        }
+      }
+    });
+
+    return () => {
+      unsubStatus();
+      unsubMessages();
+    };
+  }, [currentUser, currentClass]);
+
   // Auth Handlers
   const handleLoginSuccess = async (user: UserAccount) => {
     setCurrentUser(user);
     setCurrentServantName(user.name);
     db.setCurrentSession(user.username);
+    db.setSyncServant(user.username, user.name);
     const isMaster = user.username.toLowerCase() === '@george.dev' || user.username.toLowerCase() === 'george.dev';
     if (typeof window !== 'undefined' && window.location.search.includes('view=superadmin')) {
       if (isMaster) {
@@ -513,6 +677,7 @@ export const App: React.FC = () => {
     if (user.classId) {
       db.setActiveClassId(user.classId);
     }
+    syncService.init(user.classId || db.getActiveClassId(), user);
     const c = await db.getClassById(user.classId || db.getActiveClassId());
     setCurrentClass(c || null);
     if (c) {
@@ -1269,6 +1434,45 @@ export const App: React.FC = () => {
                   </button>
                 )}
 
+                {/* Real-time Class Sync Status Indicator */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.35rem 0.65rem',
+                    borderRadius: 'var(--radius-full)',
+                    background: syncStatus === 'connected' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
+                    border: `1px solid ${syncStatus === 'connected' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
+                    fontSize: '0.74rem',
+                    fontWeight: 700,
+                    color: syncStatus === 'connected' ? '#059669' : '#d97706',
+                    cursor: 'default',
+                  }}
+                  title={
+                    syncStatus === 'connected'
+                      ? `Real-time sync active for ${currentClass?.name || 'this class'}. Connected servants: ${syncServantsCount}. Every change is visible immediately on all servants' screens.`
+                      : 'Connecting to real-time class synchronization channel...'
+                  }
+                >
+                  <span
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: syncStatus === 'connected' ? '#10b981' : '#f59e0b',
+                      boxShadow: syncStatus === 'connected' ? '0 0 8px #10b981' : 'none',
+                      animation: syncStatus === 'connected' ? 'timerPulseGlow 2s infinite ease-in-out' : 'none',
+                    }}
+                  />
+                  <span className="hide-on-mobile">
+                    {syncStatus === 'connected' ? `Live Synced (${syncServantsCount})` : 'Syncing...'}
+                  </span>
+                  <span className="show-on-mobile-only">
+                    {syncStatus === 'connected' ? 'Live' : '...'}
+                  </span>
+                </div>
+
                 {/* Servant Account Badge */}
                 <div
                   style={{
@@ -1761,6 +1965,42 @@ export const App: React.FC = () => {
             }
           }}
         />
+      )}
+
+      {/* Real-time Cross-Device Sync Floating Toast */}
+      {syncToast && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '1.25rem',
+            right: '1.25rem',
+            zIndex: 999999,
+            background: 'linear-gradient(135deg, #090d16 0%, #1e293b 100%)',
+            color: '#ffffff',
+            padding: '0.65rem 1.15rem',
+            borderRadius: '12px',
+            border: '1.5px solid #10b981',
+            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(16, 185, 129, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.6rem',
+            fontSize: '0.85rem',
+            fontWeight: 700,
+            animation: 'fadeInUp 0.25s ease-out',
+            pointerEvents: 'none',
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#10b981',
+              boxShadow: '0 0 10px #10b981',
+            }}
+          />
+          <span>{syncToast.text}</span>
+        </div>
       )}
     </div>
   );

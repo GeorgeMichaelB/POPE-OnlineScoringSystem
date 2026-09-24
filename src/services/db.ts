@@ -1,4 +1,5 @@
 import { get, set } from 'idb-keyval';
+import { syncService, type SyncEventType } from './sync';
 import type {
   Student,
   AttendanceRecord,
@@ -42,6 +43,22 @@ const STORAGE_KEYS = {
   DAILY_BACKUPS: 'pss_daily_backups_v1',
   LAST_DAILY_BACKUP_DATE: 'pss_last_daily_backup_date',
   SESSION: 'pss_session_v1',
+};
+
+const BASE_KEY_TO_SYNC_TYPE: Record<string, SyncEventType> = {
+  [STORAGE_KEYS.STUDENTS]: 'STUDENTS_UPDATED',
+  [STORAGE_KEYS.ATTENDANCE]: 'ATTENDANCE_UPDATED',
+  [STORAGE_KEYS.DARS_KTAB]: 'DARS_KTAB_UPDATED',
+  [STORAGE_KEYS.MAL3AB]: 'MAL3AB_UPDATED',
+  [STORAGE_KEYS.SUMMER_CLUB]: 'SUMMER_CLUB_UPDATED',
+  [STORAGE_KEYS.SUMMER_CLUB_SETTINGS]: 'SUMMER_CLUB_SETTINGS_UPDATED',
+  [STORAGE_KEYS.CONFESSIONS]: 'CONFESSIONS_UPDATED',
+  [STORAGE_KEYS.CUSTOM_EVENTS]: 'CUSTOM_EVENTS_UPDATED',
+  [STORAGE_KEYS.VISITS]: 'VISITS_UPDATED',
+  [STORAGE_KEYS.POINT_SETTINGS]: 'POINT_SETTINGS_UPDATED',
+  [STORAGE_KEYS.CUSTOM_POINTS]: 'CUSTOM_POINTS_UPDATED',
+  [STORAGE_KEYS.CLASS_HEROES]: 'CLASS_HEROES_UPDATED',
+  [STORAGE_KEYS.AUDIT_LOGS]: 'AUDIT_LOGS_UPDATED',
 };
 
 export const DEFAULT_CLASS: ClassRoom = {
@@ -802,12 +819,24 @@ class DatabaseService {
   }
 
   private activeClassId: string = DEFAULT_CLASS.id;
+  private currentServantUsername: string = '@george.michael';
+  private currentServantName: string = 'George Michael (Admin)';
+
+  setSyncServant(username: string, name: string): void {
+    this.currentServantUsername = username;
+    this.currentServantName = name;
+    syncService.setCurrentUser({ username, name });
+  }
 
   setActiveClassId(classId: string | null): void {
     this.activeClassId = classId || DEFAULT_CLASS.id;
     if (this.isBrowser()) {
       localStorage.setItem(STORAGE_KEYS.CURRENT_CLASS, this.activeClassId);
     }
+    syncService.init(this.activeClassId, {
+      username: this.currentServantUsername,
+      name: this.currentServantName,
+    });
   }
 
   getActiveClassId(): string {
@@ -853,7 +882,7 @@ class DatabaseService {
     }
   }
 
-  async saveAllClasses(classes: ClassRoom[]): Promise<void> {
+  async saveAllClasses(classes: ClassRoom[], broadcast = true): Promise<void> {
     if (!this.isBrowser()) return;
     try {
       try {
@@ -862,6 +891,15 @@ class DatabaseService {
         // Safe IDB fallback
       }
       localStorage.setItem(STORAGE_KEYS.CLASSES, JSON.stringify(classes));
+      if (broadcast) {
+        syncService.publish({
+          classId: 'global',
+          type: 'CLASSES_UPDATED',
+          data: classes,
+          senderUsername: this.currentServantUsername,
+          senderName: this.currentServantName,
+        });
+      }
     } catch (e) {
       console.error('Error saving classes:', e);
     }
@@ -1087,7 +1125,11 @@ class DatabaseService {
     }
   }
 
-  private async setScopedData<T>(baseKey: string, data: T): Promise<void> {
+  async applyRemoteUpdate<T>(baseKey: string, data: T): Promise<void> {
+    await this.setScopedData(baseKey, data, false);
+  }
+
+  private async setScopedData<T>(baseKey: string, data: T, broadcast = true): Promise<void> {
     if (!this.isBrowser()) return;
     const scopedKey = this.getScopedKey(baseKey);
     try {
@@ -1097,6 +1139,20 @@ class DatabaseService {
         // Safe IDB fallback
       }
       localStorage.setItem(scopedKey, JSON.stringify(data));
+
+      // Real-time broadcast to all other servants in the same class
+      if (broadcast) {
+        const syncType = BASE_KEY_TO_SYNC_TYPE[baseKey];
+        if (syncType) {
+          syncService.publish({
+            classId: this.getActiveClassId(),
+            type: syncType,
+            data,
+            senderUsername: this.currentServantUsername,
+            senderName: this.currentServantName,
+          });
+        }
+      }
     } catch (e) {
       console.error(`Error saving scoped data for ${scopedKey}:`, e);
     }
@@ -1645,7 +1701,7 @@ class DatabaseService {
     }
   }
 
-  async saveAllUsers(users: UserAccount[]): Promise<void> {
+  async saveAllUsers(users: UserAccount[], broadcast = true): Promise<void> {
     if (!this.isBrowser()) return;
     try {
       try {
@@ -1654,6 +1710,15 @@ class DatabaseService {
         // Safe IDB fallback
       }
       localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
+      if (broadcast) {
+        syncService.publish({
+          classId: 'global',
+          type: 'USERS_UPDATED',
+          data: users,
+          senderUsername: this.currentServantUsername,
+          senderName: this.currentServantName,
+        });
+      }
     } catch (e) {
       console.error('Error saving users:', e);
     }
