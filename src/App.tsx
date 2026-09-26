@@ -8,7 +8,9 @@ import {
   Trophy,
   Crown,
   LogOut,
-  Cake
+  Cake,
+  Cloud,
+  CloudCheck,
 } from 'lucide-react';
 import type {
   Student,
@@ -39,6 +41,7 @@ import {
 } from './utils/helpers';
 import { authenticateWithBiometricsOrScreenLock, getDeviceBiometricLabel } from './services/biometrics';
 import { syncService, type SyncMessage, type SyncConnectionStatus } from './services/sync';
+import { cloudSync } from './services/firebase';
 
 import { AttendanceView } from './components/AttendanceView';
 import { DarsKtabView } from './components/DarsKtabView';
@@ -62,6 +65,7 @@ import { NavDroplist, type AppView } from './components/NavDroplist';
 import { InstallPromptModal } from './components/InstallPromptModal';
 import { ServantsManageModal } from './components/ServantsManageModal';
 import { SuperAdminPortal } from './components/SuperAdminPortal';
+import { FirebaseSetupModal } from './components/FirebaseSetupModal';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
@@ -140,6 +144,7 @@ export const App: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<SyncConnectionStatus>('connecting');
   const [syncServantsCount, setSyncServantsCount] = useState<number>(1);
   const [syncToast, setSyncToast] = useState<{ text: string; id: number } | null>(null);
+  const [isCloudSyncModalOpen, setIsCloudSyncModalOpen] = useState(false);
 
   const showSyncToast = (text: string) => {
     setSyncToast({ text, id: Date.now() });
@@ -443,6 +448,15 @@ export const App: React.FC = () => {
   // Load initial data
   const loadAllData = async () => {
     try {
+      // Pull latest from Firebase Cloud Firestore if configured
+      if (cloudSync.isConfigured()) {
+        try {
+          await db.syncClassWithCloud(db.getActiveClassId());
+        } catch (cloudErr) {
+          console.warn('Initial cloud sync warning:', cloudErr);
+        }
+      }
+
       const [stu, att, dk, ml3, sc, scCfg, evts, vis, ptsCfg, pts, heroes, logs, confs] = await Promise.all([
         db.getStudents(),
         db.getAttendance(),
@@ -547,6 +561,7 @@ export const App: React.FC = () => {
         }
       }
     }
+    syncService.init(db.getActiveClassId(), null);
     loadAllData();
   }, []);
 
@@ -1434,44 +1449,78 @@ export const App: React.FC = () => {
                   </button>
                 )}
 
-                {/* Real-time Class Sync Status Indicator */}
-                <div
+                {/* Real-time Class Sync Status Indicator (Click to configure Cloud Sync) */}
+                <button
+                  type="button"
+                  onClick={() => setIsCloudSyncModalOpen(true)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.4rem',
                     padding: '0.35rem 0.65rem',
                     borderRadius: 'var(--radius-full)',
-                    background: syncStatus === 'connected' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
-                    border: `1px solid ${syncStatus === 'connected' ? 'rgba(16, 185, 129, 0.35)' : 'rgba(245, 158, 11, 0.35)'}`,
+                    background:
+                      syncStatus === 'connected'
+                        ? 'rgba(16, 185, 129, 0.12)'
+                        : cloudSync.isConfigured()
+                        ? 'rgba(245, 158, 11, 0.12)'
+                        : 'rgba(59, 130, 246, 0.12)',
+                    border: `1px solid ${
+                      syncStatus === 'connected'
+                        ? 'rgba(16, 185, 129, 0.35)'
+                        : cloudSync.isConfigured()
+                        ? 'rgba(245, 158, 11, 0.35)'
+                        : 'rgba(59, 130, 246, 0.35)'
+                    }`,
                     fontSize: '0.74rem',
                     fontWeight: 700,
-                    color: syncStatus === 'connected' ? '#059669' : '#d97706',
-                    cursor: 'default',
+                    color:
+                      syncStatus === 'connected'
+                        ? '#059669'
+                        : cloudSync.isConfigured()
+                        ? '#d97706'
+                        : '#2563eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
                   }}
                   title={
                     syncStatus === 'connected'
-                      ? `Real-time sync active for ${currentClass?.name || 'this class'}. Connected servants: ${syncServantsCount}. Every change is visible immediately on all servants' screens.`
-                      : 'Connecting to real-time class synchronization channel...'
+                      ? `Real-time cloud sync active for ${currentClass?.name || 'this class'} (${syncServantsCount} connected). Click to view Cloud Sync Settings.`
+                      : cloudSync.isConfigured()
+                      ? 'Connecting to cloud database... Click to view status.'
+                      : 'Cloud sync not configured yet. Click to setup Firebase and sync across all servants\' phones!'
                   }
                 >
+                  {syncStatus === 'connected' ? (
+                    <CloudCheck size={14} color="#10b981" />
+                  ) : (
+                    <Cloud size={14} color={cloudSync.isConfigured() ? '#f59e0b' : '#3b82f6'} />
+                  )}
                   <span
                     style={{
-                      width: 7,
-                      height: 7,
+                      width: 6,
+                      height: 6,
                       borderRadius: '50%',
-                      backgroundColor: syncStatus === 'connected' ? '#10b981' : '#f59e0b',
+                      backgroundColor:
+                        syncStatus === 'connected'
+                          ? '#10b981'
+                          : cloudSync.isConfigured()
+                          ? '#f59e0b'
+                          : '#3b82f6',
                       boxShadow: syncStatus === 'connected' ? '0 0 8px #10b981' : 'none',
-                      animation: syncStatus === 'connected' ? 'timerPulseGlow 2s infinite ease-in-out' : 'none',
                     }}
                   />
                   <span className="hide-on-mobile">
-                    {syncStatus === 'connected' ? `Live Synced (${syncServantsCount})` : 'Syncing...'}
+                    {syncStatus === 'connected'
+                      ? 'Live Cloud Synced'
+                      : cloudSync.isConfigured()
+                      ? 'Connecting...'
+                      : 'Setup Cloud Sync'}
                   </span>
                   <span className="show-on-mobile-only">
-                    {syncStatus === 'connected' ? 'Live' : '...'}
+                    {syncStatus === 'connected' ? 'Live' : 'Cloud'}
                   </span>
-                </div>
+                </button>
 
                 {/* Servant Account Badge */}
                 <div
@@ -1931,8 +1980,17 @@ export const App: React.FC = () => {
         }}
         onDataChanged={loadAllData}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
+        onOpenCloudSyncModal={() => setIsCloudSyncModalOpen(true)}
         pointSettings={pointSettings}
         onSavePointSettings={handleSavePointSettings}
+      />
+
+      <FirebaseSetupModal
+        isOpen={isCloudSyncModalOpen}
+        onClose={() => setIsCloudSyncModalOpen(false)}
+        onSyncComplete={loadAllData}
+        currentClassId={currentClass?.id || db.getActiveClassId()}
+        className={currentClass?.name || 'Pope Saweros Class'}
       />
 
       <InstallPromptModal

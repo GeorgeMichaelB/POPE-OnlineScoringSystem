@@ -1,5 +1,6 @@
 import { get, set } from 'idb-keyval';
 import { syncService, type SyncEventType } from './sync';
+import { cloudSync } from './firebase';
 import type {
   Student,
   AttendanceRecord,
@@ -1116,12 +1117,143 @@ class DatabaseService {
         }
       }
 
-      // Non-default class or empty
+      // Check cloud if local storage has no data (crucial for new devices logging in)
+      if (cloudSync.isConfigured()) {
+        try {
+          const cloudSection = await cloudSync.getClassSection<T>(activeClassId, baseKey);
+          if (cloudSection !== null && cloudSection !== undefined) {
+            await this.setScopedData(baseKey, cloudSection, false);
+            return cloudSection;
+          }
+        } catch {}
+      }
+
+      // Non-default class or empty fallback
       await this.setScopedData(baseKey, fallback);
       return fallback;
     } catch (e) {
       console.warn(`Error fetching scoped data for ${scopedKey}:`, e);
       return fallback;
+    }
+  }
+
+  /**
+   * Pulls all class data and global users/classes from Firebase Cloud to local device
+   */
+  async syncClassWithCloud(classId = this.getActiveClassId()): Promise<{ synced: boolean; count: number }> {
+    if (!cloudSync.isConfigured()) return { synced: false, count: 0 };
+
+    const sections = [
+      STORAGE_KEYS.STUDENTS,
+      STORAGE_KEYS.ATTENDANCE,
+      STORAGE_KEYS.DARS_KTAB,
+      STORAGE_KEYS.MAL3AB,
+      STORAGE_KEYS.SUMMER_CLUB,
+      STORAGE_KEYS.SUMMER_CLUB_SETTINGS,
+      STORAGE_KEYS.CONFESSIONS,
+      STORAGE_KEYS.CUSTOM_EVENTS,
+      STORAGE_KEYS.VISITS,
+      STORAGE_KEYS.POINT_SETTINGS,
+      STORAGE_KEYS.CUSTOM_POINTS,
+      STORAGE_KEYS.CLASS_HEROES,
+      STORAGE_KEYS.AUDIT_LOGS,
+    ];
+
+    let count = 0;
+    for (const key of sections) {
+      try {
+        const cloudData = await cloudSync.getClassSection(classId, key);
+        if (cloudData !== null && cloudData !== undefined) {
+          await this.setScopedData(key, cloudData, false);
+          count++;
+        }
+      } catch (err) {
+        console.warn(`Error pulling cloud section ${key}:`, err);
+      }
+    }
+
+    // Also pull global classes and users if available
+    try {
+      const cloudClasses = await cloudSync.getGlobal<ClassRoom[]>('classes');
+      if (cloudClasses && Array.isArray(cloudClasses) && cloudClasses.length > 0) {
+        await this.saveAllClasses(cloudClasses, false);
+      }
+    } catch {}
+
+    try {
+      const cloudUsers = await cloudSync.getGlobal<UserAccount[]>('users');
+      if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+        await this.saveAllUsers(cloudUsers, false);
+      }
+    } catch {}
+
+    return { synced: true, count };
+  }
+
+  /**
+   * Bundles all current local class data & global users/classes for one-click upload to Firebase Cloud
+   */
+  async exportLocalClassSnapshot(classId = this.getActiveClassId()) {
+    const currentActive = this.getActiveClassId();
+    this.setActiveClassId(classId);
+    try {
+      const [
+        students,
+        attendance,
+        darsKtab,
+        mal3ab,
+        summerClub,
+        summerClubSettings,
+        confessions,
+        customEvents,
+        visits,
+        pointSettings,
+        customPoints,
+        classHeroes,
+        auditLogs,
+        classes,
+        users,
+      ] = await Promise.all([
+        this.getStudents(),
+        this.getAttendance(),
+        this.getDarsKtabAttendance(),
+        this.getMal3abAttendance(),
+        this.getSummerClubAttendance(),
+        this.getSummerClubSettings(),
+        this.getConfessionRecords(),
+        this.getCustomEvents(),
+        this.getVisits(),
+        this.getPointSettings(),
+        this.getCustomPoints(),
+        this.getClassHeroes(),
+        this.getAuditLogs(),
+        this.getClasses(),
+        this.getUsers(),
+      ]);
+
+      const sections: Record<string, unknown> = {
+        [STORAGE_KEYS.STUDENTS]: students,
+        [STORAGE_KEYS.ATTENDANCE]: attendance,
+        [STORAGE_KEYS.DARS_KTAB]: darsKtab,
+        [STORAGE_KEYS.MAL3AB]: mal3ab,
+        [STORAGE_KEYS.SUMMER_CLUB]: summerClub,
+        [STORAGE_KEYS.SUMMER_CLUB_SETTINGS]: summerClubSettings,
+        [STORAGE_KEYS.CONFESSIONS]: confessions,
+        [STORAGE_KEYS.CUSTOM_EVENTS]: customEvents,
+        [STORAGE_KEYS.VISITS]: visits,
+        [STORAGE_KEYS.POINT_SETTINGS]: pointSettings,
+        [STORAGE_KEYS.CUSTOM_POINTS]: customPoints,
+        [STORAGE_KEYS.CLASS_HEROES]: classHeroes,
+        [STORAGE_KEYS.AUDIT_LOGS]: auditLogs,
+      };
+
+      return {
+        classes,
+        users,
+        sections,
+      };
+    } finally {
+      this.setActiveClassId(currentActive);
     }
   }
 
@@ -2011,7 +2143,7 @@ class DatabaseService {
         try {
           const stored = await get<AuditLogEntry[]>(STORAGE_KEYS.SUPERADMIN_LOGS);
           if (stored && Array.isArray(stored)) masterLogs = stored;
-        } catch {}
+        } catch { }
         if (masterLogs.length === 0) {
           const local = localStorage.getItem(STORAGE_KEYS.SUPERADMIN_LOGS);
           if (local) {
@@ -2023,7 +2155,7 @@ class DatabaseService {
         const trimmedMaster = masterLogs.slice(0, 1000);
         try {
           await set(STORAGE_KEYS.SUPERADMIN_LOGS, trimmedMaster);
-        } catch {}
+        } catch { }
         localStorage.setItem(STORAGE_KEYS.SUPERADMIN_LOGS, JSON.stringify(trimmedMaster));
       } catch (err) {
         console.warn('Error saving superadmin log:', err);
@@ -2048,7 +2180,7 @@ class DatabaseService {
       try {
         const stored = await get<AuditLogEntry[]>(STORAGE_KEYS.SUPERADMIN_LOGS);
         if (stored && Array.isArray(stored)) masterLogs = stored;
-      } catch {}
+      } catch { }
       if (masterLogs.length === 0) {
         const local = localStorage.getItem(STORAGE_KEYS.SUPERADMIN_LOGS);
         if (local) {
@@ -2171,7 +2303,7 @@ class DatabaseService {
       let stored: DailyBackupSnapshot[] | undefined = undefined;
       try {
         stored = await get<DailyBackupSnapshot[]>(STORAGE_KEYS.DAILY_BACKUPS);
-      } catch {}
+      } catch { }
       if (stored && Array.isArray(stored)) {
         return stored.slice(0, 3);
       }
@@ -2198,7 +2330,7 @@ class DatabaseService {
     try {
       try {
         await set(STORAGE_KEYS.DAILY_BACKUPS, trimmed);
-      } catch {}
+      } catch { }
       localStorage.setItem(STORAGE_KEYS.DAILY_BACKUPS, JSON.stringify(trimmed));
     } catch (e) {
       console.error('Error saving daily backups:', e);
@@ -2216,14 +2348,14 @@ class DatabaseService {
       try {
         const stored = await get<AuditLogEntry[]>(STORAGE_KEYS.SUPERADMIN_LOGS);
         if (stored && Array.isArray(stored)) superadminLogs = stored;
-      } catch {}
+      } catch { }
       if (superadminLogs.length === 0 && this.isBrowser()) {
         const local = localStorage.getItem(STORAGE_KEYS.SUPERADMIN_LOGS);
         if (local) {
           try {
             const parsed = JSON.parse(local);
             if (Array.isArray(parsed)) superadminLogs = parsed;
-          } catch {}
+          } catch { }
         }
       }
 
@@ -2365,7 +2497,7 @@ class DatabaseService {
       if (Array.isArray(parsed.superadminLogs)) {
         try {
           await set(STORAGE_KEYS.SUPERADMIN_LOGS, parsed.superadminLogs);
-        } catch {}
+        } catch { }
         if (this.isBrowser()) {
           localStorage.setItem(STORAGE_KEYS.SUPERADMIN_LOGS, JSON.stringify(parsed.superadminLogs));
         }
