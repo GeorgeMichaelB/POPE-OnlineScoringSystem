@@ -65,7 +65,6 @@ import { NavDroplist, type AppView } from './components/NavDroplist';
 import { InstallPromptModal } from './components/InstallPromptModal';
 import { ServantsManageModal } from './components/ServantsManageModal';
 import { SuperAdminPortal } from './components/SuperAdminPortal';
-import { FirebaseSetupModal } from './components/FirebaseSetupModal';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
@@ -144,7 +143,6 @@ export const App: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<SyncConnectionStatus>('connecting');
   const [syncServantsCount, setSyncServantsCount] = useState<number>(1);
   const [syncToast, setSyncToast] = useState<{ text: string; id: number } | null>(null);
-  const [isCloudSyncModalOpen, setIsCloudSyncModalOpen] = useState(false);
 
   const showSyncToast = (text: string) => {
     setSyncToast({ text, id: Date.now() });
@@ -1449,10 +1447,8 @@ export const App: React.FC = () => {
                   </button>
                 )}
 
-                {/* Real-time Class Sync Status Indicator (Click to configure Cloud Sync) */}
-                <button
-                  type="button"
-                  onClick={() => setIsCloudSyncModalOpen(true)}
+                {/* Real-time Class Sync Status Indicator (Read-only status badge) */}
+                <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1462,39 +1458,39 @@ export const App: React.FC = () => {
                     background:
                       syncStatus === 'connected'
                         ? 'rgba(16, 185, 129, 0.12)'
-                        : cloudSync.isConfigured()
+                        : syncStatus === 'connecting'
                         ? 'rgba(245, 158, 11, 0.12)'
-                        : 'rgba(59, 130, 246, 0.12)',
+                        : 'rgba(148, 163, 184, 0.12)',
                     border: `1px solid ${
                       syncStatus === 'connected'
                         ? 'rgba(16, 185, 129, 0.35)'
-                        : cloudSync.isConfigured()
+                        : syncStatus === 'connecting'
                         ? 'rgba(245, 158, 11, 0.35)'
-                        : 'rgba(59, 130, 246, 0.35)'
+                        : 'rgba(148, 163, 184, 0.35)'
                     }`,
                     fontSize: '0.74rem',
                     fontWeight: 700,
                     color:
                       syncStatus === 'connected'
                         ? '#059669'
-                        : cloudSync.isConfigured()
+                        : syncStatus === 'connecting'
                         ? '#d97706'
-                        : '#2563eb',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
+                        : '#64748b',
+                    cursor: 'default',
+                    userSelect: 'none',
                   }}
                   title={
                     syncStatus === 'connected'
-                      ? `Real-time cloud sync active for ${currentClass?.name || 'this class'} (${syncServantsCount} connected). Click to view Cloud Sync Settings.`
-                      : cloudSync.isConfigured()
-                      ? 'Connecting to cloud database... Click to view status.'
-                      : 'Cloud sync not configured yet. Click to setup Firebase and sync across all servants\' phones!'
+                      ? `Real-time cloud sync active for ${currentClass?.name || 'this class'} (${syncServantsCount} connected). All edits sync live.`
+                      : syncStatus === 'connecting'
+                      ? 'Connecting to sync...'
+                      : 'Operating in local offline mode.'
                   }
                 >
                   {syncStatus === 'connected' ? (
                     <CloudCheck size={14} color="#10b981" />
                   ) : (
-                    <Cloud size={14} color={cloudSync.isConfigured() ? '#f59e0b' : '#3b82f6'} />
+                    <Cloud size={14} color={syncStatus === 'connecting' ? '#f59e0b' : '#94a3b8'} />
                   )}
                   <span
                     style={{
@@ -1504,23 +1500,23 @@ export const App: React.FC = () => {
                       backgroundColor:
                         syncStatus === 'connected'
                           ? '#10b981'
-                          : cloudSync.isConfigured()
+                          : syncStatus === 'connecting'
                           ? '#f59e0b'
-                          : '#3b82f6',
+                          : '#94a3b8',
                       boxShadow: syncStatus === 'connected' ? '0 0 8px #10b981' : 'none',
                     }}
                   />
                   <span className="hide-on-mobile">
                     {syncStatus === 'connected'
-                      ? 'Live Cloud Synced'
-                      : cloudSync.isConfigured()
-                      ? 'Connecting...'
-                      : 'Setup Cloud Sync'}
+                      ? 'Live Synced'
+                      : syncStatus === 'connecting'
+                      ? 'Syncing...'
+                      : 'Local Mode'}
                   </span>
                   <span className="show-on-mobile-only">
-                    {syncStatus === 'connected' ? 'Live' : 'Cloud'}
+                    {syncStatus === 'connected' ? 'Live' : 'Sync'}
                   </span>
-                </button>
+                </div>
 
                 {/* Servant Account Badge */}
                 <div
@@ -1980,17 +1976,8 @@ export const App: React.FC = () => {
         }}
         onDataChanged={loadAllData}
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
-        onOpenCloudSyncModal={() => setIsCloudSyncModalOpen(true)}
         pointSettings={pointSettings}
         onSavePointSettings={handleSavePointSettings}
-      />
-
-      <FirebaseSetupModal
-        isOpen={isCloudSyncModalOpen}
-        onClose={() => setIsCloudSyncModalOpen(false)}
-        onSyncComplete={loadAllData}
-        currentClassId={currentClass?.id || db.getActiveClassId()}
-        className={currentClass?.name || 'Pope Saweros Class'}
       />
 
       <InstallPromptModal

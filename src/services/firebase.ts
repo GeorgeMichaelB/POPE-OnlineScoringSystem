@@ -2,16 +2,9 @@
 // Connects Sunday School classes across all servants' devices (phones, tablets, PCs)
 // Provides instant cross-device data propagation via Firestore with offline caching
 
-export interface FirebaseConfig {
-  apiKey: string;
-  authDomain?: string;
-  projectId: string;
-  storageBucket?: string;
-  messagingSenderId?: string;
-  appId?: string;
-  databaseURL?: string;
-}
+import { FIREBASE_CONFIG, type FirebaseConfig } from '../config/firebase';
 
+export { type FirebaseConfig };
 export type CloudSyncStatus = 'connected' | 'connecting' | 'error' | 'not_configured';
 
 type DataChangeListener = (key: string, data: unknown, senderName?: string) => void;
@@ -81,21 +74,22 @@ class FirebaseService {
   }
 
   private loadSavedConfig() {
-    if (typeof window === 'undefined') return;
-
-    // 1. Try localStorage
-    try {
-      const stored = localStorage.getItem(FIREBASE_CONFIG_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.projectId && parsed.apiKey) {
-          this.config = parsed;
-          return;
-        }
-      }
-    } catch {
-      // Ignore parse error
+    // 1. Direct configuration in src/config/firebase.ts (Primary & Recommended)
+    if (FIREBASE_CONFIG && FIREBASE_CONFIG.projectId?.trim() && FIREBASE_CONFIG.apiKey?.trim()) {
+      this.config = {
+        apiKey: FIREBASE_CONFIG.apiKey.trim(),
+        authDomain: FIREBASE_CONFIG.authDomain?.trim() || `${FIREBASE_CONFIG.projectId.trim()}.firebaseapp.com`,
+        projectId: FIREBASE_CONFIG.projectId.trim(),
+        storageBucket: FIREBASE_CONFIG.storageBucket?.trim() || `${FIREBASE_CONFIG.projectId.trim()}.appspot.com`,
+        messagingSenderId: FIREBASE_CONFIG.messagingSenderId?.trim() || '',
+        appId: FIREBASE_CONFIG.appId?.trim() || '',
+        measurementId: FIREBASE_CONFIG.measurementId?.trim() || '',
+        databaseURL: FIREBASE_CONFIG.databaseURL?.trim(),
+      };
+      return;
     }
+
+    if (typeof window === 'undefined') return;
 
     // 2. Try Vite environment variables if available
     try {
@@ -108,11 +102,26 @@ class FirebaseService {
           storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || `${env.VITE_FIREBASE_PROJECT_ID}.appspot.com`,
           messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '',
           appId: env.VITE_FIREBASE_APP_ID || '',
+          measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || '',
           databaseURL: env.VITE_FIREBASE_DATABASE_URL,
         };
+        return;
       }
     } catch {
       // Safe fallback
+    }
+
+    // 3. Fallback to localStorage if previously saved
+    try {
+      const stored = localStorage.getItem(FIREBASE_CONFIG_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.projectId && parsed.apiKey) {
+          this.config = parsed;
+        }
+      }
+    } catch {
+      // Ignore parse error
     }
   }
 
@@ -131,6 +140,7 @@ class FirebaseService {
       storageBucket: newConfig.storageBucket?.trim() || `${newConfig.projectId.trim()}.appspot.com`,
       messagingSenderId: newConfig.messagingSenderId?.trim() || '',
       appId: newConfig.appId?.trim() || '',
+      measurementId: newConfig.measurementId?.trim() || '',
       databaseURL: newConfig.databaseURL?.trim(),
     };
 

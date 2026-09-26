@@ -1160,15 +1160,37 @@ class DatabaseService {
     ];
 
     let count = 0;
+    let studentsFoundInCloud = false;
+
     for (const key of sections) {
       try {
         const cloudData = await cloudSync.getClassSection(classId, key);
         if (cloudData !== null && cloudData !== undefined) {
+          if (key === STORAGE_KEYS.STUDENTS && Array.isArray(cloudData) && cloudData.length > 0) {
+            studentsFoundInCloud = true;
+          }
           await this.setScopedData(key, cloudData, false);
           count++;
         }
       } catch (err) {
         console.warn(`Error pulling cloud section ${key}:`, err);
+      }
+    }
+
+    // Auto-seed: If students do NOT exist in the cloud yet, automatically upload local class data to Firestore!
+    if (!studentsFoundInCloud && count === 0) {
+      try {
+        const localSnapshot = await this.exportLocalClassSnapshot(classId);
+        if (
+          localSnapshot.sections[STORAGE_KEYS.STUDENTS] &&
+          (localSnapshot.sections[STORAGE_KEYS.STUDENTS] as any[]).length > 0
+        ) {
+          console.log('Auto-seeding initial class roster and records to Firebase Firestore...');
+          await cloudSync.uploadLocalDataToCloud(classId, localSnapshot as any);
+          return { synced: true, count: sections.length };
+        }
+      } catch (seedErr) {
+        console.warn('Auto-seed cloud warning:', seedErr);
       }
     }
 

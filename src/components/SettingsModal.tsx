@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Download, Upload, RefreshCw, User, Database, Check, Clock, Fingerprint, Sparkles, Cloud } from 'lucide-react';
+import { X, Download, Upload, RefreshCw, User, Database, Check, Clock, Fingerprint, Sparkles } from 'lucide-react';
 import { db } from '../services/db';
 import type { PointSettings } from '../types';
 
@@ -10,7 +10,6 @@ interface SettingsModalProps {
   onUpdateServantName: (name: string) => void;
   onDataChanged: () => void;
   onOpenInstallModal?: () => void;
-  onOpenCloudSyncModal?: () => void;
   pointSettings?: PointSettings;
   onSavePointSettings?: (settings: PointSettings) => void;
 }
@@ -22,7 +21,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onUpdateServantName,
   onDataChanged,
   onOpenInstallModal,
-  onOpenCloudSyncModal,
   pointSettings,
   onSavePointSettings,
 }) => {
@@ -473,43 +471,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             </div>
           )}
-
-          {/* Cloud Real-time Synchronization (Firebase) */}
-          <div
-            style={{
-              padding: '1rem',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.03) 100%)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '0.75rem',
-            }}
-          >
-            <div>
-              <h4 style={{ fontSize: '0.92rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '0.45rem', color: '#38bdf8' }}>
-                <Cloud size={18} /> Cloud Real-time Sync (Firebase)
-              </h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.3rem 0 0 0' }}>
-                Live sync across all servants' phones, tablets, and laptops on 4G cellular data and church Wi-Fi.
-              </p>
-            </div>
-            {onOpenCloudSyncModal && (
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenCloudSyncModal();
-                }}
-                className="btn btn-primary btn-sm"
-                style={{ whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 600 }}
-              >
-                <Cloud size={14} /> Configure Cloud Sync
-              </button>
-            )}
-          </div>
 
           {/* Sync & Share Across Servants */}
           <div>
