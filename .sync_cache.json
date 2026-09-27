@@ -9,6 +9,957 @@
       ],
       "timestamp": 1790291739000,
       "sender": "Philo Ashraf"
+    },
+    "AUDIT_LOGS_UPDATED": {
+      "data": [
+        {
+          "username": "@george.dev",
+          "servantName": "Platform SuperAdmin",
+          "action": "DAILY_BACKUP_CREATED",
+          "details": "Daily platform backup snapshot created for 2026-09-26. (Retained: 2/3 rolling backups). Size: 50 KB",
+          "category": "backups",
+          "id": "log-1790459551996-j33h",
+          "timestamp": "2026-09-26T21:52:31.997Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790290317263-1xbx",
+          "timestamp": "2026-09-24T22:51:57.263Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGOUT",
+          "details": "George Dev (Super Admin) (@@george.dev) logged out.",
+          "category": "auth",
+          "id": "log-1790290314909-9psk",
+          "timestamp": "2026-09-24T22:51:54.909Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGIN",
+          "details": "George Dev (Super Admin) (@@george.dev) logged in with SuperAdmin master privileges.",
+          "category": "superadmin",
+          "id": "log-1790290279615-nj3i",
+          "timestamp": "2026-09-24T22:51:19.615Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790290269343-7qy4",
+          "timestamp": "2026-09-24T22:51:09.343Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790290254528-7u1j",
+          "timestamp": "2026-09-24T22:50:54.528Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "Platform SuperAdmin",
+          "action": "DAILY_BACKUP_CREATED",
+          "details": "Daily platform backup snapshot created for 2026-09-24. (Retained: 1/3 rolling backups). Size: 47.6 KB",
+          "category": "backups",
+          "id": "log-1790290244756-ajc1",
+          "timestamp": "2026-09-24T22:50:44.756Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGOUT",
+          "details": "George Dev (Super Admin) (@@george.dev) logged out.",
+          "category": "auth",
+          "id": "log-1790289535466-ikzg",
+          "timestamp": "2026-09-24T22:38:55.466Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_USER_DELETED",
+          "details": "Account for servant \"george.test\" (@@george.test) was permanently deleted by Superadmin.",
+          "category": "superadmin",
+          "id": "log-1790289532290-b4mj",
+          "timestamp": "2026-09-24T22:38:52.290Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_ROLE_UPDATED",
+          "details": "Role for george.test (@@george.test) was updated to \"servant\".",
+          "category": "superadmin",
+          "id": "log-1790289529169-jfrc",
+          "timestamp": "2026-09-24T22:38:49.169Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_STATUS_UPDATED",
+          "details": "Status for george.test (@@george.test) was changed to \"approved\".",
+          "category": "superadmin",
+          "id": "log-1790289524719-dlwy",
+          "timestamp": "2026-09-24T22:38:44.719Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_CLASS_DELETED",
+          "details": "Class \"Ava Mousa\" (@avamousa) was permanently deleted by Superadmin.",
+          "category": "superadmin",
+          "id": "log-1790289507085-6e6n",
+          "timestamp": "2026-09-24T22:38:27.085Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGOUT",
+          "details": "George Dev (Super Admin) (@@george.dev) logged out.",
+          "category": "auth",
+          "id": "log-1790289389101-48rf",
+          "timestamp": "2026-09-24T22:36:29.101Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGOUT",
+          "details": "George Dev (Super Admin) (@@george.dev) logged out.",
+          "category": "auth",
+          "id": "log-1790289290548-4vyt",
+          "timestamp": "2026-09-24T22:34:50.548Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_USER_DELETED",
+          "details": "Account for servant \"testacy\" (@@testacy) was permanently deleted by Superadmin.",
+          "category": "superadmin",
+          "id": "log-1790289260773-0uzy",
+          "timestamp": "2026-09-24T22:34:20.773Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_USER_DELETED",
+          "details": "Account for servant \"Michael Test\" (@@testaccount) was permanently deleted by Superadmin.",
+          "category": "superadmin",
+          "id": "log-1790289257556-v187",
+          "timestamp": "2026-09-24T22:34:17.556Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_USER_DELETED",
+          "details": "Account for servant \"test\" (@@test) was permanently deleted by Superadmin.",
+          "category": "superadmin",
+          "id": "log-1790289252707-qstj",
+          "timestamp": "2026-09-24T22:34:12.707Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGIN",
+          "details": "George Dev (Super Admin) (@@george.dev) logged in with SuperAdmin master privileges.",
+          "category": "superadmin",
+          "id": "log-1790289237911-4ihh",
+          "timestamp": "2026-09-24T22:33:57.911Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790289230182-o0nr",
+          "timestamp": "2026-09-24T22:33:50.182Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790289219063-53qu",
+          "timestamp": "2026-09-24T22:33:39.063Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGOUT",
+          "details": "George Dev (Super Admin) (@@george.dev) logged out.",
+          "category": "auth",
+          "id": "log-1790289201216-mopr",
+          "timestamp": "2026-09-24T22:33:21.216Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGIN",
+          "details": "George Dev (Super Admin) (@@george.dev) logged in with SuperAdmin master privileges.",
+          "category": "superadmin",
+          "id": "log-1790289193540-un0g",
+          "timestamp": "2026-09-24T22:33:13.540Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790289180066-o434",
+          "timestamp": "2026-09-24T22:33:00.066Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790289177313-drg5",
+          "timestamp": "2026-09-24T22:32:57.313Z"
+        },
+        {
+          "username": "@testacy",
+          "servantName": "testacy",
+          "action": "LOGOUT",
+          "details": "testacy (@@testacy) logged out.",
+          "category": "auth",
+          "id": "log-1790288846252-9yxc",
+          "timestamp": "2026-09-24T22:27:26.252Z"
+        },
+        {
+          "username": "@testacy",
+          "servantName": "testacy",
+          "action": "LOGIN",
+          "details": "testacy (@@testacy) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790288841935-y66x",
+          "timestamp": "2026-09-24T22:27:21.935Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790288833968-btdq",
+          "timestamp": "2026-09-24T22:27:13.968Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790288812662-l0kt",
+          "timestamp": "2026-09-24T22:26:52.662Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790288784135-udko",
+          "timestamp": "2026-09-24T22:26:24.135Z"
+        },
+        {
+          "username": "@testacy",
+          "servantName": "testacy",
+          "action": "SERVANT_APPROVED",
+          "details": "Servant testacy (@@testacy) was approved by class admin",
+          "category": "servants",
+          "id": "log-1790288780439-8n0x",
+          "timestamp": "2026-09-24T22:26:20.439Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790288774873-3bs1",
+          "timestamp": "2026-09-24T22:26:14.873Z"
+        },
+        {
+          "username": "@testacy",
+          "servantName": "testacy",
+          "action": "SERVANT_REGISTERED",
+          "details": "Servant testacy registered with role servant (status: pending)",
+          "category": "servants",
+          "id": "log-1790288768044-3cnk",
+          "timestamp": "2026-09-24T22:26:08.044Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790288739535-zodb",
+          "timestamp": "2026-09-24T22:25:39.535Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790288718208-xsct",
+          "timestamp": "2026-09-24T22:25:18.208Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790288685635-r0ry",
+          "timestamp": "2026-09-24T22:24:45.635Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1790288666433-6abl",
+          "timestamp": "2026-09-24T22:24:26.433Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGOUT",
+          "details": "George Dev (Super Admin) (@@george.dev) logged out.",
+          "category": "auth",
+          "id": "log-1790288634886-3b86",
+          "timestamp": "2026-09-24T22:23:54.886Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "LOGOUT",
+          "details": "George Dev (Super Admin) (@@george.dev) logged out.",
+          "category": "auth",
+          "id": "log-1790288469302-0l0r",
+          "timestamp": "2026-09-24T22:21:09.302Z"
+        },
+        {
+          "username": "@george.dev",
+          "servantName": "George Dev (Super Admin)",
+          "action": "SUPERADMIN_CLASS_DELETED",
+          "details": "Class \"Test\" (@testclass) was permanently deleted by Superadmin.",
+          "category": "superadmin",
+          "id": "log-1790288460687-8b5f",
+          "timestamp": "2026-09-24T22:21:00.687Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790287049980-s2fg",
+          "timestamp": "2026-09-24T21:57:29.980Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252983004-0dhi",
+          "timestamp": "2026-09-24T12:29:43.004Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Absent, Odas=Present",
+          "category": "attendance",
+          "id": "log-1790252980579-96ip",
+          "timestamp": "2026-09-24T12:29:40.579Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252980164-rf2o",
+          "timestamp": "2026-09-24T12:29:40.164Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Absent, Odas=Present",
+          "category": "attendance",
+          "id": "log-1790252970797-h7ja",
+          "timestamp": "2026-09-24T12:29:30.797Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Abanoub Romany (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252965630-e935",
+          "timestamp": "2026-09-24T12:29:25.630Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Abanoub Romany to On-Time (20 pts)",
+          "category": "attendance",
+          "id": "log-1790252964532-osqp",
+          "timestamp": "2026-09-24T12:29:24.532Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Abanoub Romany to Late (17 pts)",
+          "category": "attendance",
+          "id": "log-1790252962713-7agx",
+          "timestamp": "2026-09-24T12:29:22.713Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Abanoub Romany (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252962113-l81h",
+          "timestamp": "2026-09-24T12:29:22.113Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Rivan Romany Anwar (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252961132-hvkv",
+          "timestamp": "2026-09-24T12:29:21.132Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Marcellino Joseph (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252960114-nd36",
+          "timestamp": "2026-09-24T12:29:20.114Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Estefanos Romany (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252959081-mcpt",
+          "timestamp": "2026-09-24T12:29:19.081Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Adam Adel Saeed (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252957414-t74r",
+          "timestamp": "2026-09-24T12:29:17.414Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Mark Raymond Wagieh (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252956847-9nnh",
+          "timestamp": "2026-09-24T12:29:16.847Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Sam Sameh Sami (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252956249-2ikh",
+          "timestamp": "2026-09-24T12:29:16.249Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Oliver Zaher Roushdy (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252955429-4l9l",
+          "timestamp": "2026-09-24T12:29:15.429Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Oliver Zaher Roushdy to On-Time (20 pts)",
+          "category": "attendance",
+          "id": "log-1790252954385-ixfa",
+          "timestamp": "2026-09-24T12:29:14.385Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Oliver Zaher Roushdy to Late (20 pts)",
+          "category": "attendance",
+          "id": "log-1790252953163-yzg7",
+          "timestamp": "2026-09-24T12:29:13.163Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Oliver Zaher Roushdy (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252952663-d7c4",
+          "timestamp": "2026-09-24T12:29:12.663Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Oliver Zaher Roushdy (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252951749-vx6o",
+          "timestamp": "2026-09-24T12:29:11.749Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Andre Joseph (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252951165-bi9k",
+          "timestamp": "2026-09-24T12:29:11.165Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Karim Farid Fadl (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252949714-vh6n",
+          "timestamp": "2026-09-24T12:29:09.714Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Nabil Nassif (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252948919-3elb",
+          "timestamp": "2026-09-24T12:29:08.919Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Roger Amin Sabry (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252948214-lex6",
+          "timestamp": "2026-09-24T12:29:08.214Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252947132-yttv",
+          "timestamp": "2026-09-24T12:29:07.132Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Estefanos Romany (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252934997-3wmf",
+          "timestamp": "2026-09-24T12:28:54.997Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Marcellino Joseph (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252928662-dqh8",
+          "timestamp": "2026-09-24T12:28:48.662Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Rivan Romany Anwar (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252923233-qneg",
+          "timestamp": "2026-09-24T12:28:43.233Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Adam Adel Saeed (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252917629-vzyx",
+          "timestamp": "2026-09-24T12:28:37.629Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Mark Raymond Wagieh (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252912936-orum",
+          "timestamp": "2026-09-24T12:28:32.936Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Sam Sameh Sami (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252908564-66x7",
+          "timestamp": "2026-09-24T12:28:28.564Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Oliver Zaher Roushdy (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252903899-1fhl",
+          "timestamp": "2026-09-24T12:28:23.899Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Andre Joseph (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252898501-1k6w",
+          "timestamp": "2026-09-24T12:28:18.501Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Karim Farid Fadl (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252892997-vs78",
+          "timestamp": "2026-09-24T12:28:12.997Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Nabil Nassif (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252887867-cwz3",
+          "timestamp": "2026-09-24T12:28:07.867Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Roger Amin Sabry (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252883247-lh44",
+          "timestamp": "2026-09-24T12:28:03.247Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252877399-wtus",
+          "timestamp": "2026-09-24T12:27:57.399Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Nabil Nassif (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252586784-flqe",
+          "timestamp": "2026-09-24T12:23:06.784Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Roger Amin Sabry (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252586154-eu65",
+          "timestamp": "2026-09-24T12:23:06.154Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252585450-u2jl",
+          "timestamp": "2026-09-24T12:23:05.450Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Nabil Nassif (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252570067-pujg",
+          "timestamp": "2026-09-24T12:22:50.067Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Roger Amin Sabry (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252565801-zbnh",
+          "timestamp": "2026-09-24T12:22:45.801Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790252548750-deib",
+          "timestamp": "2026-09-24T12:22:28.750Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "SCORING_RULES_UPDATED",
+          "details": "Updated point rules (Friday: 20p, Odas: 15p, Sat: 10p)",
+          "category": "scoring",
+          "id": "log-1790252490934-dnar",
+          "timestamp": "2026-09-24T12:21:30.934Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Andre Joseph (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251553301-2muf",
+          "timestamp": "2026-09-24T12:05:53.301Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Karim Farid Fadl (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251552549-tr8r",
+          "timestamp": "2026-09-24T12:05:52.549Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Nabil Nassif (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251551947-swp1",
+          "timestamp": "2026-09-24T12:05:51.947Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Roger Amin Sabry (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251551301-7137",
+          "timestamp": "2026-09-24T12:05:51.301Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Absent, Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251550732-l19l",
+          "timestamp": "2026-09-24T12:05:50.732Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Roger Amin Sabry to On-Time",
+          "category": "attendance",
+          "id": "log-1790251549901-l0iy",
+          "timestamp": "2026-09-24T12:05:49.901Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Roger Amin Sabry to Late",
+          "category": "attendance",
+          "id": "log-1790251549118-mn03",
+          "timestamp": "2026-09-24T12:05:49.118Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Roger Amin Sabry to On-Time",
+          "category": "attendance",
+          "id": "log-1790251548335-n939",
+          "timestamp": "2026-09-24T12:05:48.335Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_LATE_TOGGLE",
+          "details": "Changed late status for Roger Amin Sabry to Late",
+          "category": "attendance",
+          "id": "log-1790251547474-zzl1",
+          "timestamp": "2026-09-24T12:05:47.474Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Andre Joseph (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251537284-khjl",
+          "timestamp": "2026-09-24T12:05:37.284Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Karim Farid Fadl (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251532217-p1pb",
+          "timestamp": "2026-09-24T12:05:32.218Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Chris Nabil Nassif (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251524990-vu9l",
+          "timestamp": "2026-09-24T12:05:24.990Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Roger Amin Sabry (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251519302-qyxw",
+          "timestamp": "2026-09-24T12:05:19.302Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251512337-50kl",
+          "timestamp": "2026-09-24T12:05:12.337Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "ATTENDANCE_FRIDAY",
+          "details": "Updated Friday attendance for Andy Wael Ibrahim (2026-09-25): Class=Present (On-Time), Odas=Absent",
+          "category": "attendance",
+          "id": "log-1790251509326-x62x",
+          "timestamp": "2026-09-24T12:05:09.326Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "SCORING_RULES_UPDATED",
+          "details": "Updated point rules (Friday: 10p, Odas: 15p, Sat: 10p)",
+          "category": "scoring",
+          "id": "log-1790251447640-7e22",
+          "timestamp": "2026-09-24T12:04:07.640Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "SCORING_RULES_UPDATED",
+          "details": "Updated point rules (Friday: 10p, Odas: 15p, Sat: 10p)",
+          "category": "scoring",
+          "id": "log-1790251446739-u6x1",
+          "timestamp": "2026-09-24T12:04:06.739Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "SCORING_RULES_UPDATED",
+          "details": "Updated point rules (Friday: 10p, Odas: 15p, Sat: 10p)",
+          "category": "scoring",
+          "id": "log-1790251446074-bfsm",
+          "timestamp": "2026-09-24T12:04:06.074Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "SCORING_RULES_UPDATED",
+          "details": "Updated point rules (Friday: 10p, Odas: 15p, Sat: 10p)",
+          "category": "scoring",
+          "id": "log-1790251445157-fthv",
+          "timestamp": "2026-09-24T12:04:05.157Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@george.michael) logged in to the servant portal.",
+          "category": "auth",
+          "id": "log-1790168007797-xc99",
+          "timestamp": "2026-09-23T12:53:27.797Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1790167778585-gvl9",
+          "timestamp": "2026-09-23T12:49:38.585Z"
+        },
+        {
+          "id": "log-1",
+          "timestamp": "2026-09-23T00:00:00Z",
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "SYSTEM_INITIALIZED",
+          "details": "Pope Saweros Grade 4 Sunday School Online Scoring & Attendance initialized with official 28-student roster.",
+          "category": "students"
+        }
+      ],
+      "timestamp": 1790459552002,
+      "sender": "George Michael (Admin)"
     }
   }
 }
