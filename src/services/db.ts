@@ -1143,37 +1143,42 @@ class DatabaseService {
   async syncClassWithCloud(classId = this.getActiveClassId()): Promise<{ synced: boolean; count: number }> {
     if (!cloudSync.isConfigured()) return { synced: false, count: 0 };
 
-    const sections = [
-      STORAGE_KEYS.STUDENTS,
-      STORAGE_KEYS.ATTENDANCE,
-      STORAGE_KEYS.DARS_KTAB,
-      STORAGE_KEYS.MAL3AB,
-      STORAGE_KEYS.SUMMER_CLUB,
-      STORAGE_KEYS.SUMMER_CLUB_SETTINGS,
-      STORAGE_KEYS.CONFESSIONS,
-      STORAGE_KEYS.CUSTOM_EVENTS,
-      STORAGE_KEYS.VISITS,
-      STORAGE_KEYS.POINT_SETTINGS,
-      STORAGE_KEYS.CUSTOM_POINTS,
-      STORAGE_KEYS.CLASS_HEROES,
-      STORAGE_KEYS.AUDIT_LOGS,
+    const sectionMappings: Array<{ canonical: string; storageKey: string }> = [
+      { canonical: 'students', storageKey: STORAGE_KEYS.STUDENTS },
+      { canonical: 'attendance', storageKey: STORAGE_KEYS.ATTENDANCE },
+      { canonical: 'darsKtab', storageKey: STORAGE_KEYS.DARS_KTAB },
+      { canonical: 'mal3ab', storageKey: STORAGE_KEYS.MAL3AB },
+      { canonical: 'summerClub', storageKey: STORAGE_KEYS.SUMMER_CLUB },
+      { canonical: 'summerClubSettings', storageKey: STORAGE_KEYS.SUMMER_CLUB_SETTINGS },
+      { canonical: 'confessions', storageKey: STORAGE_KEYS.CONFESSIONS },
+      { canonical: 'customEvents', storageKey: STORAGE_KEYS.CUSTOM_EVENTS },
+      { canonical: 'visits', storageKey: STORAGE_KEYS.VISITS },
+      { canonical: 'pointSettings', storageKey: STORAGE_KEYS.POINT_SETTINGS },
+      { canonical: 'customPoints', storageKey: STORAGE_KEYS.CUSTOM_POINTS },
+      { canonical: 'classHeroes', storageKey: STORAGE_KEYS.CLASS_HEROES },
+      { canonical: 'auditLogs', storageKey: STORAGE_KEYS.AUDIT_LOGS },
     ];
 
     let count = 0;
     let studentsFoundInCloud = false;
 
-    for (const key of sections) {
+    for (const item of sectionMappings) {
       try {
-        const cloudData = await cloudSync.getClassSection(classId, key);
+        // Try canonical key first (e.g. 'attendance'), then fallback to storage key (e.g. 'pss_attendance_v2')
+        let cloudData = await cloudSync.getClassSection(classId, item.canonical);
+        if (cloudData === null || cloudData === undefined) {
+          cloudData = await cloudSync.getClassSection(classId, item.storageKey);
+        }
+
         if (cloudData !== null && cloudData !== undefined) {
-          if (key === STORAGE_KEYS.STUDENTS && Array.isArray(cloudData) && cloudData.length > 0) {
+          if (item.canonical === 'students' && Array.isArray(cloudData) && cloudData.length > 0) {
             studentsFoundInCloud = true;
           }
-          await this.setScopedData(key, cloudData, false);
+          await this.setScopedData(item.storageKey, cloudData, false);
           count++;
         }
       } catch (err) {
-        console.warn(`Error pulling cloud section ${key}:`, err);
+        console.warn(`Error pulling cloud section ${item.canonical}:`, err);
       }
     }
 
@@ -1182,12 +1187,12 @@ class DatabaseService {
       try {
         const localSnapshot = await this.exportLocalClassSnapshot(classId);
         if (
-          localSnapshot.sections[STORAGE_KEYS.STUDENTS] &&
-          (localSnapshot.sections[STORAGE_KEYS.STUDENTS] as any[]).length > 0
+          localSnapshot.sections.students &&
+          (localSnapshot.sections.students as any[]).length > 0
         ) {
-          console.log('Auto-seeding initial class roster and records to Firebase Firestore...');
+          console.log('Auto-seeding initial class roster and records to Firebase Cloud...');
           await cloudSync.uploadLocalDataToCloud(classId, localSnapshot as any);
-          return { synced: true, count: sections.length };
+          return { synced: true, count: sectionMappings.length };
         }
       } catch (seedErr) {
         console.warn('Auto-seed cloud warning:', seedErr);
@@ -1254,6 +1259,19 @@ class DatabaseService {
       ]);
 
       const sections: Record<string, unknown> = {
+        students,
+        attendance,
+        darsKtab,
+        mal3ab,
+        summerClub,
+        summerClubSettings,
+        confessions,
+        customEvents,
+        visits,
+        pointSettings,
+        customPoints,
+        classHeroes,
+        auditLogs,
         [STORAGE_KEYS.STUDENTS]: students,
         [STORAGE_KEYS.ATTENDANCE]: attendance,
         [STORAGE_KEYS.DARS_KTAB]: darsKtab,
@@ -1280,7 +1298,23 @@ class DatabaseService {
   }
 
   async applyRemoteUpdate<T>(baseKey: string, data: T): Promise<void> {
-    await this.setScopedData(baseKey, data, false);
+    const storageKeyMap: Record<string, string> = {
+      students: STORAGE_KEYS.STUDENTS,
+      attendance: STORAGE_KEYS.ATTENDANCE,
+      darsKtab: STORAGE_KEYS.DARS_KTAB,
+      mal3ab: STORAGE_KEYS.MAL3AB,
+      summerClub: STORAGE_KEYS.SUMMER_CLUB,
+      summerClubSettings: STORAGE_KEYS.SUMMER_CLUB_SETTINGS,
+      confessions: STORAGE_KEYS.CONFESSIONS,
+      customEvents: STORAGE_KEYS.CUSTOM_EVENTS,
+      visits: STORAGE_KEYS.VISITS,
+      pointSettings: STORAGE_KEYS.POINT_SETTINGS,
+      customPoints: STORAGE_KEYS.CUSTOM_POINTS,
+      classHeroes: STORAGE_KEYS.CLASS_HEROES,
+      auditLogs: STORAGE_KEYS.AUDIT_LOGS,
+    };
+    const targetKey = storageKeyMap[baseKey] || baseKey;
+    await this.setScopedData(targetKey, data, false);
   }
 
   private async setScopedData<T>(baseKey: string, data: T, broadcast = true): Promise<void> {

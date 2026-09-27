@@ -65,9 +65,11 @@ import { NavDroplist, type AppView } from './components/NavDroplist';
 import { InstallPromptModal } from './components/InstallPromptModal';
 import { ServantsManageModal } from './components/ServantsManageModal';
 import { SuperAdminPortal } from './components/SuperAdminPortal';
+import { SyncHealthModal } from './components/SyncHealthModal';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
+  const [isSyncHealthModalOpen, setIsSyncHealthModalOpen] = useState(false);
 
   // Dates
   const [fridayDate, setFridayDate] = useState<string>(getNearestFridayDateString());
@@ -1447,8 +1449,16 @@ export const App: React.FC = () => {
                   </button>
                 )}
 
-                {/* Real-time Class Sync Status Indicator (Read-only status badge) */}
+                {/* Real-time Class Sync Status Indicator (Clickable Sync Health & Troubleshooter) */}
                 <div
+                  onClick={() => setIsSyncHealthModalOpen(true)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      setIsSyncHealthModalOpen(true);
+                    }
+                  }}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1460,13 +1470,13 @@ export const App: React.FC = () => {
                         ? 'rgba(16, 185, 129, 0.12)'
                         : syncStatus === 'connecting'
                         ? 'rgba(245, 158, 11, 0.12)'
-                        : 'rgba(148, 163, 184, 0.12)',
+                        : 'rgba(239, 68, 68, 0.12)',
                     border: `1px solid ${
                       syncStatus === 'connected'
                         ? 'rgba(16, 185, 129, 0.35)'
                         : syncStatus === 'connecting'
                         ? 'rgba(245, 158, 11, 0.35)'
-                        : 'rgba(148, 163, 184, 0.35)'
+                        : 'rgba(239, 68, 68, 0.35)'
                     }`,
                     fontSize: '0.74rem',
                     fontWeight: 700,
@@ -1475,22 +1485,17 @@ export const App: React.FC = () => {
                         ? '#059669'
                         : syncStatus === 'connecting'
                         ? '#d97706'
-                        : '#64748b',
-                    cursor: 'default',
+                        : '#dc2626',
+                    cursor: 'pointer',
                     userSelect: 'none',
+                    transition: 'all 0.15s ease',
                   }}
-                  title={
-                    syncStatus === 'connected'
-                      ? `Real-time cloud sync active for ${currentClass?.name || 'this class'} (${syncServantsCount} connected). All edits sync live.`
-                      : syncStatus === 'connecting'
-                      ? 'Connecting to sync...'
-                      : 'Operating in local offline mode.'
-                  }
+                  title={`Click to view Live Sync Health, Troubleshooter & Activity Feed (${syncServantsCount} connected)`}
                 >
                   {syncStatus === 'connected' ? (
                     <CloudCheck size={14} color="#10b981" />
                   ) : (
-                    <Cloud size={14} color={syncStatus === 'connecting' ? '#f59e0b' : '#94a3b8'} />
+                    <Cloud size={14} color={syncStatus === 'connecting' ? '#f59e0b' : '#ef4444'} />
                   )}
                   <span
                     style={{
@@ -1502,8 +1507,13 @@ export const App: React.FC = () => {
                           ? '#10b981'
                           : syncStatus === 'connecting'
                           ? '#f59e0b'
-                          : '#94a3b8',
-                      boxShadow: syncStatus === 'connected' ? '0 0 8px #10b981' : 'none',
+                          : '#ef4444',
+                      boxShadow:
+                        syncStatus === 'connected'
+                          ? '0 0 8px #10b981'
+                          : syncStatus === 'offline'
+                          ? '0 0 6px rgba(239, 68, 68, 0.7)'
+                          : 'none',
                     }}
                   />
                   <span className="hide-on-mobile">
@@ -1511,7 +1521,7 @@ export const App: React.FC = () => {
                       ? 'Live Synced'
                       : syncStatus === 'connecting'
                       ? 'Syncing...'
-                      : 'Local Mode'}
+                      : 'Sync / Troubleshoot'}
                   </span>
                   <span className="show-on-mobile-only">
                     {syncStatus === 'connected' ? 'Live' : 'Sync'}
@@ -2011,6 +2021,17 @@ export const App: React.FC = () => {
           }}
         />
       )}
+
+      {/* Real-time Multi-Device Sync Health & Diagnostics Modal */}
+      <SyncHealthModal
+        isOpen={isSyncHealthModalOpen}
+        onClose={() => setIsSyncHealthModalOpen(false)}
+        currentClass={currentClass}
+        currentUser={currentUser}
+        connectedServantsCount={syncServantsCount}
+        onDataRefreshed={loadAllData}
+        showToast={showSyncToast}
+      />
 
       {/* Real-time Cross-Device Sync Floating Toast */}
       {syncToast && (

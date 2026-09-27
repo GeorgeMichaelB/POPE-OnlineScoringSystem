@@ -1,8 +1,8 @@
 // Real-time Multi-Device Class Synchronization Service
 // Enables instant data propagation across all servants' phones, tablets, and laptops in the same class
-// Combines Firebase Cloud Firestore (cross-device/internet) + Local BroadcastChannel + Network SSE fallback
+// Combines Firebase Cloud (Firestore / Realtime Database) + Local BroadcastChannel + Network SSE fallback
 
-import { cloudSync, type CloudSyncStatus } from './firebase';
+import { cloudSync, type CloudSyncStatus, type CloudBackendType } from './firebase';
 
 export type SyncEventType =
   | 'STUDENTS_UPDATED'
@@ -39,6 +39,20 @@ export type SyncConnectionStatus = 'connected' | 'connecting' | 'offline';
 
 type SyncMessageListener = (msg: SyncMessage) => void;
 export type StatusListener = (status: SyncConnectionStatus, clientCount?: number) => void;
+
+export interface SyncActivityItem {
+  id: string;
+  type: SyncEventType;
+  sectionName: string;
+  senderName: string;
+  senderUsername: string;
+  timestamp: number;
+  direction: 'sent' | 'received';
+  source: 'cloud' | 'local_sse' | 'broadcast_channel';
+  description?: string;
+}
+
+export type ActivityListener = (item: SyncActivityItem) => void;
 
 export const SYNC_EVENT_TO_SECTION: Record<SyncEventType, string> = {
   STUDENTS_UPDATED: 'students',
@@ -112,6 +126,8 @@ export class RealtimeSyncService {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageListeners = new Set<SyncMessageListener>();
   private statusListeners = new Set<StatusListener>();
+  private activityListeners = new Set<ActivityListener>();
+  private activityLog: SyncActivityItem[] = [];
   private recentMessageIds = new Set<string>();
   private unsubCloudClass: (() => void) | null = null;
   private unsubCloudUsers: (() => void) | null = null;
@@ -124,13 +140,15 @@ export class RealtimeSyncService {
         ? `client_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
         : `server_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
 
+    cloudSync.setClientId(this.clientId);
+
     if (typeof window !== 'undefined') {
       // Listen to cross-window storage events as fallback for same-browser tabs
       window.addEventListener('storage', (e) => {
         if (e.key && e.key.startsWith('pss_sync_signal_') && e.newValue) {
           try {
             const msg: SyncMessage = JSON.parse(e.newValue);
-            this.handleIncomingMessage(msg);
+            this.handleIncomingMessage(msg, 'broadcast_channel');
           } catch {
             // Ignore parse errors
           }
@@ -157,6 +175,7 @@ export class RealtimeSyncService {
    * Initializes or switches the synchronization channel for the active class
    */
   async init(classId: string, user?: { username: string; name: string } | null) {
+    cloudSync.setClientId(this.clientId);
     if (user) {
       this.currentUser = { username: user.username, name: user.name };
       cloudSync.setServant(user.username, user.name);
@@ -169,7 +188,7 @@ export class RealtimeSyncService {
   }
 
   /**
-   * Sets up real-time listener with Google Cloud Firestore
+   * Sets up real-time listener with Google Cloud Firebase
    */
   private async setupCloudSync(classId: string) {
     if (this.unsubCloudClass) {
@@ -203,10 +222,10 @@ export class RealtimeSyncService {
               data,
               senderUsername: 'remote_servant',
               senderName: senderName || 'Servant',
-              clientId: 'cloud_firestore',
+              clientId: 'cloud_firebase',
               timestamp: Date.now(),
             };
-            this.handleIncomingMessage(msg);
+            this.handleIncomingMessage(msg, 'cloud');
           }
         }
       );
@@ -220,10 +239,10 @@ export class RealtimeSyncService {
           data: usersData,
           senderUsername: 'cloud_sync',
           senderName: 'Cloud Sync',
-          clientId: 'cloud_firestore',
+          clientId: 'cloud_firebase',
           timestamp: Date.now(),
         };
-        this.handleIncomingMessage(msg);
+        this.handleIncomingMessage(msg, 'cloud');
       });
 
       // 3. Subscribe to global classes
@@ -235,15 +254,17 @@ export class RealtimeSyncService {
           data: classesData,
           senderUsername: 'cloud_sync',
           senderName: 'Cloud Sync',
-          clientId: 'cloud_firestore',
+          clientId: 'cloud_firebase',
           timestamp: Date.now(),
         };
-        this.handleIncomingMessage(msg);
+        this.handleIncomingMessage(msg, 'cloud');
       });
 
-      this.updateStatus('connected');
+      if (cloudSync.getStatus().status === 'connected') {
+        this.updateStatus('connected');
+      }
     } catch (err) {
-      console.warn('Failed to attach Cloud Firestore listeners:', err);
+      console.warn('Failed to attach Cloud Firebase listeners:', err);
     }
   }
 
@@ -272,12 +293,39 @@ export class RealtimeSyncService {
     return cloudSync.isConfigured();
   }
 
+  getCloudBackendType(): CloudBackendType {
+    return cloudSync.getBackendType();
+  }
+
   getConnectedServantsCount(): number {
     return this.connectedServantsCount;
   }
 
   getLastSyncTime(): number | null {
-    return this.lastSyncTime;
+    return this.lastSyncTime || cloudSync.getDiagnosticInfo().lastSyncTime;
+  }
+
+  getActivityLog(): SyncActivityItem[] {
+    return [...this.activityLog];
+  }
+
+  onActivity(listener: ActivityListener): () => void {
+    this.activityListeners.add(listener);
+    return () => {
+      this.activityListeners.delete(listener);
+    };
+  }
+
+  private addActivityItem(item: SyncActivityItem) {
+    this.activityLog.unshift(item);
+    if (this.activityLog.length > 40) {
+      this.activityLog.pop();
+    }
+    this.activityListeners.forEach((l) => {
+      try {
+        l(item);
+      } catch {}
+    });
   }
 
   /**
@@ -298,7 +346,7 @@ export class RealtimeSyncService {
       this.broadcastChannel = new BroadcastChannel(`pss_sync_${this.activeClassId}`);
       this.broadcastChannel.onmessage = (event) => {
         if (event.data && typeof event.data === 'object') {
-          this.handleIncomingMessage(event.data as SyncMessage);
+          this.handleIncomingMessage(event.data as SyncMessage, 'broadcast_channel');
         }
       };
     } catch (e) {
@@ -341,7 +389,7 @@ export class RealtimeSyncService {
       this.eventSource.addEventListener('message', (e: MessageEvent) => {
         try {
           const msg: SyncMessage = JSON.parse(e.data);
-          this.handleIncomingMessage(msg);
+          this.handleIncomingMessage(msg, 'local_sse');
         } catch (err) {
           console.warn('Error parsing incoming sync packet:', err);
         }
@@ -363,11 +411,11 @@ export class RealtimeSyncService {
           this.updateStatus('offline');
         }
 
-        // Auto-reconnect SSE after 5 seconds
+        // Auto-reconnect SSE after 6 seconds
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(() => {
           this.connectSSE();
-        }, 5000);
+        }, 6000);
       };
     } catch {
       // Safe fallback
@@ -391,7 +439,7 @@ export class RealtimeSyncService {
   /**
    * Internal dispatcher for incoming sync messages
    */
-  private handleIncomingMessage(msg: SyncMessage) {
+  private handleIncomingMessage(msg: SyncMessage, source: 'cloud' | 'local_sse' | 'broadcast_channel' = 'cloud') {
     if (!msg || !msg.id) return;
 
     // Ignore messages generated by this same tab/client
@@ -410,12 +458,26 @@ export class RealtimeSyncService {
     // Deduplicate packets received over multiple channels (Firestore + SSE + BroadcastChannel)
     if (this.recentMessageIds.has(msg.id)) return;
     this.recentMessageIds.add(msg.id);
-    if (this.recentMessageIds.size > 200) {
+    if (this.recentMessageIds.size > 250) {
       const it = this.recentMessageIds.values();
       this.recentMessageIds.delete(it.next().value as string);
     }
 
     this.lastSyncTime = Date.now();
+
+    // Log to activity feed
+    const sectionName = SYNC_EVENT_TO_SECTION[msg.type] || msg.type;
+    this.addActivityItem({
+      id: msg.id,
+      type: msg.type,
+      sectionName,
+      senderName: msg.senderName,
+      senderUsername: msg.senderUsername,
+      timestamp: msg.timestamp || Date.now(),
+      direction: 'received',
+      source,
+      description: msg.description || `Updated ${sectionName}`,
+    });
 
     // Dispatch to all component subscribers (App.tsx, etc.)
     this.messageListeners.forEach((listener) => {
@@ -429,7 +491,7 @@ export class RealtimeSyncService {
 
   /**
    * Broadcasts an action immediately to all other servants in the same class
-   * Sends locally, via network SSE, and pushes directly to Firebase Cloud Firestore!
+   * Sends locally, via network SSE, and pushes directly to Firebase Cloud!
    */
   async publish<T = unknown>(params: {
     classId?: string;
@@ -440,8 +502,9 @@ export class RealtimeSyncService {
     description?: string;
   }): Promise<void> {
     const classId = params.classId || this.activeClassId;
+    const msgId = `sync_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
     const msg: SyncMessage<T> = {
-      id: `sync_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: msgId,
       classId,
       type: params.type,
       data: params.data,
@@ -454,6 +517,20 @@ export class RealtimeSyncService {
 
     // Mark as seen by self to avoid echo
     this.recentMessageIds.add(msg.id);
+
+    // Record to activity log
+    const sectionName = SYNC_EVENT_TO_SECTION[params.type] || params.type;
+    this.addActivityItem({
+      id: msg.id,
+      type: params.type,
+      sectionName,
+      senderName: msg.senderName,
+      senderUsername: msg.senderUsername,
+      timestamp: msg.timestamp,
+      direction: 'sent',
+      source: 'cloud',
+      description: params.description || `Updated ${sectionName}`,
+    });
 
     // 1. Instant local BroadcastChannel (<1ms)
     if (this.broadcastChannel) {
@@ -487,7 +564,7 @@ export class RealtimeSyncService {
       });
     }
 
-    // 4. Google Cloud Firestore Realtime Sync (across all devices & networks!)
+    // 4. Google Firebase Cloud Realtime Sync (across all devices & networks!)
     if (cloudSync.isConfigured()) {
       try {
         if (params.type === 'CLASSES_UPDATED') {
@@ -497,7 +574,7 @@ export class RealtimeSyncService {
         } else {
           const sectionKey = SYNC_EVENT_TO_SECTION[params.type];
           if (sectionKey) {
-            await cloudSync.saveClassSection(classId, sectionKey, params.data);
+            await cloudSync.saveClassSection(classId, sectionKey, params.data, msg.id);
           }
         }
       } catch (cloudErr) {
@@ -510,7 +587,7 @@ export class RealtimeSyncService {
    * Directly dispatches a remote message to local listeners (used for testing or P2P bridges)
    */
   dispatchRemoteMessage(msg: SyncMessage) {
-    this.handleIncomingMessage(msg);
+    this.handleIncomingMessage(msg, 'cloud');
   }
 
   /**
