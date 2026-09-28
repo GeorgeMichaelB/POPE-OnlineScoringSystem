@@ -45,7 +45,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [loginNotice, setLoginNotice] = useState<string | null>(null);
+  const [loginNotice, setLoginNotice] = useState<{ type: 'create' | 'join' } | null>(null);
 
   // Registration form state
   const [regName, setRegName] = useState('');
@@ -163,7 +163,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setPendingApprovalUser(user);
         setPendingClassInfo(userClass);
         setRefreshMessage(null);
-        setLoginNotice('Please wait for the admins to approve the class. Please contact me on whatsapp: George Michael 01226692959');
+        setLoginNotice({ type: 'create' });
         setIsLoading(false);
         return;
       }
@@ -180,6 +180,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setPendingApprovalUser(user);
         setPendingClassInfo(userClass);
         setRefreshMessage(null);
+        setLoginNotice({ type: 'join' });
         setIsLoading(false);
         return;
       }
@@ -288,7 +289,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setPendingApprovalUser(newUser);
         setPendingClassInfo(newClass);
         setRefreshMessage(null);
-        setLoginNotice('Please wait for the admins to approve the class. Please contact me on whatsapp: George Michael 01226692959');
+        setLoginNotice({ type: 'create' });
       } else {
         // --- Option B: Join Existing Class (Requires Admin Approval) ---
         const cleanClassUsername = joinClassUsername.trim().toLowerCase().replace(/^@/, '');
@@ -332,6 +333,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setPendingApprovalUser(newUser);
         setPendingClassInfo(targetClass);
         setRefreshMessage(null);
+        setLoginNotice({ type: 'join' });
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
@@ -378,9 +380,15 @@ export const LoginView: React.FC<LoginViewProps> = ({
           return;
         }
 
+        const isClassCreationRequest =
+          (refreshedClass && refreshedClass.status === 'pending') ||
+          refreshedUser.role === 'admin';
+
         if (!isClassPending && !isUserPending) {
           setRefreshMessage({
-            text: '🎉 Congratulations! Your class has been approved by the platform Superadmin! Signing you in...',
+            text: isClassCreationRequest
+              ? '🎉 Congratulations! Your class has been approved by the platform Superadmin! Signing you in...'
+              : '🎉 Congratulations! Your account has been approved by your class admin! Signing you in...',
             type: 'success',
           });
           setTimeout(() => {
@@ -391,7 +399,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
           return;
         } else {
           setRefreshMessage({
-            text: `⏳ Checked at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}: Still awaiting Superadmin approval. Please message George Michael on WhatsApp (01226692959).`,
+            text: isClassCreationRequest
+              ? `⏳ Checked at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}: Still awaiting Superadmin approval. Please message George Michael on WhatsApp (01226692959).`
+              : `⏳ Checked at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}: Still awaiting class admin approval. Please ask your class admin to approve your request.`,
             type: 'warning',
           });
         }
@@ -486,22 +496,33 @@ export const LoginView: React.FC<LoginViewProps> = ({
               height: 72,
               margin: '0 auto 1.25rem',
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.3) 100%)',
-              border: '2px solid rgba(245, 158, 11, 0.5)',
+              background: isClassCreation
+                ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.3) 100%)'
+                : 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.3) 100%)',
+              border: isClassCreation ? '2px solid rgba(245, 158, 11, 0.5)' : '2px solid rgba(59, 130, 246, 0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fbbf24',
-              boxShadow: '0 0 25px rgba(245, 158, 11, 0.3)',
+              color: isClassCreation ? '#fbbf24' : '#60a5fa',
+              boxShadow: isClassCreation
+                ? '0 0 25px rgba(245, 158, 11, 0.3)'
+                : '0 0 25px rgba(59, 130, 246, 0.3)',
             }}
           >
             {isClassCreation ? <School size={36} /> : <Clock size={36} />}
           </div>
 
           <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', margin: '0 0 0.35rem' }}>
-            {isClassCreation ? 'Class Creation Pending Approval' : 'Awaiting Admin Approval'}
+            {isClassCreation ? 'Class Creation Pending Approval' : 'Awaiting Class Admin Approval'}
           </h2>
-          <div style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: 600, marginBottom: '1.25rem' }}>
+          <div
+            style={{
+              fontSize: '0.85rem',
+              color: isClassCreation ? '#fbbf24' : '#93c5fd',
+              fontWeight: 600,
+              marginBottom: '1.25rem',
+            }}
+          >
             {isClassCreation ? 'طلب إنشاء الفصل قيد المراجعة' : 'طلب الانضمام قيد المراجعة'}
           </div>
 
@@ -518,114 +539,140 @@ export const LoginView: React.FC<LoginViewProps> = ({
             ) : (
               <>
                 Your request to join class{' '}
-                <strong style={{ color: '#fbbf24' }}>@{pendingApprovalUser.classUsername}</strong> is currently pending.
+                <strong style={{ color: '#60a5fa' }}>@{pendingApprovalUser.classUsername}</strong> has been submitted.
               </>
             )}
           </p>
 
           {/* Mandatory Instruction Alert */}
-          <div
-            style={{
-              padding: '0.85rem 1rem',
-              borderRadius: '12px',
-              background: 'rgba(245, 158, 11, 0.12)',
-              border: '1.5px solid rgba(245, 158, 11, 0.4)',
-              color: '#fef3c7',
-              fontSize: '0.875rem',
-              fontWeight: 600,
-              lineHeight: 1.5,
-              marginBottom: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.65rem',
-              textAlign: 'left',
-            }}
-          >
-            <AlertCircle size={22} style={{ color: '#fbbf24', flexShrink: 0 }} />
-            <div>
-              {isClassCreation
-                ? 'Please wait until the platform administrator approves the class creation before signing in.'
-                : 'Please wait until your class admin approves your servant account before signing in.'}
-              <div style={{ fontSize: '0.78rem', color: '#fbbf24', marginTop: 2 }}>
-                {isClassCreation
-                  ? 'يرجى الانتظار حتى تقوم الإدارة باعتماد وتفعيل الفصل'
-                  : 'يرجى الانتظار حتى يوافق أمين الخدمة على حسابك'}
+          {isClassCreation ? (
+            <div
+              style={{
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                background: 'rgba(245, 158, 11, 0.12)',
+                border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                color: '#fef3c7',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                lineHeight: 1.5,
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                textAlign: 'left',
+              }}
+            >
+              <AlertCircle size={22} style={{ color: '#fbbf24', flexShrink: 0 }} />
+              <div>
+                Please wait until the platform administrator approves the class creation before signing in.
+                <div style={{ fontSize: '0.78rem', color: '#fbbf24', marginTop: 2 }}>
+                  يرجى الانتظار حتى تقوم الإدارة باعتماد وتفعيل الفصل
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* WhatsApp Direct Contact Box - EXACT STRING REQUESTED BY USER */}
-          <div
-            style={{
-              padding: '1.15rem 1.2rem',
-              borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(18, 140, 126, 0.2) 100%)',
-              border: '1.5px solid rgba(37, 211, 102, 0.45)',
-              boxShadow: '0 8px 24px rgba(37, 211, 102, 0.15)',
-              marginBottom: '1.5rem',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
-              <MessageCircle size={18} color="#25D366" />
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#4ade80' }}>
-                Admin WhatsApp Contact
-              </span>
+          ) : (
+            <div
+              style={{
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                background: 'rgba(59, 130, 246, 0.12)',
+                border: '1.5px solid rgba(59, 130, 246, 0.4)',
+                color: '#dbeafe',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                lineHeight: 1.5,
+                marginBottom: '1.25rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.65rem',
+                textAlign: 'left',
+              }}
+            >
+              <Clock size={22} style={{ color: '#60a5fa', flexShrink: 0 }} />
+              <div>
+                Please ask your class admin to approve your invitation or your join request.
+                <div style={{ fontSize: '0.78rem', color: '#93c5fd', marginTop: 2 }}>
+                  يرجى الطلب من أمين الخدمة بفصلك قبول واعتماد دعوتك أو طلب الانضمام
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* Exact Required Contact String */}
-            <div style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 700, margin: '0.35rem 0' }}>
-              Please contact me on whatsapp
-            </div>
-            <div style={{ color: '#4ade80', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.5px', margin: '0.15rem 0 0.85rem' }}>
-              George Michael 01226692959
-            </div>
+          {/* WhatsApp Direct Contact Box - ONLY for Class Creation requests */}
+          {isClassCreation && (
+            <div
+              style={{
+                padding: '1.15rem 1.2rem',
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(18, 140, 126, 0.2) 100%)',
+                border: '1.5px solid rgba(37, 211, 102, 0.45)',
+                boxShadow: '0 8px 24px rgba(37, 211, 102, 0.15)',
+                marginBottom: '1.5rem',
+                textAlign: 'center',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
+                <MessageCircle size={18} color="#25D366" />
+                <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#4ade80' }}>
+                  Admin WhatsApp Contact
+                </span>
+              </div>
 
-            {/* Quick Action Buttons */}
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-              <a
-                href={`https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class%20(@${pendingApprovalUser.classUsername || ''}).%20Please%20approve%20it.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  background: '#25D366',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  padding: '0.55rem 1rem',
-                  borderRadius: '10px',
-                  textDecoration: 'none',
-                  boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
-                }}
-              >
-                <MessageCircle size={16} />
-                <span>Chat on WhatsApp</span>
-              </a>
+              {/* Exact Required Contact String */}
+              <div style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 700, margin: '0.35rem 0' }}>
+                Please contact me on whatsapp
+              </div>
+              <div style={{ color: '#4ade80', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.5px', margin: '0.15rem 0 0.85rem' }}>
+                George Michael 01226692959
+              </div>
 
-              <a
-                href="tel:01226692959"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.45rem',
-                  background: 'rgba(255, 255, 255, 0.08)',
-                  color: '#e2e8f0',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  padding: '0.55rem 0.95rem',
-                  borderRadius: '10px',
-                  textDecoration: 'none',
-                  border: '1px solid rgba(255, 255, 255, 0.15)',
-                }}
-              >
-                <Phone size={15} />
-                <span>Call 01226692959</span>
-              </a>
+              {/* Quick Action Buttons */}
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <a
+                  href={`https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class%20(@${pendingApprovalUser.classUsername || ''}).%20Please%20approve%20it.`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    background: '#25D366',
+                    color: '#ffffff',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    padding: '0.55rem 1rem',
+                    borderRadius: '10px',
+                    textDecoration: 'none',
+                    boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+                  }}
+                >
+                  <MessageCircle size={16} />
+                  <span>Chat on WhatsApp</span>
+                </a>
+
+                <a
+                  href="tel:01226692959"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    color: '#e2e8f0',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    padding: '0.55rem 0.95rem',
+                    borderRadius: '10px',
+                    textDecoration: 'none',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                  }}
+                >
+                  <Phone size={15} />
+                  <span>Call 01226692959</span>
+                </a>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Details Table */}
           <div
@@ -655,7 +702,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Class Username:</span>
-              <strong style={{ color: '#fbbf24' }}>@{pendingApprovalUser.classUsername}</strong>
+              <strong style={{ color: isClassCreation ? '#fbbf24' : '#60a5fa' }}>
+                @{pendingApprovalUser.classUsername}
+              </strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
               <span>Role:</span>
@@ -667,8 +716,8 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <span>Status:</span>
               <span
                 style={{
-                  background: 'rgba(245, 158, 11, 0.2)',
-                  color: '#fbbf24',
+                  background: isClassCreation ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)',
+                  color: isClassCreation ? '#fbbf24' : '#93c5fd',
                   padding: '0.2rem 0.55rem',
                   borderRadius: '6px',
                   fontWeight: 800,
@@ -676,7 +725,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                   letterSpacing: '0.5px',
                 }}
               >
-                ⏳ {isClassCreation ? 'AWAITING SUPERADMIN APPROVAL' : 'PENDING ADMIN APPROVAL'}
+                ⏳ {isClassCreation ? 'AWAITING SUPERADMIN APPROVAL' : 'PENDING CLASS ADMIN APPROVAL'}
               </span>
             </div>
           </div>
@@ -726,7 +775,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 padding: '0.85rem',
                 borderRadius: '12px',
                 border: 'none',
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                background: isClassCreation
+                  ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
+                  : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 color: '#ffffff',
                 fontWeight: 700,
                 fontSize: '0.95rem',
@@ -735,7 +786,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem',
-                boxShadow: '0 4px 14px rgba(245, 158, 11, 0.35)',
+                boxShadow: isClassCreation
+                  ? '0 4px 14px rgba(245, 158, 11, 0.35)'
+                  : '0 4px 14px rgba(59, 130, 246, 0.35)',
               }}
             >
               <RefreshCw size={17} className={isRefreshingStatus ? 'spin' : ''} />
@@ -745,10 +798,13 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <button
               type="button"
               onClick={() => {
+                const wasCreation = isClassCreation;
                 setPendingApprovalUser(null);
                 setPendingClassInfo(null);
                 setRefreshMessage(null);
-                setLoginNotice('Please wait for the admins to approve the class. Please contact me on whatsapp: George Michael 01226692959');
+                setLoginNotice({
+                  type: wasCreation ? 'create' : 'join',
+                });
               }}
               style={{
                 width: '100%',
@@ -769,6 +825,33 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <LogOut size={15} /> Back to Sign In
             </button>
           </div>
+
+          {/* Small Plain Text Note for Join Requests (NO BUTTONS) */}
+          {!isClassCreation && (
+            <div
+              style={{
+                marginTop: '1.25rem',
+                padding: '0.75rem 1rem',
+                borderRadius: '10px',
+                background: 'rgba(255, 255, 255, 0.03)',
+                border: '1px dashed rgba(255, 255, 255, 0.15)',
+                textAlign: 'center',
+                color: '#94a3b8',
+                fontSize: '0.8rem',
+                lineHeight: 1.5,
+              }}
+            >
+              <div>
+                If you find any issue, call the administrator:{' '}
+                <strong style={{ color: '#e2e8f0', fontWeight: 700 }}>
+                  George Michael 01226692959
+                </strong>
+              </div>
+              <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 3 }}>
+                إذا واجهت أي مشكلة يمكنك الاتصال بالإدارة: جورج ميخائيل 01226692959
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -935,68 +1018,129 @@ export const LoginView: React.FC<LoginViewProps> = ({
             style={{
               padding: '1rem',
               borderRadius: '14px',
-              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.22) 100%)',
-              border: '1.5px solid rgba(245, 158, 11, 0.45)',
-              color: '#fef3c7',
+              background:
+                loginNotice.type === 'create'
+                  ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.22) 100%)'
+                  : 'linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(37, 99, 235, 0.18) 100%)',
+              border:
+                loginNotice.type === 'create'
+                  ? '1.5px solid rgba(245, 158, 11, 0.45)'
+                  : '1.5px solid rgba(59, 130, 246, 0.35)',
+              color: loginNotice.type === 'create' ? '#fef3c7' : '#dbeafe',
               fontSize: '0.85rem',
               marginBottom: '1.25rem',
               lineHeight: 1.5,
               textAlign: 'center',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', color: '#fbbf24', fontWeight: 800, marginBottom: '0.35rem' }}>
-              <Clock size={17} /> Awaiting Class Approval
-            </div>
-            <div style={{ color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '0.65rem' }}>
-              Please wait for the admins to approve the class before signing in.
-            </div>
-            <div
-              style={{
-                padding: '0.65rem 0.85rem',
-                borderRadius: '10px',
-                background: 'rgba(37, 211, 102, 0.12)',
-                border: '1px solid rgba(37, 211, 102, 0.35)',
-              }}
-            >
-              <div style={{ color: '#ffffff', fontWeight: 600, fontSize: '0.825rem' }}>
-                Please contact me on whatsapp
-              </div>
-              <div style={{ margin: '0.2rem 0 0.5rem' }}>
-                <a
-                  href="https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class.%20Please%20approve%20it."
-                  target="_blank"
-                  rel="noopener noreferrer"
+            {loginNotice.type === 'create' ? (
+              <>
+                <div
                   style={{
-                    color: '#4ade80',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.45rem',
+                    color: '#fbbf24',
                     fontWeight: 800,
-                    fontSize: '1rem',
-                    textDecoration: 'none',
-                    letterSpacing: '0.3px',
+                    marginBottom: '0.35rem',
                   }}
                 >
-                  George Michael 01226692959
-                </a>
-              </div>
-              <a
-                href="https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class.%20Please%20approve%20it."
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.4rem',
-                  background: '#25D366',
-                  color: '#ffffff',
-                  fontWeight: 700,
-                  fontSize: '0.78rem',
-                  padding: '0.4rem 0.85rem',
-                  borderRadius: '7px',
-                  textDecoration: 'none',
-                }}
-              >
-                <MessageCircle size={14} /> Open WhatsApp Chat
-              </a>
-            </div>
+                  <Clock size={17} /> Awaiting Class Approval
+                </div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '0.65rem' }}>
+                  Please wait for the admins to approve the class before signing in.
+                </div>
+                <div
+                  style={{
+                    padding: '0.65rem 0.85rem',
+                    borderRadius: '10px',
+                    background: 'rgba(37, 211, 102, 0.12)',
+                    border: '1px solid rgba(37, 211, 102, 0.35)',
+                  }}
+                >
+                  <div style={{ color: '#ffffff', fontWeight: 600, fontSize: '0.825rem' }}>
+                    Please contact me on whatsapp
+                  </div>
+                  <div style={{ margin: '0.2rem 0 0.5rem' }}>
+                    <a
+                      href="https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class.%20Please%20approve%20it."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        color: '#4ade80',
+                        fontWeight: 800,
+                        fontSize: '1rem',
+                        textDecoration: 'none',
+                        letterSpacing: '0.3px',
+                      }}
+                    >
+                      George Michael 01226692959
+                    </a>
+                  </div>
+                  <a
+                    href="https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class.%20Please%20approve%20it."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      background: '#25D366',
+                      color: '#ffffff',
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      padding: '0.4rem 0.85rem',
+                      borderRadius: '7px',
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <MessageCircle size={14} /> Open WhatsApp Chat
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.45rem',
+                    color: '#60a5fa',
+                    fontWeight: 800,
+                    marginBottom: '0.35rem',
+                  }}
+                >
+                  <Clock size={17} /> Awaiting Class Admin Approval
+                </div>
+                <div style={{ color: '#cbd5e1', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.35rem' }}>
+                  Please ask your class admin to approve your invitation or your join request.
+                </div>
+                <div style={{ fontSize: '0.78rem', color: '#93c5fd', marginBottom: '0.75rem' }}>
+                  يرجى الطلب من أمين الخدمة بفصلك قبول واعتماد دعوتك أو طلب الانضمام
+                </div>
+                <div
+                  style={{
+                    padding: '0.55rem 0.75rem',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px dashed rgba(255, 255, 255, 0.15)',
+                    fontSize: '0.78rem',
+                    color: '#94a3b8',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  <div>
+                    If you find any issue, call the administrator:{' '}
+                    <strong style={{ color: '#e2e8f0', fontWeight: 700 }}>George Michael 01226692959</strong>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>
+                    إذا واجهت أي مشكلة يمكنك الاتصال بالإدارة: جورج ميخائيل 01226692959
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
 
