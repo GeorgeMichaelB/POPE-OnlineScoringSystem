@@ -12,6 +12,7 @@ interface SettingsModalProps {
   onOpenInstallModal?: () => void;
   pointSettings?: PointSettings;
   onSavePointSettings?: (settings: PointSettings) => void;
+  isSuperAdmin?: boolean;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -23,6 +24,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onOpenInstallModal,
   pointSettings,
   onSavePointSettings,
+  isSuperAdmin = false,
 }) => {
   const [servantName, setServantName] = useState(currentServantName);
   const [isSaved, setIsSaved] = useState(false);
@@ -78,6 +80,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleExportBackup = async () => {
+    if (!isSuperAdmin) {
+      alert('Access Denied: Only SuperAdmin is authorized to export database backups.');
+      return;
+    }
     const jsonStr = await db.exportFullBackup();
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -89,6 +95,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isSuperAdmin) {
+      alert('Access Denied: Only SuperAdmin is authorized to import or overwrite database records.');
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -107,6 +117,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleResetSample = async () => {
+    if (!isSuperAdmin) {
+      alert('Access Denied: Only SuperAdmin is authorized to reset the database.');
+      return;
+    }
     if (confirm('Reset system data to initial Pope Saweros class sample records?')) {
       await db.resetToSampleData();
       onDataChanged();
@@ -472,78 +486,107 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* Sync & Share Across Servants */}
-          <div>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-              Data Backup & Transfer Across Servants
-            </h4>
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-              All attendance records, boy profiles, and visit notes are saved securely in your browser's offline storage.
-              Export to share the class roster with fellow servants.
-            </p>
+          {/* Database Backup & Maintenance - Strictly SuperAdmin Only */}
+          {isSuperAdmin ? (
+            <>
+              {/* Sync & Share Across Servants */}
+              <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+                  <Database size={16} color="var(--color-primary)" />
+                  <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>
+                    Data Backup & Transfer Across Servants (SuperAdmin Only)
+                  </h4>
+                </div>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                  All attendance records, boy profiles, and visit notes are saved securely in your browser's offline storage.
+                  Export to share the class roster with fellow servants.
+                </p>
 
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
-              <button
-                type="button"
-                onClick={handleExportBackup}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-              >
-                <Download size={15} /> Export Class Backup (JSON)
-              </button>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleExportBackup}
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                  >
+                    <Download size={15} /> Export Class Backup (JSON)
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-              >
-                <Upload size={15} /> Import Backup File
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".json,application/json"
-                style={{ display: 'none' }}
-                onChange={handleImportFile}
-              />
-            </div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-secondary"
+                    style={{ flex: 1 }}
+                  >
+                    <Upload size={15} /> Import Backup File
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json,application/json"
+                    style={{ display: 'none' }}
+                    onChange={handleImportFile}
+                  />
+                </div>
 
-            {importStatus && (
+                {importStatus && (
+                  <div
+                    style={{
+                      marginTop: '0.75rem',
+                      padding: '0.65rem 0.85rem',
+                      background: 'var(--color-success-bg)',
+                      border: '1px solid var(--color-success-border)',
+                      color: 'var(--color-success)',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.825rem',
+                    }}
+                  >
+                    {importStatus}
+                  </div>
+                )}
+              </div>
+
+              {/* Sample Data Reset */}
+              <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Reset Sample Records</span>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Restores Pope Saweros class demo boys and records.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleResetSample}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    <RefreshCw size={13} /> Reset
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)' }}>
               <div
                 style={{
-                  marginTop: '0.75rem',
-                  padding: '0.65rem 0.85rem',
-                  background: 'var(--color-success-bg)',
-                  border: '1px solid var(--color-success-border)',
-                  color: 'var(--color-success)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: '0.825rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1rem',
+                  background: 'var(--bg-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-light)',
+                  color: 'var(--text-muted)',
+                  fontSize: '0.8rem',
                 }}
               >
-                {importStatus}
+                <Database size={16} color="#64748b" />
+                <span>
+                  Database backup and multi-tenant management are restricted to the <strong>SuperAdmin</strong> only.
+                </span>
               </div>
-            )}
-          </div>
-
-          {/* Sample Data Reset */}
-          <div style={{ paddingTop: '0.75rem', borderTop: '1px solid var(--border-light)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Reset Sample Records</span>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Restores Pope Saweros class demo boys and records.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleResetSample}
-                className="btn btn-secondary btn-sm"
-              >
-                <RefreshCw size={13} /> Reset
-              </button>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="modal-footer">

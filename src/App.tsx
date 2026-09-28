@@ -9,8 +9,6 @@ import {
   Crown,
   LogOut,
   Cake,
-  Cloud,
-  CloudCheck,
 } from 'lucide-react';
 import type {
   Student,
@@ -65,11 +63,9 @@ import { NavDroplist, type AppView } from './components/NavDroplist';
 import { InstallPromptModal } from './components/InstallPromptModal';
 import { ServantsManageModal } from './components/ServantsManageModal';
 import { SuperAdminPortal } from './components/SuperAdminPortal';
-import { SyncHealthModal } from './components/SyncHealthModal';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
-  const [isSyncHealthModalOpen, setIsSyncHealthModalOpen] = useState(false);
 
   // Dates
   const [fridayDate, setFridayDate] = useState<string>(getNearestFridayDateString());
@@ -554,8 +550,19 @@ export const App: React.FC = () => {
         setCurrentView('heroes');
       } else if (urlParams.get('view') === 'superadmin') {
         const session = db.getCurrentSession();
-        if (session && (session.toLowerCase() === '@george.dev' || session.toLowerCase() === 'george.dev')) {
-          setCurrentView('superadmin');
+        if (session) {
+          const lower = session.toLowerCase();
+          if (lower === '@george.dev' || lower === 'george.dev') {
+            setCurrentView('superadmin');
+          } else {
+            db.getUserByUsername(session).then((u) => {
+              if (u && (u.role === 'superadmin' || u.username.toLowerCase() === '@george.dev' || u.username.toLowerCase() === 'george.dev')) {
+                setCurrentView('superadmin');
+              } else {
+                setCurrentView('attendance');
+              }
+            });
+          }
         } else {
           setCurrentView('attendance');
         }
@@ -684,7 +691,7 @@ export const App: React.FC = () => {
     setCurrentServantName(user.name);
     db.setCurrentSession(user.username);
     db.setSyncServant(user.username, user.name);
-    const isMaster = user.username.toLowerCase() === '@george.dev' || user.username.toLowerCase() === 'george.dev';
+    const isMaster = user.role === 'superadmin' || user.username.toLowerCase() === '@george.dev' || user.username.toLowerCase() === 'george.dev';
     if (typeof window !== 'undefined' && window.location.search.includes('view=superadmin')) {
       if (isMaster) {
         setCurrentView('superadmin');
@@ -1333,8 +1340,9 @@ export const App: React.FC = () => {
     );
   }
 
-  // Dedicated SuperAdmin Executive Portal (STRICTLY LOCKED to secret key account: @george.dev ONLY)
+  // Dedicated SuperAdmin Executive Portal (STRICTLY LOCKED to SuperAdmin role / @george.dev ONLY)
   const isMasterSuperAdmin = !!currentUser && (
+    currentUser.role === 'superadmin' ||
     currentUser.username.toLowerCase() === '@george.dev' ||
     currentUser.username.toLowerCase() === 'george.dev'
   );
@@ -1352,6 +1360,8 @@ export const App: React.FC = () => {
             setCurrentView('students');
           }}
           onLogout={handleLogout}
+          syncStatus={syncStatus}
+          syncServantsCount={syncServantsCount}
         />
       );
     } else {
@@ -1451,91 +1461,6 @@ export const App: React.FC = () => {
                     </span>
                   </button>
                 )}
-
-                {/* Real-time Class Sync Status Indicator (Clickable Sync Health & Troubleshooter) */}
-                <div
-                  onClick={() => setIsSyncHealthModalOpen(true)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      setIsSyncHealthModalOpen(true);
-                    }
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.35rem 0.65rem',
-                    borderRadius: 'var(--radius-full)',
-                    background:
-                      syncStatus === 'connected'
-                        ? 'rgba(16, 185, 129, 0.12)'
-                        : syncStatus === 'connecting'
-                        ? 'rgba(245, 158, 11, 0.12)'
-                        : 'rgba(239, 68, 68, 0.12)',
-                    border: `1px solid ${
-                      syncStatus === 'connected'
-                        ? 'rgba(16, 185, 129, 0.35)'
-                        : syncStatus === 'connecting'
-                        ? 'rgba(245, 158, 11, 0.35)'
-                        : 'rgba(239, 68, 68, 0.35)'
-                    }`,
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    color:
-                      syncStatus === 'connected'
-                        ? '#059669'
-                        : syncStatus === 'connecting'
-                        ? '#d97706'
-                        : '#dc2626',
-                    cursor: 'pointer',
-                    userSelect: 'none',
-                    transition: 'all 0.15s ease',
-                  }}
-                  title={
-                    syncStatus === 'connected'
-                      ? `🟢 Live 24/7 Cloud Sync Active: Every change syncs immediately across all devices (${syncServantsCount} connected)`
-                      : syncStatus === 'connecting'
-                      ? 'Connecting to Google Firebase Cloud...'
-                      : '⚠️ Cloud Sync Blocked by Firebase Rules! Click here to fix in 30 seconds.'
-                  }
-                >
-                  {syncStatus === 'connected' ? (
-                    <CloudCheck size={14} color="#10b981" />
-                  ) : (
-                    <Cloud size={14} color={syncStatus === 'connecting' ? '#f59e0b' : '#ef4444'} />
-                  )}
-                  <span
-                    style={{
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      backgroundColor:
-                        syncStatus === 'connected'
-                          ? '#10b981'
-                          : syncStatus === 'connecting'
-                          ? '#f59e0b'
-                          : '#ef4444',
-                      boxShadow:
-                        syncStatus === 'connected'
-                          ? '0 0 10px #10b981'
-                          : syncStatus === 'offline'
-                          ? '0 0 8px rgba(239, 68, 68, 0.8)'
-                          : 'none',
-                    }}
-                  />
-                  <span className="hide-on-mobile">
-                    {syncStatus === 'connected'
-                      ? 'Live 24/7'
-                      : syncStatus === 'connecting'
-                      ? 'Connecting...'
-                      : 'Sync Action Needed'}
-                  </span>
-                  <span className="show-on-mobile-only">
-                    {syncStatus === 'connected' ? 'Live 24/7' : 'Sync ⚠️'}
-                  </span>
-                </div>
 
                 {/* Servant Account Badge */}
                 <div
@@ -1997,6 +1922,7 @@ export const App: React.FC = () => {
         onOpenInstallModal={() => setIsInstallModalOpen(true)}
         pointSettings={pointSettings}
         onSavePointSettings={handleSavePointSettings}
+        isSuperAdmin={isMasterSuperAdmin}
       />
 
       <InstallPromptModal
@@ -2030,17 +1956,6 @@ export const App: React.FC = () => {
           }}
         />
       )}
-
-      {/* Real-time Multi-Device Sync Health & Diagnostics Modal */}
-      <SyncHealthModal
-        isOpen={isSyncHealthModalOpen}
-        onClose={() => setIsSyncHealthModalOpen(false)}
-        currentClass={currentClass}
-        currentUser={currentUser}
-        connectedServantsCount={syncServantsCount}
-        onDataRefreshed={loadAllData}
-        showToast={showSyncToast}
-      />
 
       {/* Real-time Cross-Device Sync Floating Toast */}
       {syncToast && (

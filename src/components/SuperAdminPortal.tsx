@@ -18,16 +18,23 @@ import {
   Database,
   RotateCcw,
   Download,
-  AlertTriangle
+  Upload,
+  AlertTriangle,
+  Cloud,
+  CloudCheck
 } from 'lucide-react';
 import type { ClassRoom, UserAccount, UserRole, UserStatus, AuditLogEntry, DailyBackupSnapshot } from '../types';
 import { db } from '../services/db';
+import { SyncHealthModal } from './SyncHealthModal';
+import { syncService, type SyncConnectionStatus } from '../services/sync';
 
 interface SuperAdminPortalProps {
   currentUser: UserAccount | null;
   onExitSuperAdmin: () => void;
   onSelectClassToInspect: (classRoom: ClassRoom) => void;
   onLogout: () => void;
+  syncStatus?: SyncConnectionStatus;
+  syncServantsCount?: number;
 }
 
 export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
@@ -35,6 +42,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   onExitSuperAdmin,
   onSelectClassToInspect,
   onLogout,
+  syncStatus,
+  syncServantsCount,
 }) => {
   const [activeTab, setActiveTab] = useState<'classes' | 'users' | 'backups' | 'audit'>('classes');
   const [classes, setClasses] = useState<ClassRoom[]>([]);
@@ -75,6 +84,17 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [newUserRole, setNewUserRole] = useState<UserRole>('servant');
   const [newUserClassId, setNewUserClassId] = useState('');
   const [createUserError, setCreateUserError] = useState('');
+
+  // Live 24/7 Cloud Sync State & Diagnostics
+  const [isSyncHealthOpen, setIsSyncHealthOpen] = useState(false);
+  const [currentSyncStatus, setCurrentSyncStatus] = useState<SyncConnectionStatus>(
+    syncStatus || syncService.getStatus()
+  );
+  const [currentServantsCount, setCurrentServantsCount] = useState<number>(
+    typeof syncServantsCount === 'number' ? syncServantsCount : syncService.getConnectedServantsCount()
+  );
+  const masterFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [masterImportStatus, setMasterImportStatus] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
@@ -170,6 +190,78 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   useEffect(() => {
     loadData();
   }, []);
+
+  // Real-time Cloud Sync Subscription for Live 24/7 Status
+  useEffect(() => {
+    if (syncStatus) setCurrentSyncStatus(syncStatus);
+  }, [syncStatus]);
+
+  useEffect(() => {
+    if (typeof syncServantsCount === 'number') setCurrentServantsCount(syncServantsCount);
+  }, [syncServantsCount]);
+
+  useEffect(() => {
+    const unsub = syncService.onStatusChange((status, count) => {
+      setCurrentSyncStatus(status);
+      if (typeof count === 'number') setCurrentServantsCount(count);
+    });
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Master Database Management Handlers (SuperAdmin Only)
+  const handleExportMasterBackup = async () => {
+    try {
+      const jsonStr = await db.exportFullBackup();
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `pope_saweros_master_database_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Export failed.');
+    }
+  };
+
+  const handleImportMasterBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      const res = await db.importFullBackup(content);
+      if (res.success) {
+        setMasterImportStatus(res.message);
+        await loadData();
+        alert(`🎉 ${res.message}`);
+      } else {
+        alert(`❌ Import failed: ${res.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleResetToSample = async () => {
+    if (!window.confirm('⚠️ DANGER: Are you sure you want to reset the database to sample records? All custom records will be replaced.')) {
+      return;
+    }
+    if (!window.confirm('🚨 FINAL CONFIRMATION: Type OK to wipe and restore initial Pope Saweros class demo records.')) {
+      return;
+    }
+    try {
+      await db.resetToSampleData();
+      await loadData();
+      alert('✅ System database reset to sample data complete!');
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Reset failed.');
+    }
+  };
 
   // Class Actions
   const handleToggleSuspendClass = async (classRoom: ClassRoom) => {
@@ -408,6 +500,91 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
 
           {/* Top Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            {/* Live 24/7 Real-Time Cloud Sync Badge (SuperAdmin Header Only) */}
+            <div
+              onClick={() => setIsSyncHealthOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  setIsSyncHealthOpen(true);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                padding: '0.38rem 0.75rem',
+                borderRadius: '999px',
+                background:
+                  currentSyncStatus === 'connected'
+                    ? 'rgba(16, 185, 129, 0.15)'
+                    : currentSyncStatus === 'connecting'
+                    ? 'rgba(245, 158, 11, 0.15)'
+                    : 'rgba(239, 68, 68, 0.15)',
+                border: `1px solid ${
+                  currentSyncStatus === 'connected'
+                    ? 'rgba(16, 185, 129, 0.4)'
+                    : currentSyncStatus === 'connecting'
+                    ? 'rgba(245, 158, 11, 0.4)'
+                    : 'rgba(239, 68, 68, 0.4)'
+                }`,
+                fontSize: '0.78rem',
+                fontWeight: 700,
+                color:
+                  currentSyncStatus === 'connected'
+                    ? '#34d399'
+                    : currentSyncStatus === 'connecting'
+                    ? '#fbbf24'
+                    : '#f87171',
+                cursor: 'pointer',
+                userSelect: 'none',
+                transition: 'all 0.15s ease',
+              }}
+              title={
+                currentSyncStatus === 'connected'
+                  ? `🟢 Live 24/7 Cloud Sync Active: Every change syncs immediately across all devices (${currentServantsCount} connected)`
+                  : currentSyncStatus === 'connecting'
+                  ? 'Connecting to Google Firebase Cloud...'
+                  : '⚠️ Cloud Sync Blocked by Firebase Rules! Click here to fix in 30 seconds.'
+              }
+            >
+              {currentSyncStatus === 'connected' ? (
+                <CloudCheck size={15} color="#34d399" />
+              ) : (
+                <Cloud size={15} color={currentSyncStatus === 'connecting' ? '#fbbf24' : '#f87171'} />
+              )}
+              <span
+                style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  backgroundColor:
+                    currentSyncStatus === 'connected'
+                      ? '#10b981'
+                      : currentSyncStatus === 'connecting'
+                      ? '#f59e0b'
+                      : '#ef4444',
+                  boxShadow:
+                    currentSyncStatus === 'connected'
+                      ? '0 0 10px #10b981'
+                      : currentSyncStatus === 'offline'
+                      ? '0 0 8px rgba(239, 68, 68, 0.8)'
+                      : 'none',
+                }}
+              />
+              <span className="hide-on-mobile">
+                {currentSyncStatus === 'connected'
+                  ? 'Live 24/7'
+                  : currentSyncStatus === 'connecting'
+                  ? 'Connecting...'
+                  : 'Sync Action Needed'}
+              </span>
+              <span className="show-on-mobile-only">
+                {currentSyncStatus === 'connected' ? 'Live 24/7' : 'Sync ⚠️'}
+              </span>
+            </div>
+
             <button
               type="button"
               onClick={handleOpenStandaloneWindow}
@@ -1606,6 +1783,120 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                 })}
               </div>
             )}
+
+            {/* Master Database Operations Card (SuperAdmin Level) */}
+            <div
+              style={{
+                background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.95) 100%)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '16px',
+                padding: '1.5rem',
+                marginTop: '0.75rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '10px',
+                      background: 'rgba(99, 102, 241, 0.15)',
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Database size={20} color="#818cf8" />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800, margin: 0, color: '#f8fafc' }}>
+                      Master Database Operations (SuperAdmin Level)
+                    </h3>
+                    <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
+                      Export all multi-tenant data, upload master JSON restore, or reset to initial sample seed.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={handleExportMasterBackup}
+                  className="btn btn-secondary"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                  }}
+                >
+                  <Download size={15} /> Export Master Database (JSON)
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => masterFileInputRef.current?.click()}
+                  className="btn btn-secondary"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.06)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    color: '#cbd5e1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                  }}
+                >
+                  <Upload size={15} /> Import Master Database JSON
+                </button>
+                <input
+                  ref={masterFileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  style={{ display: 'none' }}
+                  onChange={handleImportMasterBackup}
+                />
+
+                <button
+                  type="button"
+                  onClick={handleResetToSample}
+                  className="btn btn-secondary"
+                  style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#f87171',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    marginLeft: 'auto',
+                  }}
+                >
+                  <RefreshCw size={14} /> Reset to Sample Data
+                </button>
+              </div>
+
+              {masterImportStatus && (
+                <div
+                  style={{
+                    padding: '0.65rem 0.85rem',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.35)',
+                    color: '#34d399',
+                    borderRadius: '8px',
+                    fontSize: '0.825rem',
+                  }}
+                >
+                  {masterImportStatus}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>
@@ -1886,6 +2177,16 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
           </div>
         </div>
       )}
+
+      {/* SYNC HEALTH MODAL - SUPERADMIN DIAGNOSTICS & FIREBASE RULES */}
+      <SyncHealthModal
+        isOpen={isSyncHealthOpen}
+        onClose={() => setIsSyncHealthOpen(false)}
+        currentClass={null}
+        currentUser={currentUser}
+        connectedServantsCount={currentServantsCount}
+        onDataRefreshed={loadData}
+      />
     </div>
   );
 };

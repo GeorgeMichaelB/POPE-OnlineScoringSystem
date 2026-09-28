@@ -2279,8 +2279,29 @@ class DatabaseService {
     await this.saveAllAuditLogs([]);
   }
 
+  // --- Database Security & SuperAdmin Verification ---
+  isSuperAdminAuthorized(): boolean {
+    if (!this.isBrowser()) return true;
+    const session = this.getCurrentSession();
+    if (!session) return false;
+    const lower = session.toLowerCase().trim();
+    if (lower === '@george.dev' || lower === 'george.dev') return true;
+    try {
+      const localUsers = localStorage.getItem(STORAGE_KEYS.USERS);
+      if (localUsers) {
+        const users = JSON.parse(localUsers) as UserAccount[];
+        const found = users.find((u) => u.username.toLowerCase() === lower);
+        if (found && found.role === 'superadmin') return true;
+      }
+    } catch {}
+    return false;
+  }
+
   // --- Full Backup & Restore ---
   async exportFullBackup(): Promise<string> {
+    if (!this.isSuperAdminAuthorized()) {
+      throw new Error('Access Denied: Only SuperAdmin is authorized to export the database.');
+    }
     const students = await this.getStudents();
     const attendance = await this.getAttendance();
     const darsKtab = await this.getDarsKtabAttendance();
@@ -2322,6 +2343,9 @@ class DatabaseService {
   }
 
   async importFullBackup(jsonString: string): Promise<{ success: boolean; count: number; message: string }> {
+    if (!this.isSuperAdminAuthorized()) {
+      return { success: false, count: 0, message: 'Access Denied: Only SuperAdmin is authorized to import or overwrite database records.' };
+    }
     try {
       const data = JSON.parse(jsonString);
       if (!data.students || !Array.isArray(data.students)) {
@@ -2530,6 +2554,9 @@ class DatabaseService {
   }
 
   async restoreFromDailyBackup(snapshotId: string): Promise<{ success: boolean; message: string }> {
+    if (!this.isSuperAdminAuthorized()) {
+      return { success: false, message: 'Access Denied: Only SuperAdmin is authorized to restore database snapshots.' };
+    }
     const backups = await this.getDailyBackups();
     const target = backups.find((b) => b.id === snapshotId);
     if (!target) {
@@ -2601,12 +2628,18 @@ class DatabaseService {
   }
 
   async deleteDailyBackup(snapshotId: string): Promise<void> {
+    if (!this.isSuperAdminAuthorized()) {
+      throw new Error('Access Denied: Only SuperAdmin is authorized to delete database backups.');
+    }
     let backups = await this.getDailyBackups();
     backups = backups.filter((b) => b.id !== snapshotId);
     await this.saveAllDailyBackups(backups);
   }
 
   async resetToSampleData(): Promise<void> {
+    if (!this.isSuperAdminAuthorized()) {
+      throw new Error('Access Denied: Only SuperAdmin is authorized to reset the database.');
+    }
     await this.saveStudents(INITIAL_STUDENTS);
     await this.saveAllAttendance(INITIAL_FRIDAY_ATTENDANCE);
     await this.saveAllDarsKtab(INITIAL_DARS_KTAB);
