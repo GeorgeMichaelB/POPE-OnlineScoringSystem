@@ -565,9 +565,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
             >
               <AlertCircle size={22} style={{ color: '#fbbf24', flexShrink: 0 }} />
               <div>
-                Please wait until the platform administrator approves the class creation before signing in.
+                Please wait until the class is activated.
                 <div style={{ fontSize: '0.78rem', color: '#fbbf24', marginTop: 2 }}>
-                  يرجى الانتظار حتى تقوم الإدارة باعتماد وتفعيل الفصل
+                  يرجى الانتظار حتى يتم تفعيل الفصل
                 </div>
               </div>
             </div>
@@ -593,7 +593,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <div>
                 Please ask your class admin to approve your invitation or your join request.
                 <div style={{ fontSize: '0.78rem', color: '#93c5fd', marginTop: 2 }}>
-                  يرجى الطلب من أمين الخدمة بفصلك قبول واعتماد دعوتك أو طلب الانضمام
+                  يرجى الطلب من المنشئ بفصلك قبول واعتماد دعوتك أو طلب الانضمام
                 </div>
               </div>
             </div>
@@ -848,7 +848,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                 </strong>
               </div>
               <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 3 }}>
-                إذا واجهت أي مشكلة يمكنك الاتصال بالإدارة: جورج ميخائيل 01226692959
+                إذا واجهت أي مشكلة يمكنك التواصل  مع جورج مايكل 01226692959
               </div>
             </div>
           )}
@@ -1136,7 +1136,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     <strong style={{ color: '#e2e8f0', fontWeight: 700 }}>George Michael 01226692959</strong>
                   </div>
                   <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: 2 }}>
-                    إذا واجهت أي مشكلة يمكنك الاتصال بالإدارة: جورج ميخائيل 01226692959
+                    إذا واجهت أي مشكلة يمكنك التواصل مع: جورج ميخائيل 01226692959
                   </div>
                 </div>
               </>
