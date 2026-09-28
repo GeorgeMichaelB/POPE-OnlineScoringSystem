@@ -62,7 +62,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
 
   // Search & Filter state
   const [classSearch, setClassSearch] = useState('');
-  const [classStatusFilter, setClassStatusFilter] = useState<'ALL' | 'active' | 'suspended'>('ALL');
+  const [classStatusFilter, setClassStatusFilter] = useState<'ALL' | 'pending' | 'active' | 'suspended'>('ALL');
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<string>('ALL');
   const [userClassFilter, setUserClassFilter] = useState<string>('ALL');
@@ -296,6 +296,35 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     }
   };
 
+  const handleApproveClass = async (classRoom: ClassRoom) => {
+    if (!window.confirm(`Approve class creation request for "${classRoom.name}" (@${classRoom.username})?\n\nThis will activate the class and approve the administrator account (${classRoom.adminUsername}).`)) {
+      return;
+    }
+    try {
+      await db.approveClass(classRoom.id);
+      await loadData();
+      alert(`🎉 Class "${classRoom.name}" has been approved! The servant (${classRoom.adminUsername}) can now sign in.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to approve class.';
+      alert(`❌ Error: ${msg}`);
+    }
+  };
+
+  const handleRejectClass = async (classRoom: ClassRoom) => {
+    const confirmReject = window.confirm(
+      `Are you sure you want to decline/reject the class creation request for "${classRoom.name}" (@${classRoom.username})?\n\nThis will remove the pending class and its pending creator account.`
+    );
+    if (!confirmReject) return;
+    try {
+      await db.rejectClass(classRoom.id);
+      await loadData();
+      alert(`Class creation request for "${classRoom.name}" has been rejected.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to reject class.';
+      alert(`❌ Error: ${msg}`);
+    }
+  };
+
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreateClassError('');
@@ -305,7 +334,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
         newClassName,
         newClassUsername,
         newClassAdmin,
-        newClassDesc
+        newClassDesc,
+        'active'
       );
       setIsCreateClassOpen(false);
       setNewClassName('');
@@ -394,6 +424,14 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   };
 
   // Filtered lists
+  const pendingClasses = classes.filter((c) => c.status === 'pending');
+  const activeClasses = classes.filter((c) => c.status === 'active' || (!c.status));
+  const suspendedClasses = classes.filter((c) => c.status === 'suspended');
+
+  const pendingClassesCount = pendingClasses.length;
+  const activeClassesCount = activeClasses.length;
+  const suspendedClassesCount = suspendedClasses.length;
+
   const filteredClasses = classes.filter((c) => {
     const matchesSearch =
       !classSearch ||
@@ -402,7 +440,8 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
       c.adminUsername.toLowerCase().includes(classSearch.toLowerCase());
     const matchesStatus =
       classStatusFilter === 'ALL' ||
-      (classStatusFilter === 'active' && c.status !== 'suspended') ||
+      (classStatusFilter === 'pending' && c.status === 'pending') ||
+      (classStatusFilter === 'active' && (c.status === 'active' || !c.status)) ||
       (classStatusFilter === 'suspended' && c.status === 'suspended');
     return matchesSearch && matchesStatus;
   });
@@ -416,9 +455,6 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
     const matchesClass = userClassFilter === 'ALL' || u.classId === userClassFilter;
     return matchesSearch && matchesRole && matchesClass;
   });
-
-  const activeClassesCount = classes.filter((c) => c.status !== 'suspended').length;
-  const suspendedClassesCount = classes.filter((c) => c.status === 'suspended').length;
 
   // Security Guard: ONLY SuperAdmin / @george.dev can access this portal
   const isMasterUser = !!currentUser && (
@@ -815,6 +851,20 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
             >
               <BookOpen size={16} />
               Classes Control ({classes.length})
+              {pendingClassesCount > 0 && (
+                <span
+                  style={{
+                    background: '#f59e0b',
+                    color: '#000000',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    borderRadius: '8px',
+                    padding: '1px 6px',
+                  }}
+                >
+                  {pendingClassesCount} PENDING
+                </span>
+              )}
             </button>
 
             <button
@@ -997,15 +1047,80 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                   }}
                 >
                   <option value="ALL">All Classes ({classes.length})</option>
+                  <option value="pending">⏳ Pending Approval ({pendingClassesCount})</option>
                   <option value="active">Active Only ({activeClassesCount})</option>
                   <option value="suspended">Suspended Only ({suspendedClassesCount})</option>
                 </select>
               </div>
             </div>
 
+            {/* Pending Requests Alert Banner */}
+            {pendingClassesCount > 0 && (
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.28) 100%)',
+                  border: '1.5px solid rgba(245, 158, 11, 0.55)',
+                  borderRadius: '14px',
+                  padding: '1rem 1.25rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '1rem',
+                  flexWrap: 'wrap',
+                  boxShadow: '0 8px 24px rgba(245, 158, 11, 0.15)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div
+                    style={{
+                      width: 40,
+                      height: 40,
+                      borderRadius: '50%',
+                      background: 'rgba(245, 158, 11, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#fbbf24',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Clock size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#fef3c7', fontSize: '0.95rem' }}>
+                      🔔 {pendingClassesCount} Class Creation Request{pendingClassesCount > 1 ? 's' : ''} Awaiting Approval
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#fde68a' }}>
+                      New Sunday School classes have been submitted and need your Superadmin authorization.
+                    </div>
+                  </div>
+                </div>
+                {classStatusFilter !== 'pending' && (
+                  <button
+                    type="button"
+                    onClick={() => setClassStatusFilter('pending')}
+                    style={{
+                      background: '#f59e0b',
+                      color: '#000000',
+                      fontWeight: 800,
+                      fontSize: '0.825rem',
+                      borderRadius: '8px',
+                      padding: '0.5rem 1rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(245, 158, 11, 0.35)',
+                    }}
+                  >
+                    Review Pending Requests ({pendingClassesCount})
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Classes Grid */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '1rem' }}>
               {filteredClasses.map((c) => {
+                const isPending = c.status === 'pending';
                 const isSuspended = c.status === 'suspended';
                 const stats = classStats[c.id] || { studentsCount: 0, servantsCount: 0 };
 
@@ -1013,15 +1128,25 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                   <div
                     key={c.id}
                     style={{
-                      background: isSuspended ? 'rgba(30, 20, 25, 0.7)' : 'rgba(15, 23, 42, 0.75)',
-                      border: isSuspended ? '1.5px solid rgba(239, 68, 68, 0.45)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      background: isPending
+                        ? 'rgba(38, 28, 12, 0.85)'
+                        : isSuspended
+                        ? 'rgba(30, 20, 25, 0.7)'
+                        : 'rgba(15, 23, 42, 0.75)',
+                      border: isPending
+                        ? '1.5px solid rgba(245, 158, 11, 0.65)'
+                        : isSuspended
+                        ? '1.5px solid rgba(239, 68, 68, 0.45)'
+                        : '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: '16px',
                       padding: '1.25rem',
                       display: 'flex',
                       flexDirection: 'column',
                       justifyContent: 'space-between',
                       gap: '1rem',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                      boxShadow: isPending
+                        ? '0 8px 24px rgba(245, 158, 11, 0.15)'
+                        : '0 8px 24px rgba(0,0,0,0.2)',
                     }}
                   >
                     <div>
@@ -1039,32 +1164,53 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                         </div>
 
                         {/* Status Badge */}
-                        <span
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '0.72rem',
-                            fontWeight: 800,
-                            letterSpacing: '0.5px',
-                            textTransform: 'uppercase',
-                            background: isSuspended ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
-                            color: isSuspended ? '#f87171' : '#34d399',
-                            border: isSuspended ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                          }}
-                        >
-                          {isSuspended ? (
-                            <>
-                              <XCircle size={11} /> Suspended
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 size={11} /> Active
-                            </>
-                          )}
-                        </span>
+                        {isPending ? (
+                          <span
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              letterSpacing: '0.5px',
+                              textTransform: 'uppercase',
+                              background: 'rgba(245, 158, 11, 0.2)',
+                              color: '#fbbf24',
+                              border: '1px solid rgba(245, 158, 11, 0.45)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                            }}
+                          >
+                            <Clock size={11} /> Pending Approval
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              padding: '3px 8px',
+                              borderRadius: '6px',
+                              fontSize: '0.72rem',
+                              fontWeight: 800,
+                              letterSpacing: '0.5px',
+                              textTransform: 'uppercase',
+                              background: isSuspended ? 'rgba(239, 68, 68, 0.2)' : 'rgba(16, 185, 129, 0.2)',
+                              color: isSuspended ? '#f87171' : '#34d399',
+                              border: isSuspended ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(16, 185, 129, 0.4)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                            }}
+                          >
+                            {isSuspended ? (
+                              <>
+                                <XCircle size={11} /> Suspended
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 size={11} /> Active
+                              </>
+                            )}
+                          </span>
+                        )}
                       </div>
 
                       {c.description && (
@@ -1108,75 +1254,146 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
                     </div>
 
                     {/* Action Buttons */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                      {/* Inspect / Enter Class */}
-                      <button
-                        type="button"
-                        onClick={() => onSelectClassToInspect(c)}
-                        className="btn btn-secondary btn-sm"
-                        style={{
-                          flex: 1,
-                          background: 'rgba(59, 130, 246, 0.15)',
-                          border: '1px solid rgba(59, 130, 246, 0.3)',
-                          color: '#60a5fa',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.3rem',
-                        }}
-                        title="Enter and inspect this class's roster and scoring"
-                      >
-                        <Eye size={13} /> Inspect
-                      </button>
+                    {isPending ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        {/* Approve Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleApproveClass(c)}
+                          className="btn btn-sm"
+                          style={{
+                            flex: 1.5,
+                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                            color: '#ffffff',
+                            border: 'none',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            padding: '0.45rem 0.65rem',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.35rem',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)',
+                          }}
+                          title="Approve class creation request"
+                        >
+                          <CheckCircle2 size={13} /> Approve Class
+                        </button>
 
-                      {/* Suspend / Reactivate Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleSuspendClass(c)}
-                        className="btn btn-secondary btn-sm"
-                        style={{
-                          flex: 1,
-                          background: isSuspended ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.15)',
-                          border: isSuspended ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)',
-                          color: isSuspended ? '#34d399' : '#facc15',
-                          fontSize: '0.78rem',
-                          fontWeight: 700,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.3rem',
-                        }}
-                        title={isSuspended ? 'Reactivate class to allow logins' : 'Suspend class and block logins'}
-                      >
-                        {isSuspended ? (
-                          <>
-                            <CheckCircle2 size={13} /> Reactivate
-                          </>
-                        ) : (
-                          <>
-                            <ShieldAlert size={13} /> Suspend
-                          </>
-                        )}
-                      </button>
+                        {/* Reject Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRejectClass(c)}
+                          className="btn btn-sm"
+                          style={{
+                            flex: 1,
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.35)',
+                            color: '#f87171',
+                            fontWeight: 700,
+                            fontSize: '0.78rem',
+                            padding: '0.45rem 0.5rem',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.3rem',
+                            cursor: 'pointer',
+                          }}
+                          title="Reject class creation request"
+                        >
+                          <XCircle size={13} /> Reject
+                        </button>
 
-                      {/* Delete Class */}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteClass(c)}
-                        className="btn btn-secondary btn-sm"
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.15)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          color: '#f87171',
-                          padding: '0.35rem 0.55rem',
-                        }}
-                        title="Permanently delete class and data"
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                        {/* Inspect */}
+                        <button
+                          type="button"
+                          onClick={() => onSelectClassToInspect(c)}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            color: '#60a5fa',
+                            padding: '0.45rem 0.6rem',
+                          }}
+                          title="Inspect details"
+                        >
+                          <Eye size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                        {/* Inspect / Enter Class */}
+                        <button
+                          type="button"
+                          onClick={() => onSelectClassToInspect(c)}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            flex: 1,
+                            background: 'rgba(59, 130, 246, 0.15)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            color: '#60a5fa',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.3rem',
+                          }}
+                          title="Enter and inspect this class's roster and scoring"
+                        >
+                          <Eye size={13} /> Inspect
+                        </button>
+
+                        {/* Suspend / Reactivate Toggle */}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSuspendClass(c)}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            flex: 1,
+                            background: isSuspended ? 'rgba(16, 185, 129, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+                            border: isSuspended ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(234, 179, 8, 0.3)',
+                            color: isSuspended ? '#34d399' : '#facc15',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.3rem',
+                          }}
+                          title={isSuspended ? 'Reactivate class to allow logins' : 'Suspend class and block logins'}
+                        >
+                          {isSuspended ? (
+                            <>
+                              <CheckCircle2 size={13} /> Reactivate
+                            </>
+                          ) : (
+                            <>
+                              <ShieldAlert size={13} /> Suspend
+                            </>
+                          )}
+                        </button>
+
+                        {/* Delete Class */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteClass(c)}
+                          className="btn btn-secondary btn-sm"
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.15)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#f87171',
+                            padding: '0.35rem 0.55rem',
+                          }}
+                          title="Permanently delete class and data"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

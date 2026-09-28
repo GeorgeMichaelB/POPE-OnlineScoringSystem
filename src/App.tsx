@@ -508,9 +508,15 @@ export const App: React.FC = () => {
       if (sessionUsername) {
         const user = await db.getUserByUsername(sessionUsername);
         if (user && user.status === 'approved') {
-          // If not superadmin, ensure class is not suspended!
+          // If not superadmin, ensure class is neither suspended nor pending!
           if (user.role !== 'superadmin' && user.classId) {
             const cls = await db.getClassById(user.classId);
+            if (cls?.status === 'pending') {
+              db.setCurrentSession(null);
+              setCurrentUser(null);
+              setLoading(false);
+              return;
+            }
             if (cls?.status === 'suspended') {
               db.setCurrentSession(null);
               setCurrentUser(null);

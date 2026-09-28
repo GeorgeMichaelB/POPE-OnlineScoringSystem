@@ -188,6 +188,7 @@ export interface ClassHero {
 // Multi-Servant Accounts & Roles
 export type UserRole = 'superadmin' | 'admin' | 'servant';
 export type UserStatus = 'approved' | 'pending' | 'rejected';
+export type ClassStatus = 'active' | 'suspended' | 'pending';
 
 export interface ClassRoom {
   id: string; // e.g. "class_popesaweros" or `cls_${Date.now()}`
@@ -196,7 +197,7 @@ export interface ClassRoom {
   adminUsername: string; // Servant username of creator / class admin
   createdAt: string;
   description?: string;
-  status?: 'active' | 'suspended'; // Platform superadmin can suspend / reactivate
+  status?: ClassStatus; // Platform superadmin can suspend / reactivate / approve
 }
 
 export interface UserAccount {

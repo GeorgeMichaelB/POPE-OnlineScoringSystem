@@ -16,7 +16,9 @@ import {
   RefreshCw,
   LogOut,
   Sparkles,
-  Users
+  Users,
+  MessageCircle,
+  Phone
 } from 'lucide-react';
 import type { UserAccount, ClassRoom } from '../types';
 import { db } from '../services/db';
@@ -43,6 +45,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loginNotice, setLoginNotice] = useState<string | null>(null);
 
   // Registration form state
   const [regName, setRegName] = useState('');
@@ -50,11 +53,11 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [regClassChoice, setRegClassChoice] = useState<'create' | 'join'>('create');
-  
+
   // Class creation fields
   const [newClassName, setNewClassName] = useState('');
   const [newClassUsername, setNewClassUsername] = useState('');
-  
+
   // Join existing class fields
   const [joinClassUsername, setJoinClassUsername] = useState('');
   const [foundClass, setFoundClass] = useState<ClassRoom | null>(null);
@@ -63,7 +66,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
   // Pending approval screen state
   const [pendingApprovalUser, setPendingApprovalUser] = useState<UserAccount | null>(null);
+  const [pendingClassInfo, setPendingClassInfo] = useState<ClassRoom | null>(null);
   const [isRefreshingStatus, setIsRefreshingStatus] = useState(false);
+  const [refreshMessage, setRefreshMessage] = useState<{ text: string; type: 'success' | 'warning' | 'error' } | null>(null);
 
   // First-time password change modal state
   const [isFirstLoginModalOpen, setIsFirstLoginModalOpen] = useState(false);
@@ -89,6 +94,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
         if (cls.status === 'suspended') {
           setFoundClass(null);
           setClassCheckError('⛔ This class has been suspended by the platform administrator.');
+        } else if (cls.status === 'pending') {
+          setFoundClass(null);
+          setClassCheckError('⏳ This Sunday School class is awaiting approval from the platform administrator.');
         } else {
           setFoundClass(cls);
           setClassCheckError('');
@@ -132,9 +140,46 @@ export const LoginView: React.FC<LoginViewProps> = ({
         return;
       }
 
-      // Check if user is pending approval for their class
+      // Check if user is a superadmin (@george.dev)
+      if (user.role === 'superadmin' || user.username.toLowerCase() === '@george.dev') {
+        // Open the admin portal in a new window as requested
+        const adminUrl = `${window.location.origin}${window.location.pathname}?view=superadmin`;
+        if (!window.location.search.includes('view=superadmin')) {
+          window.open(adminUrl, '_blank', 'noopener,noreferrer');
+        }
+        onLoginSuccess(user);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user's class exists and its status
+      let userClass: ClassRoom | null = null;
+      if (user.classId) {
+        userClass = await db.getClassById(user.classId);
+      }
+
+      // Check if user's class creation request is awaiting superadmin approval
+      if (userClass?.status === 'pending' || (user.role === 'admin' && user.status === 'pending')) {
+        setPendingApprovalUser(user);
+        setPendingClassInfo(userClass);
+        setRefreshMessage(null);
+        setLoginNotice('Please wait for the admins to approve the class. Please contact me on whatsapp: George Michael 01226692959');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user's class has been suspended
+      if (userClass?.status === 'suspended') {
+        setErrorMsg('⛔ This Sunday School class has been SUSPENDED by the platform administrator. You cannot log in or record scores. Please contact church leadership.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if user is pending approval to join class (servant account)
       if (user.status === 'pending') {
         setPendingApprovalUser(user);
+        setPendingClassInfo(userClass);
+        setRefreshMessage(null);
         setIsLoading(false);
         return;
       }
@@ -151,28 +196,6 @@ export const LoginView: React.FC<LoginViewProps> = ({
         setIsFirstLoginModalOpen(true);
         setIsLoading(false);
         return;
-      }
-
-      // Check if user is a superadmin (@george.dev)
-      if (user.role === 'superadmin' || user.username.toLowerCase() === '@george.dev') {
-        // Open the admin portal in a new window as requested
-        const adminUrl = `${window.location.origin}${window.location.pathname}?view=superadmin`;
-        if (!window.location.search.includes('view=superadmin')) {
-          window.open(adminUrl, '_blank', 'noopener,noreferrer');
-        }
-        onLoginSuccess(user);
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if user's class has been suspended
-      if (user.classId) {
-        const cls = await db.getClassById(user.classId);
-        if (cls?.status === 'suspended') {
-          setErrorMsg('⛔ This Sunday School class has been SUSPENDED by the platform administrator. You cannot log in or record scores. Please contact church leadership.');
-          setIsLoading(false);
-          return;
-        }
       }
 
       // Successful login
@@ -220,7 +243,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
       }
 
       if (regClassChoice === 'create') {
-        // --- Option A: Create New Class (Becomes Class Admin) ---
+        // --- Option A: Create New Class (Becomes Class Admin, Pending SuperAdmin Approval) ---
         if (!newClassName.trim()) {
           setErrorMsg('Please enter a name for your new class.');
           setIsLoading(false);
@@ -241,15 +264,16 @@ export const LoginView: React.FC<LoginViewProps> = ({
           return;
         }
 
-        // Create the class
+        // Create the class with status 'pending'
         const newClass = await db.createClass(
           newClassName.trim(),
           cleanClassUsername,
           `@${cleanUsername}`,
-          `Sunday School Class created by ${regName.trim()}`
+          `Sunday School Class created by ${regName.trim()}`,
+          'pending'
         );
 
-        // Register the servant as Class Admin
+        // Register the servant as Class Admin with status 'pending'
         const newUser = await db.registerUser({
           name: regName.trim(),
           username: `@${cleanUsername}`,
@@ -257,10 +281,14 @@ export const LoginView: React.FC<LoginViewProps> = ({
           role: 'admin',
           classId: newClass.id,
           classUsername: newClass.username,
-          status: 'approved',
+          status: 'pending',
         });
 
-        onLoginSuccess(newUser);
+        // Show pending approval gate screen immediately
+        setPendingApprovalUser(newUser);
+        setPendingClassInfo(newClass);
+        setRefreshMessage(null);
+        setLoginNotice('Please wait for the admins to approve the class. Please contact me on whatsapp: George Michael 01226692959');
       } else {
         // --- Option B: Join Existing Class (Requires Admin Approval) ---
         const cleanClassUsername = joinClassUsername.trim().toLowerCase().replace(/^@/, '');
@@ -283,6 +311,12 @@ export const LoginView: React.FC<LoginViewProps> = ({
           return;
         }
 
+        if (targetClass.status === 'pending') {
+          setErrorMsg('⏳ This Sunday School class is currently awaiting approval from the platform administrator. Please wait until the class is approved.');
+          setIsLoading(false);
+          return;
+        }
+
         // Register the servant as pending servant
         const newUser = await db.registerUser({
           name: regName.trim(),
@@ -296,6 +330,8 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
         // Set pending approval view
         setPendingApprovalUser(newUser);
+        setPendingClassInfo(targetClass);
+        setRefreshMessage(null);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Registration failed. Please try again.';
@@ -308,16 +344,63 @@ export const LoginView: React.FC<LoginViewProps> = ({
   const handleRefreshPendingStatus = async () => {
     if (!pendingApprovalUser) return;
     setIsRefreshingStatus(true);
+    setRefreshMessage(null);
     try {
-      const refreshed = await db.getUserByUsername(pendingApprovalUser.username);
-      if (refreshed) {
-        if (refreshed.status === 'approved') {
-          setPendingApprovalUser(null);
-          onLoginSuccess(refreshed);
+      const refreshedUser = await db.getUserByUsername(pendingApprovalUser.username);
+      let refreshedClass: ClassRoom | null = null;
+      if (pendingApprovalUser.classId) {
+        refreshedClass = await db.getClassById(pendingApprovalUser.classId);
+      }
+
+      if (refreshedClass) {
+        setPendingClassInfo(refreshedClass);
+      }
+
+      if (refreshedUser) {
+        setPendingApprovalUser(refreshedUser);
+
+        const isClassPending = refreshedClass && refreshedClass.status === 'pending';
+        const isUserPending = refreshedUser.status === 'pending';
+
+        if (refreshedClass?.status === 'suspended') {
+          setRefreshMessage({
+            text: '⛔ This Sunday School class has been suspended by the platform administrator.',
+            type: 'error',
+          });
           return;
         }
-        setPendingApprovalUser(refreshed);
+
+        if (refreshedUser.status === 'rejected') {
+          setRefreshMessage({
+            text: '❌ Your account or class request was declined by the administrator.',
+            type: 'error',
+          });
+          return;
+        }
+
+        if (!isClassPending && !isUserPending) {
+          setRefreshMessage({
+            text: '🎉 Congratulations! Your class has been approved by the platform Superadmin! Signing you in...',
+            type: 'success',
+          });
+          setTimeout(() => {
+            setPendingApprovalUser(null);
+            setPendingClassInfo(null);
+            onLoginSuccess(refreshedUser);
+          }, 1200);
+          return;
+        } else {
+          setRefreshMessage({
+            text: `⏳ Checked at ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}: Still awaiting Superadmin approval. Please message George Michael on WhatsApp (01226692959).`,
+            type: 'warning',
+          });
+        }
       }
+    } catch {
+      setRefreshMessage({
+        text: '❌ Could not refresh status. Please check your internet connection.',
+        type: 'error',
+      });
     } finally {
       setIsRefreshingStatus(false);
     }
@@ -363,6 +446,10 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
   // --- Render Pending Approval Gate Screen ---
   if (pendingApprovalUser) {
+    const isClassCreation =
+      (pendingClassInfo && pendingClassInfo.status === 'pending') ||
+      pendingApprovalUser.role === 'admin';
+
     return (
       <div
         style={{
@@ -371,58 +458,183 @@ export const LoginView: React.FC<LoginViewProps> = ({
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+          background: 'linear-gradient(135deg, #090d16 0%, #1e293b 50%, #090d16 100%)',
           padding: '1.5rem',
           fontFamily: "'Outfit', 'Inter', system-ui, sans-serif",
+          position: 'relative',
         }}
       >
         <div
           className="auth-portal-card"
           style={{
             width: '100%',
-            maxWidth: 480,
-            background: 'rgba(30, 41, 59, 0.85)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            border: '1.5px solid rgba(245, 158, 11, 0.4)',
-            borderRadius: '20px',
+            maxWidth: 520,
+            background: 'rgba(30, 41, 59, 0.9)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1.5px solid rgba(245, 158, 11, 0.45)',
+            borderRadius: '24px',
             padding: '2.25rem 2rem',
-            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.6), 0 0 40px rgba(245, 158, 11, 0.15)',
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 45px rgba(245, 158, 11, 0.2)',
             textAlign: 'center',
           }}
         >
+          {/* Top Glowing Icon */}
           <div
             style={{
-              width: 68,
-              height: 68,
+              width: 72,
+              height: 72,
               margin: '0 auto 1.25rem',
               borderRadius: '50%',
-              background: 'rgba(245, 158, 11, 0.15)',
-              border: '2px solid rgba(245, 158, 11, 0.4)',
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.3) 100%)',
+              border: '2px solid rgba(245, 158, 11, 0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#fbbf24',
+              boxShadow: '0 0 25px rgba(245, 158, 11, 0.3)',
             }}
           >
-            <Clock size={34} />
+            {isClassCreation ? <School size={36} /> : <Clock size={36} />}
           </div>
 
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#ffffff', margin: '0 0 0.5rem' }}>
-            Awaiting Admin Approval
+          <h2 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#ffffff', margin: '0 0 0.35rem' }}>
+            {isClassCreation ? 'Class Creation Pending Approval' : 'Awaiting Admin Approval'}
           </h2>
-          <p style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 1.5rem' }}>
-            Welcome, <strong>{pendingApprovalUser.name}</strong>! Your account has been registered, and your request to join{' '}
-            <strong style={{ color: '#fbbf24' }}>@{pendingApprovalUser.classUsername}</strong> is currently pending.
+          <div style={{ fontSize: '0.85rem', color: '#fbbf24', fontWeight: 600, marginBottom: '1.25rem' }}>
+            {isClassCreation ? 'طلب إنشاء الفصل قيد المراجعة' : 'طلب الانضمام قيد المراجعة'}
+          </div>
+
+          <p style={{ color: '#cbd5e1', fontSize: '0.9rem', lineHeight: 1.6, margin: '0 0 1.25rem' }}>
+            Welcome, <strong>{pendingApprovalUser.name}</strong>!{' '}
+            {isClassCreation ? (
+              <>
+                Your request to create Sunday School class{' '}
+                <strong style={{ color: '#fbbf24' }}>
+                  {pendingClassInfo?.name || pendingApprovalUser.classUsername}
+                </strong>{' '}
+                (<span style={{ fontFamily: 'monospace', color: '#818cf8' }}>@{pendingApprovalUser.classUsername}</span>) has been submitted.
+              </>
+            ) : (
+              <>
+                Your request to join class{' '}
+                <strong style={{ color: '#fbbf24' }}>@{pendingApprovalUser.classUsername}</strong> is currently pending.
+              </>
+            )}
           </p>
 
+          {/* Mandatory Instruction Alert */}
+          <div
+            style={{
+              padding: '0.85rem 1rem',
+              borderRadius: '12px',
+              background: 'rgba(245, 158, 11, 0.12)',
+              border: '1.5px solid rgba(245, 158, 11, 0.4)',
+              color: '#fef3c7',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              lineHeight: 1.5,
+              marginBottom: '1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.65rem',
+              textAlign: 'left',
+            }}
+          >
+            <AlertCircle size={22} style={{ color: '#fbbf24', flexShrink: 0 }} />
+            <div>
+              {isClassCreation
+                ? 'Please wait until the platform administrator approves the class creation before signing in.'
+                : 'Please wait until your class admin approves your servant account before signing in.'}
+              <div style={{ fontSize: '0.78rem', color: '#fbbf24', marginTop: 2 }}>
+                {isClassCreation
+                  ? 'يرجى الانتظار حتى تقوم الإدارة باعتماد وتفعيل الفصل'
+                  : 'يرجى الانتظار حتى يوافق أمين الخدمة على حسابك'}
+              </div>
+            </div>
+          </div>
+
+          {/* WhatsApp Direct Contact Box - EXACT STRING REQUESTED BY USER */}
+          <div
+            style={{
+              padding: '1.15rem 1.2rem',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.12) 0%, rgba(18, 140, 126, 0.2) 100%)',
+              border: '1.5px solid rgba(37, 211, 102, 0.45)',
+              boxShadow: '0 8px 24px rgba(37, 211, 102, 0.15)',
+              marginBottom: '1.5rem',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', marginBottom: '0.35rem' }}>
+              <MessageCircle size={18} color="#25D366" />
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', color: '#4ade80' }}>
+                Admin WhatsApp Contact
+              </span>
+            </div>
+
+            {/* Exact Required Contact String */}
+            <div style={{ color: '#ffffff', fontSize: '1rem', fontWeight: 700, margin: '0.35rem 0' }}>
+              Please contact me on whatsapp
+            </div>
+            <div style={{ color: '#4ade80', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.5px', margin: '0.15rem 0 0.85rem' }}>
+              George Michael 01226692959
+            </div>
+
+            {/* Quick Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <a
+                href={`https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class%20(@${pendingApprovalUser.classUsername || ''}).%20Please%20approve%20it.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: '#25D366',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  padding: '0.55rem 1rem',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+                }}
+              >
+                <MessageCircle size={16} />
+                <span>Chat on WhatsApp</span>
+              </a>
+
+              <a
+                href="tel:01226692959"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  color: '#e2e8f0',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  padding: '0.55rem 0.95rem',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                }}
+              >
+                <Phone size={15} />
+                <span>Call 01226692959</span>
+              </a>
+            </div>
+          </div>
+
+          {/* Details Table */}
           <div
             style={{
               padding: '1rem',
               borderRadius: '12px',
               background: 'rgba(15, 23, 42, 0.6)',
               border: '1px solid rgba(255, 255, 255, 0.08)',
-              marginBottom: '1.75rem',
+              marginBottom: '1.25rem',
               textAlign: 'left',
               fontSize: '0.825rem',
               color: '#94a3b8',
@@ -435,31 +647,75 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <span>Servant Username:</span>
               <strong style={{ color: '#e2e8f0' }}>{pendingApprovalUser.username}</strong>
             </div>
+            {isClassCreation && pendingClassInfo?.name && (
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span>Class Name:</span>
+                <strong style={{ color: '#ffffff' }}>{pendingClassInfo.name}</strong>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Target Class:</span>
+              <span>Class Username:</span>
               <strong style={{ color: '#fbbf24' }}>@{pendingApprovalUser.classUsername}</strong>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>Current Status:</span>
+              <span>Role:</span>
+              <span style={{ color: '#93c5fd', textTransform: 'capitalize' }}>
+                {pendingApprovalUser.role === 'admin' ? 'Class Creator / Admin' : 'Servant'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Status:</span>
               <span
                 style={{
                   background: 'rgba(245, 158, 11, 0.2)',
                   color: '#fbbf24',
-                  padding: '0.15rem 0.5rem',
+                  padding: '0.2rem 0.55rem',
                   borderRadius: '6px',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   fontSize: '0.75rem',
+                  letterSpacing: '0.5px',
                 }}
               >
-                ⏳ PENDING APPROVAL
+                ⏳ {isClassCreation ? 'AWAITING SUPERADMIN APPROVAL' : 'PENDING ADMIN APPROVAL'}
               </span>
             </div>
           </div>
 
-          <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: '0 0 1.5rem' }}>
-            Please ask the Class Admin to approve your servant account inside their portal. Once approved, click Check Status.
-          </p>
+          {/* Refresh Message Feedback if checked */}
+          {refreshMessage && (
+            <div
+              style={{
+                padding: '0.7rem 0.85rem',
+                borderRadius: '10px',
+                marginBottom: '1.25rem',
+                fontSize: '0.825rem',
+                fontWeight: 600,
+                lineHeight: 1.4,
+                background:
+                  refreshMessage.type === 'success'
+                    ? 'rgba(16, 185, 129, 0.2)'
+                    : refreshMessage.type === 'error'
+                      ? 'rgba(239, 68, 68, 0.2)'
+                      : 'rgba(245, 158, 11, 0.15)',
+                color:
+                  refreshMessage.type === 'success'
+                    ? '#34d399'
+                    : refreshMessage.type === 'error'
+                      ? '#f87171'
+                      : '#fbbf24',
+                border:
+                  refreshMessage.type === 'success'
+                    ? '1px solid rgba(16, 185, 129, 0.4)'
+                    : refreshMessage.type === 'error'
+                      ? '1px solid rgba(239, 68, 68, 0.4)'
+                      : '1px solid rgba(245, 158, 11, 0.35)',
+              }}
+            >
+              {refreshMessage.text}
+            </div>
+          )}
 
+          {/* Buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             <button
               type="button"
@@ -490,8 +746,9 @@ export const LoginView: React.FC<LoginViewProps> = ({
               type="button"
               onClick={() => {
                 setPendingApprovalUser(null);
-                setUsername('');
-                setPassword('');
+                setPendingClassInfo(null);
+                setRefreshMessage(null);
+                setLoginNotice('Please wait for the admins to approve the class. Please contact me on whatsapp: George Michael 01226692959');
               }}
               style={{
                 width: '100%',
@@ -671,6 +928,77 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <UserPlus size={14} /> Create Account
           </button>
         </div>
+
+        {/* Awaiting Admin Approval Notice Banner */}
+        {loginNotice && (
+          <div
+            style={{
+              padding: '1rem',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(217, 119, 6, 0.22) 100%)',
+              border: '1.5px solid rgba(245, 158, 11, 0.45)',
+              color: '#fef3c7',
+              fontSize: '0.85rem',
+              marginBottom: '1.25rem',
+              lineHeight: 1.5,
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', color: '#fbbf24', fontWeight: 800, marginBottom: '0.35rem' }}>
+              <Clock size={17} /> Awaiting Class Approval
+            </div>
+            <div style={{ color: '#cbd5e1', fontSize: '0.85rem', marginBottom: '0.65rem' }}>
+              Please wait for the admins to approve the class before signing in.
+            </div>
+            <div
+              style={{
+                padding: '0.65rem 0.85rem',
+                borderRadius: '10px',
+                background: 'rgba(37, 211, 102, 0.12)',
+                border: '1px solid rgba(37, 211, 102, 0.35)',
+              }}
+            >
+              <div style={{ color: '#ffffff', fontWeight: 600, fontSize: '0.825rem' }}>
+                Please contact me on whatsapp
+              </div>
+              <div style={{ margin: '0.2rem 0 0.5rem' }}>
+                <a
+                  href="https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class.%20Please%20approve%20it."
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    color: '#4ade80',
+                    fontWeight: 800,
+                    fontSize: '1rem',
+                    textDecoration: 'none',
+                    letterSpacing: '0.3px',
+                  }}
+                >
+                  George Michael 01226692959
+                </a>
+              </div>
+              <a
+                href="https://wa.me/201226692959?text=Hello%20George,%20I%20have%20submitted%20a%20new%20class%20creation%20request%20for%20my%20Sunday%20School%20class.%20Please%20approve%20it."
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  background: '#25D366',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.78rem',
+                  padding: '0.4rem 0.85rem',
+                  borderRadius: '7px',
+                  textDecoration: 'none',
+                }}
+              >
+                <MessageCircle size={14} /> Open WhatsApp Chat
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Error message banner */}
         {errorMsg && (
@@ -1217,8 +1545,8 @@ export const LoginView: React.FC<LoginViewProps> = ({
               {isLoading
                 ? 'Creating Account...'
                 : regClassChoice === 'create'
-                ? 'Create Account & Class'
-                : 'Request to Join Class'}
+                  ? 'Create Account & Class'
+                  : 'Request to Join Class'}
               {!isLoading && <ArrowRight size={17} />}
             </button>
           </form>

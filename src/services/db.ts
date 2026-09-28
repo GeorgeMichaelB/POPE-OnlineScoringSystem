@@ -18,6 +18,7 @@ import type {
   UserRole,
   UserStatus,
   ClassRoom,
+  ClassStatus,
   AuditLogEntry,
   DailyBackupSnapshot,
 } from '../types';
@@ -927,7 +928,8 @@ class DatabaseService {
     name: string,
     username: string,
     adminUsername: string,
-    description?: string
+    description?: string,
+    status: ClassStatus = 'pending'
   ): Promise<ClassRoom> {
     const classes = await this.getClasses();
     const cleanUsername = username.trim().toLowerCase().replace(/^@/, '').replace(/[^a-z0-9_-]/g, '');
@@ -950,27 +952,114 @@ class DatabaseService {
       adminUsername: adminUsername.startsWith('@') ? adminUsername : `@${adminUsername}`,
       createdAt: new Date().toISOString(),
       description: description?.trim() || '',
-      status: 'active',
+      status,
     };
 
     classes.push(newClass);
     await this.saveAllClasses(classes);
 
     // Initialize scoped settings for the new class
+    const prevActiveId = this.getActiveClassId();
     this.setActiveClassId(newClass.id);
     await this.savePointSettings(DEFAULT_POINT_SETTINGS);
     await this.saveSummerClubSettings(DEFAULT_SUMMER_CLUB_SETTINGS);
     await this.saveStudents([]);
+    if (status === 'pending') {
+      this.setActiveClassId(prevActiveId);
+    }
 
     await this.addLogEntry({
       username: adminUsername,
       servantName: adminUsername,
-      action: 'CLASS_CREATED',
-      details: `New class created: "${newClass.name}" (@${newClass.username})`,
+      action: status === 'pending' ? 'CLASS_CREATION_REQUESTED' : 'CLASS_CREATED',
+      details: status === 'pending'
+        ? `Class creation requested: "${newClass.name}" (@${newClass.username}) - Awaiting SuperAdmin approval`
+        : `New class created: "${newClass.name}" (@${newClass.username})`,
       category: 'classes',
     });
 
     return newClass;
+  }
+
+  // SuperAdmin: Approve Class Creation Request
+  async approveClass(classId: string): Promise<void> {
+    const classes = await this.getClasses();
+    const index = classes.findIndex((c) => c.id === classId);
+    if (index === -1) {
+      throw new Error('Class not found.');
+    }
+
+    classes[index] = {
+      ...classes[index],
+      status: 'active',
+    };
+    await this.saveAllClasses(classes);
+
+    // Also activate the creator / admin of this class if pending
+    const users = await this.getUsers();
+    let usersUpdated = false;
+    for (let i = 0; i < users.length; i++) {
+      const u = users[i];
+      if (
+        (u.classId === classId || u.username.toLowerCase() === classes[index].adminUsername.toLowerCase()) &&
+        u.status === 'pending'
+      ) {
+        users[i] = {
+          ...u,
+          status: 'approved',
+        };
+        usersUpdated = true;
+      }
+    }
+    if (usersUpdated) {
+      await this.saveAllUsers(users);
+    }
+
+    await this.addLogEntry({
+      username: '@george.dev',
+      servantName: 'George Dev (Super Admin)',
+      action: 'SUPERADMIN_CLASS_APPROVED',
+      details: `Class "${classes[index].name}" (@${classes[index].username}) was approved by Superadmin. Admin "${classes[index].adminUsername}" has been activated.`,
+      category: 'superadmin',
+    });
+  }
+
+  // SuperAdmin: Reject Class Creation Request
+  async rejectClass(classId: string): Promise<void> {
+    const classes = await this.getClasses();
+    const targetClass = classes.find((c) => c.id === classId);
+    if (!targetClass) {
+      throw new Error('Class not found.');
+    }
+
+    // Remove the class
+    const remainingClasses = classes.filter((c) => c.id !== classId);
+    await this.saveAllClasses(remainingClasses);
+
+    // Remove or reject associated pending users
+    const users = await this.getUsers();
+    const remainingUsers = users.filter(
+      (u) => u.classId !== classId && u.username.toLowerCase() !== targetClass.adminUsername.toLowerCase()
+    );
+    await this.saveAllUsers(remainingUsers);
+
+    await this.addLogEntry({
+      username: '@george.dev',
+      servantName: 'George Dev (Super Admin)',
+      action: 'SUPERADMIN_CLASS_REJECTED',
+      details: `Class creation request for "${targetClass.name}" (@${targetClass.username}) was rejected by Superadmin.`,
+      category: 'superadmin',
+    });
+  }
+
+  async isClassPending(classId: string): Promise<boolean> {
+    const cls = await this.getClassById(classId);
+    return cls?.status === 'pending';
+  }
+
+  async getPendingClasses(): Promise<ClassRoom[]> {
+    const classes = await this.getClasses();
+    return classes.filter((c) => c.status === 'pending');
   }
 
   // SuperAdmin: Suspend / Reactivate Class
