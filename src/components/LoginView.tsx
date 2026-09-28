@@ -593,7 +593,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               <div>
                 Please ask your class admin to approve your invitation or your join request.
                 <div style={{ fontSize: '0.78rem', color: '#93c5fd', marginTop: 2 }}>
-                  يرجى الطلب من المنشئ بفصلك قبول واعتماد دعوتك أو طلب الانضمام
+                  يرجى الطلب من منشئ فصلك قبول واعتماد دعوتك أو طلب الانضمام
                 </div>
               </div>
             </div>
