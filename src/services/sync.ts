@@ -105,6 +105,8 @@ export const SECTION_TO_SYNC_EVENT: Record<string, SyncEventType> = {
   pss_saas_classes_v1: 'CLASSES_UPDATED',
   users: 'USERS_UPDATED',
   pss_users_v3: 'USERS_UPDATED',
+  timer: 'TIMER_STATE_UPDATED',
+  pss_timer: 'TIMER_STATE_UPDATED',
 };
 
 function getApiUrl(endpoint: string): string {
@@ -156,16 +158,17 @@ export class RealtimeSyncService {
       });
 
       // Listen to cloud status changes
-      cloudSync.onStatusChange((cloudStatus: CloudSyncStatus) => {
+      cloudSync.onStatusChange(async (cloudStatus: CloudSyncStatus) => {
         if (cloudStatus === 'connected') {
           this.updateStatus('connected');
+          // Automatically re-attach class listeners if not active yet
+          if (!this.unsubCloudClass) {
+            await this.setupCloudSync(this.activeClassId);
+          }
         } else if (cloudStatus === 'connecting') {
           this.updateStatus('connecting');
         } else if (cloudStatus === 'error') {
-          // If local server is not connected either, set offline
-          if (!this.eventSource || this.eventSource.readyState !== EventSource.OPEN) {
-            this.updateStatus('offline');
-          }
+          this.updateStatus('offline');
         }
       });
     }
@@ -283,8 +286,11 @@ export class RealtimeSyncService {
   }
 
   getStatus(): SyncConnectionStatus {
-    if (cloudSync.isConfigured() && cloudSync.getStatus().status === 'connected') {
-      return 'connected';
+    if (cloudSync.isConfigured()) {
+      const cloudStatus = cloudSync.getStatus().status;
+      if (cloudStatus === 'connected') return 'connected';
+      if (cloudStatus === 'connecting') return 'connecting';
+      return 'offline';
     }
     return this.status;
   }

@@ -42,6 +42,8 @@ export const CANONICAL_SECTION_MAP: Record<string, string> = {
   classHeroes: 'classHeroes',
   pss_audit_logs_v2: 'auditLogs',
   auditLogs: 'auditLogs',
+  pss_timer: 'timer',
+  timer: 'timer',
 };
 
 export function normalizeSectionKey(key: string): string {
@@ -73,6 +75,7 @@ class FirebaseService {
   private activeSubscriptions = new Map<string, () => void>();
   private globalSubscriptions = new Map<string, () => void>();
   private isInitializing = false;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
   private currentServantName = 'Servant';
   private currentUsername = 'servant';
   private clientId = '';
@@ -242,6 +245,11 @@ class FirebaseService {
   }
 
   private disconnect() {
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
+
     this.activeSubscriptions.forEach((unsub) => {
       try {
         unsub();
@@ -262,10 +270,30 @@ class FirebaseService {
     this.backendType = 'none';
   }
 
+  async ensureInitialized(): Promise<boolean> {
+    if (this.backendType !== 'none') return true;
+    const res = await this.init();
+    return res.success && this.backendType !== 'none';
+  }
+
+  private scheduleAutoRetry() {
+    if (this.retryTimer) clearTimeout(this.retryTimer);
+    this.retryTimer = setTimeout(async () => {
+      if (this.status !== 'connected' && this.isConfigured()) {
+        try {
+          await this.init(true);
+        } catch {
+          // Auto retry continues in init
+        }
+      }
+    }, 5000);
+  }
+
   /**
    * Initializes Firebase using dynamic CDN import.
-   * Tests Cloud Firestore first, falls back to Realtime Database if configured,
-   * and provides actionable diagnostics if neither is enabled in the Firebase Console.
+   * Tests Realtime Database first if databaseURL is configured,
+   * falls back to Cloud Firestore, and provides actionable diagnostics
+   * with automatic background retry every 5s.
    */
   async init(forceRefresh = false): Promise<{ success: boolean; message: string; backend: CloudBackendType }> {
     if (!this.config || !this.config.projectId) {
@@ -298,8 +326,37 @@ class FirebaseService {
       }
       this.app = app;
 
-      // Strategy 1: Attempt Cloud Firestore
+      let rtdbError: any = null;
       let firestoreError: any = null;
+
+      // Strategy 1: Prioritize Realtime Database if databaseURL is configured
+      if (this.config.databaseURL) {
+        try {
+          // @ts-ignore
+          const rtdb = await import(/* @vite-ignore */ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
+          const db = rtdb.getDatabase(app, this.config.databaseURL);
+          this.rtdbInstance = db;
+
+          // Probe RTDB (tests network + security rules)
+          const pingRef = rtdb.ref(db, 'system/ping');
+          await rtdb.get(pingRef);
+
+          this.backendType = 'rtdb';
+          this.isInitializing = false;
+          this.lastSyncTime = Date.now();
+          if (this.retryTimer) {
+            clearTimeout(this.retryTimer);
+            this.retryTimer = null;
+          }
+          this.updateStatus('connected', 'Live 24/7 Cloud Sync Active (Firebase Realtime Database)');
+          return { success: true, message: 'Connected successfully to Firebase Realtime Database!', backend: 'rtdb' };
+        } catch (rtdbErr: any) {
+          rtdbError = rtdbErr;
+          console.warn('Realtime Database probe check result:', rtdbErr?.message || rtdbErr);
+        }
+      }
+
+      // Strategy 2: Attempt Cloud Firestore
       try {
         // @ts-ignore
         const firestore = await import(/* @vite-ignore */ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
@@ -313,59 +370,60 @@ class FirebaseService {
         this.backendType = 'firestore';
         this.isInitializing = false;
         this.lastSyncTime = Date.now();
-        this.updateStatus('connected', 'Live Cloud Sync Active (Cloud Firestore)');
+        if (this.retryTimer) {
+          clearTimeout(this.retryTimer);
+          this.retryTimer = null;
+        }
+        this.updateStatus('connected', 'Live 24/7 Cloud Sync Active (Cloud Firestore)');
         return { success: true, message: 'Connected successfully to Firebase Cloud Firestore!', backend: 'firestore' };
       } catch (err: any) {
         firestoreError = err;
         console.warn('Firestore probe check result:', err?.message || err);
       }
 
-      // Strategy 2: If Firestore fails, check if Realtime Database is configured and accessible
+      // If we got here, neither database is accessible
+      this.isInitializing = false;
+      const projectId = this.config.projectId;
+
+      const isRtdbPermissionDenied =
+        Boolean(rtdbError?.message && (
+          rtdbError.message.includes('Permission denied') ||
+          rtdbError.message.includes('PERMISSION_DENIED') ||
+          rtdbError.code === 'PERMISSION_DENIED'
+        ));
+
+      // Extract RTDB database name (e.g. pope-saweros-system-default-rtdb)
+      let rtdbName = `${projectId}-default-rtdb`;
       if (this.config.databaseURL) {
-        try {
-          // @ts-ignore
-          const rtdb = await import(/* @vite-ignore */ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js');
-          const db = rtdb.getDatabase(app, this.config.databaseURL);
-          this.rtdbInstance = db;
-
-          // Probe RTDB
-          const pingRef = rtdb.ref(db, 'system/ping');
-          await rtdb.get(pingRef);
-
-          this.backendType = 'rtdb';
-          this.isInitializing = false;
-          this.lastSyncTime = Date.now();
-          this.updateStatus('connected', 'Live Cloud Sync Active (Realtime Database)');
-          return { success: true, message: 'Connected successfully to Firebase Realtime Database!', backend: 'rtdb' };
-        } catch (rtdbErr: any) {
-          console.warn('Realtime Database probe check result:', rtdbErr?.message || rtdbErr);
-        }
+        const match = this.config.databaseURL.match(/https:\/\/([^.]+)\./);
+        if (match && match[1]) rtdbName = match[1];
       }
 
-      // If we got here, neither database is enabled or accessible in the Firebase Console
-      this.isInitializing = false;
-      const errMsg = firestoreError?.message || 'Database not initialized';
-      const isFirestoreDisabled =
-        errMsg.includes('has not been used') ||
-        errMsg.includes('disabled') ||
-        errMsg.includes('PERMISSION_DENIED') ||
-        errMsg.includes('permission-denied');
-
-      const projectId = this.config.projectId;
+      const rtdbRulesUrl = `https://console.firebase.google.com/project/${projectId}/database/${rtdbName}/rules`;
       const firestoreConsoleUrl = `https://console.firebase.google.com/project/${projectId}/firestore`;
 
       let userFriendlyMessage = 'Firebase database setup required in Firebase Console.';
-      if (isFirestoreDisabled) {
-        userFriendlyMessage = `Cloud Firestore is not activated in project "${projectId}". In Firebase Console, go to Firestore Database and click "Create database" in Test Mode.`;
+      let fixUrl = firestoreConsoleUrl;
+      const errorDetails = rtdbError?.message || firestoreError?.message || 'Database connection denied';
+
+      if (isRtdbPermissionDenied) {
+        userFriendlyMessage = `Firebase Realtime Database is locked. Open Firebase Console -> Realtime Database -> Rules and set ".read": true, ".write": true to enable 24/7 live sync across all servants.`;
+        fixUrl = rtdbRulesUrl;
+      } else if (firestoreError?.message?.includes('has not been used') || firestoreError?.message?.includes('disabled')) {
+        userFriendlyMessage = `Cloud database setup needed. Open Firebase Console -> Realtime Database -> Rules and allow read/write.`;
+        fixUrl = rtdbRulesUrl;
       }
 
-      this.updateStatus('error', userFriendlyMessage, errMsg, firestoreConsoleUrl);
+      this.updateStatus('error', userFriendlyMessage, errorDetails, fixUrl);
+      // Auto-schedule background retry so as soon as rules are published, it connects instantly!
+      this.scheduleAutoRetry();
       return { success: false, message: userFriendlyMessage, backend: 'none' };
     } catch (err: any) {
       console.warn('Firebase initialization error:', err);
       this.isInitializing = false;
       const errMsg = err?.message || 'Failed to initialize Firebase.';
       this.updateStatus('error', errMsg, errMsg);
+      this.scheduleAutoRetry();
       return { success: false, message: errMsg, backend: 'none' };
     }
   }
@@ -398,9 +456,12 @@ class FirebaseService {
    */
   async saveClassSection(classId: string, sectionKey: string, data: unknown, messageId?: string): Promise<void> {
     if (!this.isConfigured()) return;
+    await this.ensureInitialized();
+    if (this.backendType === 'none') return;
+
     const canonicalKey = normalizeSectionKey(sectionKey);
 
-    const payload = {
+    const rawPayload = {
       data,
       updatedAt: Date.now(),
       updatedBy: this.currentUsername,
@@ -409,8 +470,11 @@ class FirebaseService {
       messageId: messageId || `sync_${canonicalKey}_${Date.now()}`,
     };
 
+    // Sanitize to remove any undefined properties which cause Firebase RTDB/Firestore to reject
+    const payload = JSON.parse(JSON.stringify(rawPayload));
+
     try {
-      if (this.backendType === 'firestore' || (!this.rtdbInstance && this.firestoreDb)) {
+      if (this.backendType === 'firestore' && this.firestoreDb) {
         // @ts-ignore
         const firestore = await import(/* @vite-ignore */ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
         const docRef = firestore.doc(this.firestoreDb, 'classes', classId, 'sections', canonicalKey);
@@ -437,10 +501,13 @@ class FirebaseService {
    */
   async getClassSection<T>(classId: string, sectionKey: string): Promise<T | null> {
     if (!this.isConfigured()) return null;
+    await this.ensureInitialized();
+    if (this.backendType === 'none') return null;
+
     const canonicalKey = normalizeSectionKey(sectionKey);
 
     try {
-      if (this.backendType === 'firestore' || (!this.rtdbInstance && this.firestoreDb)) {
+      if (this.backendType === 'firestore' && this.firestoreDb) {
         // @ts-ignore
         const firestore = await import(/* @vite-ignore */ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
         // Try canonical key first
@@ -488,16 +555,21 @@ class FirebaseService {
    */
   async saveGlobal(key: 'classes' | 'users', data: unknown): Promise<void> {
     if (!this.isConfigured()) return;
-    const payload = {
+    await this.ensureInitialized();
+    if (this.backendType === 'none') return;
+
+    const rawPayload = {
       data,
       updatedAt: Date.now(),
       updatedBy: this.currentUsername,
       updatedByName: this.currentServantName,
       clientId: this.clientId,
+      messageId: `global_${key}_${Date.now()}`,
     };
+    const payload = JSON.parse(JSON.stringify(rawPayload));
 
     try {
-      if (this.backendType === 'firestore' || (!this.rtdbInstance && this.firestoreDb)) {
+      if (this.backendType === 'firestore' && this.firestoreDb) {
         // @ts-ignore
         const firestore = await import(/* @vite-ignore */ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
         const docRef = firestore.doc(this.firestoreDb, 'global', key);
@@ -524,8 +596,11 @@ class FirebaseService {
    */
   async getGlobal<T>(key: 'classes' | 'users'): Promise<T | null> {
     if (!this.isConfigured()) return null;
+    await this.ensureInitialized();
+    if (this.backendType === 'none') return null;
+
     try {
-      if (this.backendType === 'firestore' || (!this.rtdbInstance && this.firestoreDb)) {
+      if (this.backendType === 'firestore' && this.firestoreDb) {
         // @ts-ignore
         const firestore = await import(/* @vite-ignore */ 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
         const docRef = firestore.doc(this.firestoreDb, 'global', key);
@@ -566,9 +641,18 @@ class FirebaseService {
       return () => {};
     }
 
+    if (this.activeSubscriptions.has(classId)) {
+      const unsub = this.activeSubscriptions.get(classId);
+      if (unsub) {
+        try { unsub(); } catch {}
+      }
+      this.activeSubscriptions.delete(classId);
+    }
+
     // Ensure connection is initialized
+    await this.ensureInitialized();
     if (this.backendType === 'none') {
-      await this.init();
+      return () => {};
     }
 
     try {
@@ -659,8 +743,17 @@ class FirebaseService {
       return () => {};
     }
 
+    if (this.globalSubscriptions.has(key)) {
+      const unsub = this.globalSubscriptions.get(key);
+      if (unsub) {
+        try { unsub(); } catch {}
+      }
+      this.globalSubscriptions.delete(key);
+    }
+
+    await this.ensureInitialized();
     if (this.backendType === 'none') {
-      await this.init();
+      return () => {};
     }
 
     try {

@@ -575,32 +575,35 @@ export const App: React.FC = () => {
     });
 
     const unsubMessages = syncService.subscribe(async (msg: SyncMessage) => {
+      const isFresh = !msg.timestamp || Date.now() - msg.timestamp < 30000;
       switch (msg.type) {
         case 'STUDENTS_UPDATED':
           setStudents(msg.data as Student[]);
           await db.applyRemoteUpdate('pss_students_v3', msg.data);
-          showSyncToast(`👥 ${msg.senderName} updated students roster`);
+          if (isFresh) showSyncToast(`👥 ${msg.senderName} updated students roster`);
           break;
         case 'ATTENDANCE_UPDATED':
           setAttendance(msg.data as AttendanceRecord[]);
           await db.applyRemoteUpdate('pss_attendance_v2', msg.data);
-          showSyncToast(`✅ ${msg.senderName} updated attendance`);
-          sound.playSuccessChime();
+          if (isFresh) {
+            showSyncToast(`✅ ${msg.senderName} updated attendance`);
+            sound.playSuccessChime();
+          }
           break;
         case 'DARS_KTAB_UPDATED':
           setDarsKtab(msg.data as DarsKtabRecord[]);
           await db.applyRemoteUpdate('pss_dars_ktab_v2', msg.data);
-          showSyncToast(`📖 ${msg.senderName} updated Dars Ktab`);
+          if (isFresh) showSyncToast(`📖 ${msg.senderName} updated Dars Ktab`);
           break;
         case 'MAL3AB_UPDATED':
           setMal3ab(msg.data as Mal3abRecord[]);
           await db.applyRemoteUpdate('pss_mal3ab_v2', msg.data);
-          showSyncToast(`⚽ ${msg.senderName} updated Mal3ab`);
+          if (isFresh) showSyncToast(`⚽ ${msg.senderName} updated Mal3ab`);
           break;
         case 'SUMMER_CLUB_UPDATED':
           setSummerClub(msg.data as SummerClubRecord[]);
           await db.applyRemoteUpdate('pss_summer_club_v2', msg.data);
-          showSyncToast(`☀️ ${msg.senderName} updated Summer Club`);
+          if (isFresh) showSyncToast(`☀️ ${msg.senderName} updated Summer Club`);
           break;
         case 'SUMMER_CLUB_SETTINGS_UPDATED':
           setSummerClubSettings(msg.data as SummerClubSettings);
@@ -609,32 +612,32 @@ export const App: React.FC = () => {
         case 'CONFESSIONS_UPDATED':
           setConfessions(msg.data as ConfessionRecord[]);
           await db.applyRemoteUpdate('pss_confessions_v2', msg.data);
-          showSyncToast(`✝️ ${msg.senderName} updated confessions`);
+          if (isFresh) showSyncToast(`✝️ ${msg.senderName} updated confessions`);
           break;
         case 'CUSTOM_EVENTS_UPDATED':
           setCustomEvents(msg.data as CustomEvent[]);
           await db.applyRemoteUpdate('pss_custom_events_v2', msg.data);
-          showSyncToast(`🎉 ${msg.senderName} updated special events`);
+          if (isFresh) showSyncToast(`🎉 ${msg.senderName} updated special events`);
           break;
         case 'VISITS_UPDATED':
           setVisits(msg.data as VisitRecord[]);
           await db.applyRemoteUpdate('pss_visits_v2', msg.data);
-          showSyncToast(`🏠 ${msg.senderName} recorded a pastoral visit`);
+          if (isFresh) showSyncToast(`🏠 ${msg.senderName} recorded a pastoral visit`);
           break;
         case 'POINT_SETTINGS_UPDATED':
           setPointSettings(msg.data as PointSettings);
           await db.applyRemoteUpdate('pss_point_settings_v1', msg.data);
-          showSyncToast(`⚙️ ${msg.senderName} updated scoring rules`);
+          if (isFresh) showSyncToast(`⚙️ ${msg.senderName} updated scoring rules`);
           break;
         case 'CUSTOM_POINTS_UPDATED':
           setCustomPoints(msg.data as CustomPointEntry[]);
           await db.applyRemoteUpdate('pss_custom_points_v2', msg.data);
-          showSyncToast(`⭐ ${msg.senderName} updated bonus points`);
+          if (isFresh) showSyncToast(`⭐ ${msg.senderName} updated bonus points`);
           break;
         case 'CLASS_HEROES_UPDATED':
           setClassHeroes(msg.data as ClassHero[]);
           await db.applyRemoteUpdate('pss_class_heroes_v2', msg.data);
-          showSyncToast(`🏆 ${msg.senderName} updated Class Heroes`);
+          if (isFresh) showSyncToast(`🏆 ${msg.senderName} updated Class Heroes`);
           break;
         case 'AUDIT_LOGS_UPDATED':
           setAuditLogs(msg.data as AuditLogEntry[]);
@@ -644,7 +647,7 @@ export const App: React.FC = () => {
           setFridayTimerRunning(timerData.running);
           if (timerData.startTime !== undefined) setFridayTimerStartTime(timerData.startTime);
           if (timerData.elapsedSeconds !== undefined) setFridayTimerElapsedSeconds(timerData.elapsedSeconds);
-          showSyncToast(`⏱️ ${msg.senderName} ${timerData.running ? 'started' : 'stopped'} the Friday timer`);
+          if (isFresh) showSyncToast(`⏱️ ${msg.senderName} ${timerData.running ? 'started' : 'stopped'} the Friday timer`);
           break;
         }
         case 'CLASSES_UPDATED': {
@@ -1490,7 +1493,13 @@ export const App: React.FC = () => {
                     userSelect: 'none',
                     transition: 'all 0.15s ease',
                   }}
-                  title={`Click to view Live Sync Health, Troubleshooter & Activity Feed (${syncServantsCount} connected)`}
+                  title={
+                    syncStatus === 'connected'
+                      ? `🟢 Live 24/7 Cloud Sync Active: Every change syncs immediately across all devices (${syncServantsCount} connected)`
+                      : syncStatus === 'connecting'
+                      ? 'Connecting to Google Firebase Cloud...'
+                      : '⚠️ Cloud Sync Blocked by Firebase Rules! Click here to fix in 30 seconds.'
+                  }
                 >
                   {syncStatus === 'connected' ? (
                     <CloudCheck size={14} color="#10b981" />
@@ -1499,8 +1508,8 @@ export const App: React.FC = () => {
                   )}
                   <span
                     style={{
-                      width: 6,
-                      height: 6,
+                      width: 7,
+                      height: 7,
                       borderRadius: '50%',
                       backgroundColor:
                         syncStatus === 'connected'
@@ -1510,21 +1519,21 @@ export const App: React.FC = () => {
                           : '#ef4444',
                       boxShadow:
                         syncStatus === 'connected'
-                          ? '0 0 8px #10b981'
+                          ? '0 0 10px #10b981'
                           : syncStatus === 'offline'
-                          ? '0 0 6px rgba(239, 68, 68, 0.7)'
+                          ? '0 0 8px rgba(239, 68, 68, 0.8)'
                           : 'none',
                     }}
                   />
                   <span className="hide-on-mobile">
                     {syncStatus === 'connected'
-                      ? 'Live Synced'
+                      ? 'Live 24/7'
                       : syncStatus === 'connecting'
-                      ? 'Syncing...'
-                      : 'Sync / Troubleshoot'}
+                      ? 'Connecting...'
+                      : 'Sync Action Needed'}
                   </span>
                   <span className="show-on-mobile-only">
-                    {syncStatus === 'connected' ? 'Live' : 'Sync'}
+                    {syncStatus === 'connected' ? 'Live 24/7' : 'Sync ⚠️'}
                   </span>
                 </div>
 

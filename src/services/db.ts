@@ -60,6 +60,7 @@ const BASE_KEY_TO_SYNC_TYPE: Record<string, SyncEventType> = {
   [STORAGE_KEYS.CUSTOM_POINTS]: 'CUSTOM_POINTS_UPDATED',
   [STORAGE_KEYS.CLASS_HEROES]: 'CLASS_HEROES_UPDATED',
   [STORAGE_KEYS.AUDIT_LOGS]: 'AUDIT_LOGS_UPDATED',
+  timer: 'TIMER_STATE_UPDATED',
 };
 
 export const DEFAULT_CLASS: ClassRoom = {
@@ -1142,6 +1143,7 @@ class DatabaseService {
    */
   async syncClassWithCloud(classId = this.getActiveClassId()): Promise<{ synced: boolean; count: number }> {
     if (!cloudSync.isConfigured()) return { synced: false, count: 0 };
+    await cloudSync.ensureInitialized();
 
     const sectionMappings: Array<{ canonical: string; storageKey: string }> = [
       { canonical: 'students', storageKey: STORAGE_KEYS.STUDENTS },

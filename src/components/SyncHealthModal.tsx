@@ -11,6 +11,9 @@ import {
   Activity,
   X,
   ShieldCheck,
+  Copy,
+  Check,
+  Zap,
 } from 'lucide-react';
 import { cloudSync, type CloudDiagnosticInfo } from '../services/firebase';
 import { syncService, type SyncActivityItem, type SyncConnectionStatus } from '../services/sync';
@@ -43,6 +46,7 @@ export const SyncHealthModal: React.FC<SyncHealthModalProps> = ({
   const [isPushing, setIsPushing] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [activities, setActivities] = useState<SyncActivityItem[]>(syncService.getActivityLog());
+  const [rulesCopied, setRulesCopied] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -60,11 +64,24 @@ export const SyncHealthModal: React.FC<SyncHealthModalProps> = ({
       setDiagnostic(cloudSync.getDiagnosticInfo());
     });
 
+    // Background auto-poller: if disconnected, silently ping every 3.5s so when rules are saved, modal turns green instantly!
+    const poller = setInterval(async () => {
+      if (cloudSync.getStatus().status !== 'connected' && cloudSync.isConfigured()) {
+        const res = await cloudSync.testConnection();
+        if (res.success) {
+          setDiagnostic(cloudSync.getDiagnosticInfo());
+          setSyncStatus(syncService.getStatus());
+          if (showToast) showToast('🎉 Connected! 24/7 Live Cloud Sync is now active.');
+        }
+      }
+    }, 3500);
+
     return () => {
       unsubActivity();
       unsubStatus();
+      clearInterval(poller);
     };
-  }, [isOpen]);
+  }, [isOpen, showToast]);
 
   if (!isOpen) return null;
 
@@ -300,57 +317,168 @@ export const SyncHealthModal: React.FC<SyncHealthModalProps> = ({
             </div>
           </div>
 
-          {/* Firebase Setup Guidance if Not Connected */}
+          {/* When Connected: Proud 24/7 Live Sync Banner */}
+          {isConnected && (
+            <div
+              style={{
+                padding: '0.85rem 1rem',
+                borderRadius: 'var(--radius-md, 10px)',
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(6, 95, 70, 0.04))',
+                border: '1.5px solid rgba(16, 185, 129, 0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+              }}
+            >
+              <Zap size={22} color="#10b981" style={{ flexShrink: 0 }} />
+              <div style={{ fontSize: '0.82rem', color: '#065f46', lineHeight: 1.45 }}>
+                <strong>⚡ 24/7 Instant Live Sync is Active!</strong>
+                <div style={{ marginTop: '0.15rem' }}>
+                  Every time you take attendance, add/deduct points, or edit student info, it immediately updates on every servant's phone, tablet, and laptop in real-time. <strong>No manual sync is needed.</strong>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* When Not Connected: Clear 30-Second Realtime Database Rules Guide */}
           {!isConnected && (
             <div
               style={{
-                padding: '1rem',
+                padding: '1.1rem',
                 borderRadius: 'var(--radius-md, 10px)',
                 background: 'rgba(245, 158, 11, 0.06)',
-                border: '1px solid rgba(245, 158, 11, 0.35)',
+                border: '1.5px solid rgba(245, 158, 11, 0.4)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.75rem',
               }}
             >
-              <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.88rem', fontWeight: 800, color: '#92400e' }}>
-                How to Enable Live Sync in Firebase Console (Takes 30 Seconds):
-              </h4>
-              <ol style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.8rem', color: '#78350f', lineHeight: 1.6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <AlertTriangle size={18} color="#d97706" />
+                <h4 style={{ margin: 0, fontSize: '0.9rem', fontWeight: 800, color: '#92400e' }}>
+                  How to Enable 24/7 Live Sync (Takes 30 Seconds):
+                </h4>
+              </div>
+
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#78350f', lineHeight: 1.5 }}>
+                Your Firebase database is connected to <strong>{diagnostic.projectId || 'pope-saweros-system'}</strong>, but Firebase Security Rules are currently set to locked/private. Setting rules to public allows all servants in this class to sync in real-time.
+              </p>
+
+              {/* Rules JSON Box */}
+              <div
+                style={{
+                  background: '#0f172a',
+                  color: '#38bdf8',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-sm, 8px)',
+                  fontFamily: 'monospace',
+                  fontSize: '0.78rem',
+                  position: 'relative',
+                  overflowX: 'auto',
+                  border: '1px solid #334155',
+                }}
+              >
+                <div style={{ color: '#94a3b8', fontSize: '0.7rem', marginBottom: '0.35rem' }}>
+                  // Copy and paste this into Firebase Realtime Database Rules:
+                </div>
+                <pre style={{ margin: 0 }}>{`{
+  "rules": {
+    ".read": true,
+    ".write": true
+  }
+}`}</pre>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`{\n  "rules": {\n    ".read": true,\n    ".write": true\n  }\n}`);
+                    setRulesCopied(true);
+                    setTimeout(() => setRulesCopied(false), 2500);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '0.6rem',
+                    right: '0.6rem',
+                    background: rulesCopied ? '#10b981' : '#334155',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '0.3rem 0.6rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  {rulesCopied ? <Check size={13} /> : <Copy size={13} />}
+                  {rulesCopied ? 'Copied!' : 'Copy Rules'}
+                </button>
+              </div>
+
+              <ol style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.8rem', color: '#78350f', lineHeight: 1.6 }}>
                 <li>
-                  Open your Firebase project{' '}
-                  <strong style={{ fontFamily: 'monospace' }}>{diagnostic.projectId || 'pope-saweros-system'}</strong>.
+                  Click the <strong>Open Firebase Rules in Console</strong> button below.
                 </li>
                 <li>
-                  In the left sidebar, click <strong>Build</strong> → <strong>Firestore Database</strong>.
+                  Paste the 3 lines of rules above into the Rules tab editor.
                 </li>
                 <li>
-                  Click the <strong>Create database</strong> button.
-                </li>
-                <li>
-                  Choose any location and select <strong>Start in test mode</strong> (or allow read/write rules).
-                </li>
-                <li>
-                  Click <strong>Enable</strong>. Once created, click <strong>Test Connection Now</strong> below!
+                  Click <strong>Publish</strong>. That is all! This window is actively pinging and will turn <strong style={{ color: '#059669' }}>GREEN</strong> automatically the moment you publish.
                 </li>
               </ol>
 
-              <div style={{ marginTop: '0.85rem' }}>
+              <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
                 <a
-                  href={`https://console.firebase.google.com/project/${diagnostic.projectId || 'pope-saweros-system'}/firestore`}
+                  href={
+                    diagnostic.fixUrl ||
+                    `https://console.firebase.google.com/project/${diagnostic.projectId || 'pope-saweros-system'}/database/${diagnostic.projectId || 'pope-saweros-system'}-default-rtdb/rules`
+                  }
                   target="_blank"
                   rel="noopener noreferrer"
+                  className="btn btn-primary btn-sm"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.45rem',
+                    textDecoration: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.8rem',
+                    padding: '0.45rem 0.85rem',
+                  }}
+                >
+                  <ExternalLink size={14} /> Open Firebase Rules Tab in Console
+                </a>
+
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  disabled={isTesting}
                   className="btn btn-secondary btn-sm"
                   style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '0.4rem',
-                    textDecoration: 'none',
                     fontWeight: 700,
+                    fontSize: '0.8rem',
                   }}
                 >
-                  <ExternalLink size={14} /> Open Firebase Console for {diagnostic.projectId || 'pope-saweros-system'}
-                </a>
+                  <RefreshCw size={13} className={isTesting ? 'spin' : ''} />
+                  {isTesting ? 'Checking...' : 'Check Connection Now'}
+                </button>
               </div>
             </div>
           )}
+
+          {/* Section Divider & Manual Tools Info */}
+          <div style={{ marginTop: '0.35rem' }}>
+            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-color, #0f172a)', marginBottom: '0.35rem' }}>
+              Cloud Backup & Manual Restore Tools:
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #64748b)', marginBottom: '0.65rem' }}>
+              Automatic 24/7 sync handles live day-to-day updates automatically. Use these buttons only for offline backup uploads or manual full restores:
+            </div>
+          </div>
 
           {/* Test & Sync Action Buttons */}
           <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
