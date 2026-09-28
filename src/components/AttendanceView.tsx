@@ -701,7 +701,7 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                   </div>
 
                   {/* Dual Attendance Action Buttons */}
-                  <div className="roster-card-actions" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div className="roster-card-actions">
                     {/* Sunday School Attendance Toggle */}
                     <button
                       type="button"
@@ -726,11 +726,36 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                       )}
                     </button>
 
+                    {/* Odas / Liturgy Attendance Toggle */}
+                    <button
+                      type="button"
+                      onClick={() => onToggleAttendance(student.id, 'odas', !isOdasPresent)}
+                      className={`btn btn-sm ${isOdasPresent ? 'badge-warning' : 'btn-secondary'}`}
+                      style={{
+                        padding: '0.4rem 0.65rem',
+                        borderRadius: 'var(--radius-full)',
+                        fontWeight: 600,
+                        borderWidth: isOdasPresent ? '1px' : '1px',
+                      }}
+                      title="Toggle Holy Liturgy (Odas) attendance"
+                    >
+                      {isOdasPresent ? (
+                        <>
+                          <CheckCircle2 size={14} /> <span>Liturgy: Attended</span>
+                        </>
+                      ) : (
+                        <>
+                          <XCircle size={14} color="var(--text-muted)" /> <span>Liturgy: Absent</span>
+                        </>
+                      )}
+                    </button>
+
                     {/* On-Time / Late Status Badge (clickable to excuse or mark late) */}
                     {isSundaySchoolPresent && (
                       <button
                         type="button"
                         onClick={() => onToggleLateStatus && onToggleLateStatus(student.id)}
+                        className="btn-attendance-late-badge"
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -764,30 +789,6 @@ export const AttendanceView: React.FC<AttendanceViewProps> = ({
                         )}
                       </button>
                     )}
-
-                    {/* Odas / Liturgy Attendance Toggle */}
-                    <button
-                      type="button"
-                      onClick={() => onToggleAttendance(student.id, 'odas', !isOdasPresent)}
-                      className={`btn btn-sm ${isOdasPresent ? 'badge-warning' : 'btn-secondary'}`}
-                      style={{
-                        padding: '0.4rem 0.65rem',
-                        borderRadius: 'var(--radius-full)',
-                        fontWeight: 600,
-                        borderWidth: isOdasPresent ? '1px' : '1px',
-                      }}
-                      title="Toggle Holy Liturgy (Odas) attendance"
-                    >
-                      {isOdasPresent ? (
-                        <>
-                          <CheckCircle2 size={14} /> <span>Liturgy: Attended</span>
-                        </>
-                      ) : (
-                        <>
-                          <XCircle size={14} color="var(--text-muted)" /> <span>Liturgy: Absent</span>
-                        </>
-                      )}
-                    </button>
                   </div>
                 </div>
               );

@@ -367,7 +367,7 @@ export const DarsKtabView: React.FC<DarsKtabViewProps> = ({
                   </div>
 
                   {/* Dual Action: Ashya & Dars Ktab Toggles */}
-                  <div className="roster-card-actions" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <div className="roster-card-actions">
                     {/* Ashya Toggle */}
                     <button
                       type="button"

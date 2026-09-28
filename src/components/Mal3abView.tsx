@@ -416,7 +416,7 @@ export const Mal3abView: React.FC<Mal3abViewProps> = ({
                 </div>
 
                 {/* Two Action Toggles: 1. Mal3ab Attendance, 2. Match Played */}
-                <div className="roster-card-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                <div className="roster-card-actions">
                   {/* Toggle 1: Attended Mal3ab */}
                   <button
                     type="button"

@@ -10,6 +10,15 @@ import {
   LogOut,
   Cake,
   ShieldAlert,
+  X,
+  LayoutGrid,
+  Flame,
+  Sun,
+  CalendarDays,
+  Sparkles,
+  ShieldCheck,
+  Download,
+  ChevronRight,
 } from 'lucide-react';
 import type {
   Student,
@@ -119,6 +128,8 @@ export const App: React.FC = () => {
   const [currentClass, setCurrentClass] = useState<ClassRoom | null>(null);
   const [isManageServantsOpen, setIsManageServantsOpen] = useState(false);
   const [pendingServantsCount, setPendingServantsCount] = useState(0);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isMobileSectionsOpen, setIsMobileSectionsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Browser Notification state
@@ -1447,8 +1458,8 @@ export const App: React.FC = () => {
                 </div>
               </div>
 
-              {/* Right Header Actions */}
-              <div className="header-actions">
+              {/* Desktop Header Actions (visible on tablet/desktop) */}
+              <div className="header-actions desktop-header-actions">
                 {/* Class Servants & Pending Approvals Button */}
                 <button
                   type="button"
@@ -1466,7 +1477,7 @@ export const App: React.FC = () => {
                   }}
                 >
                   <Users size={14} color={pendingServantsCount > 0 ? '#d97706' : undefined} />
-                  <span className="hide-on-mobile">Servants</span>
+                  <span>Servants</span>
                   {pendingServantsCount > 0 && (
                     <span
                       style={{
@@ -1484,7 +1495,7 @@ export const App: React.FC = () => {
                   )}
                 </button>
 
-                {/* Urgent Birthday Alert Indicator (if any boy has birthday <= 3 days) */}
+                {/* Urgent Birthday Alert Indicator */}
                 {urgentBirthdayAlerts.length > 0 && (
                   <button
                     type="button"
@@ -1505,11 +1516,8 @@ export const App: React.FC = () => {
                     }}
                   >
                     <Cake size={15} color="#e11d48" />
-                    <span className="hide-on-mobile" style={{ fontSize: '0.78rem' }}>
+                    <span style={{ fontSize: '0.78rem' }}>
                       {urgentBirthdayAlerts.length} Birthday{urgentBirthdayAlerts.length > 1 ? 's' : ''}!
-                    </span>
-                    <span className="show-on-mobile-only" style={{ fontSize: '0.75rem', fontWeight: 800 }}>
-                      {urgentBirthdayAlerts.length}
                     </span>
                   </button>
                 )}
@@ -1537,7 +1545,7 @@ export const App: React.FC = () => {
                   ) : (
                     <Users size={14} color="#2563eb" />
                   )}
-                  <span className="hide-on-mobile">{currentUser?.name || currentUser?.username}</span>
+                  <span>{currentUser?.name || currentUser?.username}</span>
                 </div>
 
                 {/* SuperAdmin Master Portal Button (Secret Key Account @george.dev Only) */}
@@ -1565,7 +1573,7 @@ export const App: React.FC = () => {
                     }}
                   >
                     <Crown size={14} color="#ffd700" />
-                    <span className="hide-on-mobile">SuperAdmin Portal</span>
+                    <span>SuperAdmin Portal</span>
                   </button>
                 )}
 
@@ -1604,10 +1612,63 @@ export const App: React.FC = () => {
                   <LogOut size={16} />
                 </button>
               </div>
+
+              {/* Mobile Header Actions (visible only on <= 768px) */}
+              <div className="mobile-header-actions">
+                {/* Urgent Birthday Pill on mobile */}
+                {urgentBirthdayAlerts.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('birthdays')}
+                    className="mobile-header-btn mobile-birthday-pill"
+                    title={`${urgentBirthdayAlerts.length} upcoming birthdays!`}
+                  >
+                    <Cake size={16} color="#e11d48" />
+                    <span>{urgentBirthdayAlerts.length}</span>
+                  </button>
+                )}
+
+                {/* Quick QR Scanner for mobile */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentView === 'dars_ktab') openDarsKtabScanner();
+                    else if (currentView === 'mal3ab') openMal3abScanner();
+                    else if (currentView === 'summer_club') openSummerClubScanner(summerClubSubpage);
+                    else if (currentView === 'events') openEventScanner();
+                    else if (currentView === 'visits') openVisitScanner();
+                    else openFridayScanner();
+                  }}
+                  className="mobile-header-btn mobile-qr-btn"
+                  title="Quick Scan Passport QR"
+                >
+                  <QrCode size={18} />
+                </button>
+
+                {/* Mobile Drawer Trigger (Servant Profile & Menu) */}
+                <button
+                  type="button"
+                  onClick={() => setIsMobileDrawerOpen(true)}
+                  className="mobile-header-btn mobile-menu-btn"
+                  title="Servant Account & App Menu"
+                  aria-label="Open Servant Menu"
+                >
+                  {currentUser?.role === 'superadmin' ? (
+                    <Crown size={18} color="#9333ea" />
+                  ) : (
+                    <div className="mobile-servant-avatar">
+                      {(currentUser?.name || currentUser?.username || 'S').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  {pendingServantsCount > 0 && (
+                    <span className="mobile-notification-dot">{pendingServantsCount}</span>
+                  )}
+                </button>
+              </div>
             </div>
 
-            {/* Unified Navigation Droplist Bar */}
-            <div className="header-nav-droplist-wrapper">
+            {/* Unified Navigation Droplist Bar (visible on desktop/tablet) */}
+            <div className="header-nav-droplist-wrapper desktop-nav-droplist">
               <NavDroplist
                 currentView={currentView}
                 onChangeView={setCurrentView}
@@ -1822,7 +1883,7 @@ export const App: React.FC = () => {
 
       {/* Mobile Bottom Bar (Hidden on Boys Leaderboard Fullscreen Mode) */}
       {currentView !== 'heroes' && (
-        <div className="mobile-bottom-nav no-print">
+        <nav className="mobile-bottom-nav no-print" aria-label="Mobile Navigation">
           <button
             type="button"
             onClick={() => setCurrentView('attendance')}
@@ -1830,7 +1891,7 @@ export const App: React.FC = () => {
             title="Friday Attendance & Liturgy"
           >
             <CalendarCheck size={19} />
-            <span>Friday</span>
+            <span>الجمعة</span>
           </button>
 
           <button
@@ -1840,7 +1901,7 @@ export const App: React.FC = () => {
             title="Saturday Dars Ktab & Ashya"
           >
             <BookOpen size={19} />
-            <span>Dars Ktab</span>
+            <span>درس كتاب</span>
           </button>
 
           <button
@@ -1851,7 +1912,7 @@ export const App: React.FC = () => {
             title="Hall of Champions"
           >
             <Crown size={19} />
-            <span>Champions</span>
+            <span>الأبطال</span>
           </button>
 
           <button
@@ -1861,18 +1922,415 @@ export const App: React.FC = () => {
             title="Points & Confessions"
           >
             <Trophy size={19} />
-            <span>Score</span>
+            <span>النقاط</span>
           </button>
 
+          {/* Tab 5: Dynamic More / Services Hub */}
           <button
             type="button"
-            onClick={() => setCurrentView('students')}
-            className={`mobile-nav-btn ${currentView === 'students' ? 'active' : ''}`}
-            title="Student Roster"
+            onClick={() => setIsMobileSectionsOpen(true)}
+            className={`mobile-nav-btn ${
+              ['mal3ab', 'summer_club', 'events', 'visits', 'students', 'birthdays', 'log'].includes(currentView)
+                ? 'active active-secondary'
+                : ''
+            }`}
+            title="All Church Services & Records Hub"
           >
-            <Users size={19} />
-            <span>Boys</span>
+            {currentView === 'mal3ab' ? (
+              <Flame size={19} color="#16a34a" />
+            ) : currentView === 'summer_club' ? (
+              <Sun size={19} color="#ea580c" />
+            ) : currentView === 'students' ? (
+              <Users size={19} color="#2563eb" />
+            ) : currentView === 'visits' ? (
+              <CalendarDays size={19} color="#0d9488" />
+            ) : currentView === 'events' ? (
+              <Sparkles size={19} color="#7c3aed" />
+            ) : currentView === 'birthdays' ? (
+              <Cake size={19} color="#e11d48" />
+            ) : currentView === 'log' ? (
+              <ShieldCheck size={19} color="#2563eb" />
+            ) : (
+              <LayoutGrid size={19} />
+            )}
+            <span>
+              {currentView === 'mal3ab'
+                ? 'الملعب'
+                : currentView === 'summer_club'
+                ? 'النادي'
+                : currentView === 'students'
+                ? 'المخدومين'
+                : currentView === 'visits'
+                ? 'الافتقاد'
+                : currentView === 'events'
+                ? 'المناسبات'
+                : currentView === 'birthdays'
+                ? 'أعياد الميلاد'
+                : currentView === 'log'
+                ? 'السجل'
+                : 'المزيد'}
+            </span>
           </button>
+        </nav>
+      )}
+
+      {/* Mobile Servant Profile & Settings Bottom Drawer */}
+      {isMobileDrawerOpen && (
+        <div className="mobile-drawer-overlay no-print" onClick={() => setIsMobileDrawerOpen(false)}>
+          <div className="mobile-drawer-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-drawer-handle" />
+            <div className="mobile-drawer-header">
+              <div className="mobile-drawer-profile">
+                <div className="mobile-drawer-avatar">
+                  {currentUser?.role === 'superadmin' ? (
+                    <Crown size={22} color="#9333ea" />
+                  ) : (
+                    <span>{(currentUser?.name || currentUser?.username || 'S').charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="mobile-drawer-profile-info">
+                  <div className="mobile-drawer-name">{currentUser?.name || currentUser?.username}</div>
+                  <div className="mobile-drawer-role-badge">
+                    {currentUser?.role === 'superadmin' ? (
+                      <span className="badge-role superadmin">👑 SuperAdmin</span>
+                    ) : currentUser?.role === 'admin' ? (
+                      <span className="badge-role admin">⭐ Class Admin</span>
+                    ) : (
+                      <span className="badge-role servant">👤 Servant</span>
+                    )}
+                    <span className="mobile-drawer-class-tag">@{currentClass?.username || 'class'}</span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="mobile-drawer-close-btn"
+                onClick={() => setIsMobileDrawerOpen(false)}
+                aria-label="Close menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mobile-drawer-body">
+              {/* Class Summary Banner */}
+              <div className="mobile-drawer-class-banner">
+                <BookOpen size={16} color="var(--color-primary)" />
+                <div className="mobile-drawer-class-text">
+                  <strong>{currentClass?.name || 'Pope Saweros Class'}</strong>
+                  <span>{students.length} Registered Boys • Live 24/7 Cloud Sync</span>
+                </div>
+              </div>
+
+              <div className="mobile-drawer-menu-list">
+                {/* 1. Manage Class Servants & Pending Join Requests */}
+                <button
+                  type="button"
+                  className="mobile-drawer-menu-item"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    setIsManageServantsOpen(true);
+                  }}
+                >
+                  <div className="mobile-drawer-item-left">
+                    <div className="mobile-drawer-item-icon" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                      <Users size={18} />
+                    </div>
+                    <div>
+                      <div className="mobile-drawer-item-title">Class Servants & Requests</div>
+                      <div className="mobile-drawer-item-desc">خدام الفصل وطلبات الانضمام</div>
+                    </div>
+                  </div>
+                  {pendingServantsCount > 0 ? (
+                    <span className="badge-pending-count">{pendingServantsCount} pending</span>
+                  ) : (
+                    <ChevronRight size={18} color="var(--text-muted)" />
+                  )}
+                </button>
+
+                {/* 2. SuperAdmin Portal (Only if Master SuperAdmin) */}
+                {isMasterSuperAdmin && (
+                  <button
+                    type="button"
+                    className="mobile-drawer-menu-item superadmin-item"
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      const adminUrl = `${window.location.origin}${window.location.pathname}?view=superadmin`;
+                      window.open(adminUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                  >
+                    <div className="mobile-drawer-item-left">
+                      <div className="mobile-drawer-item-icon" style={{ background: 'linear-gradient(135deg, #7c3aed, #db2777)', color: '#fff' }}>
+                        <Crown size={18} />
+                      </div>
+                      <div>
+                        <div className="mobile-drawer-item-title" style={{ color: '#7c3aed', fontWeight: 800 }}>SaaS SuperAdmin Portal</div>
+                        <div className="mobile-drawer-item-desc">لوحة الإشراف العام لكافة الفصول</div>
+                      </div>
+                    </div>
+                    <span className="badge-master">MASTER</span>
+                  </button>
+                )}
+
+                {/* 3. Settings & Cloud Backup */}
+                <button
+                  type="button"
+                  className="mobile-drawer-menu-item"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    setIsSettingsOpen(true);
+                  }}
+                >
+                  <div className="mobile-drawer-item-left">
+                    <div className="mobile-drawer-item-icon" style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0' }}>
+                      <Settings size={18} />
+                    </div>
+                    <div>
+                      <div className="mobile-drawer-item-title">Settings & Data Backup</div>
+                      <div className="mobile-drawer-item-desc">إعدادات النقاط والنسخ الاحتياطي</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="var(--text-muted)" />
+                </button>
+
+                {/* 4. Install App as PWA */}
+                <button
+                  type="button"
+                  className="mobile-drawer-menu-item"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    setIsInstallModalOpen(true);
+                  }}
+                >
+                  <div className="mobile-drawer-item-left">
+                    <div className="mobile-drawer-item-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}>
+                      <Download size={18} />
+                    </div>
+                    <div>
+                      <div className="mobile-drawer-item-title">{isAppInstalled ? 'App Installed (PWA)' : 'Install App on Phone'}</div>
+                      <div className="mobile-drawer-item-desc">تثبيت البرنامج على الشاشة الرئيسية</div>
+                    </div>
+                  </div>
+                  {isAppInstalled ? (
+                    <span className="badge-installed">✓ Installed</span>
+                  ) : (
+                    <ChevronRight size={18} color="var(--text-muted)" />
+                  )}
+                </button>
+
+                {/* 5. Quick QR Scanner shortcut */}
+                <button
+                  type="button"
+                  className="mobile-drawer-menu-item"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    if (currentView === 'dars_ktab') openDarsKtabScanner();
+                    else if (currentView === 'mal3ab') openMal3abScanner();
+                    else if (currentView === 'summer_club') openSummerClubScanner(summerClubSubpage);
+                    else if (currentView === 'events') openEventScanner();
+                    else if (currentView === 'visits') openVisitScanner();
+                    else openFridayScanner();
+                  }}
+                >
+                  <div className="mobile-drawer-item-left">
+                    <div className="mobile-drawer-item-icon" style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+                      <QrCode size={18} />
+                    </div>
+                    <div>
+                      <div className="mobile-drawer-item-title">Quick Scan Passport QR</div>
+                      <div className="mobile-drawer-item-desc">مسح باركود الطالب بالكاميرا فوراً</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="var(--text-muted)" />
+                </button>
+
+                {/* 6. Log Out */}
+                <button
+                  type="button"
+                  className="mobile-drawer-menu-item logout-item"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    handleLogout();
+                  }}
+                >
+                  <div className="mobile-drawer-item-left">
+                    <div className="mobile-drawer-item-icon" style={{ background: '#fef2f2', color: '#dc2626' }}>
+                      <LogOut size={18} />
+                    </div>
+                    <div>
+                      <div className="mobile-drawer-item-title" style={{ color: '#dc2626' }}>Log Out</div>
+                      <div className="mobile-drawer-item-desc">تسجيل الخروج من الحساب</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} color="#f87171" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Sections Hub Bottom Sheet */}
+      {isMobileSectionsOpen && (
+        <div className="mobile-sections-overlay no-print" onClick={() => setIsMobileSectionsOpen(false)}>
+          <div className="mobile-sections-sheet" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-drawer-handle" />
+            <div className="mobile-sections-header">
+              <div>
+                <h3 className="mobile-sections-title">أقسام الخدمة والأنشطة</h3>
+                <p className="mobile-sections-subtitle">اختر الخدمة أو السجل المطلوب للوصول الفوري</p>
+              </div>
+              <button
+                type="button"
+                className="mobile-drawer-close-btn"
+                onClick={() => setIsMobileSectionsOpen(false)}
+                aria-label="Close sections hub"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mobile-sections-grid">
+              {/* Mal3ab */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'mal3ab' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('mal3ab');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#dcfce7', color: '#16a34a' }}>
+                  <Flame size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">الملعب والنشاط الرياضي</div>
+                  <div className="mobile-section-en">Mal3ab & Matches (خميس)</div>
+                </div>
+                <span className="mobile-section-badge" style={{ background: '#dcfce7', color: '#16a34a' }}>Thu</span>
+              </button>
+
+              {/* Summer Club */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'summer_club' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('summer_club');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#ffedd5', color: '#ea580c' }}>
+                  <Sun size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">النادي الصيفي</div>
+                  <div className="mobile-section-en">Summer Club (يومين)</div>
+                </div>
+                <span className="mobile-section-badge" style={{ background: '#ffedd5', color: '#ea580c' }}>2 Days</span>
+              </button>
+
+              {/* Boys Roster */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'students' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('students');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#eff6ff', color: '#2563eb' }}>
+                  <Users size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">سجل مخدومي الفصل</div>
+                  <div className="mobile-section-en">Boys Roster & QR Codes</div>
+                </div>
+                <span className="mobile-section-badge" style={{ background: '#eff6ff', color: '#2563eb' }}>{students.length}</span>
+              </button>
+
+              {/* Eftekad & Home Visits */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'visits' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('visits');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#ccfbf1', color: '#0d9488' }}>
+                  <CalendarDays size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">الافتقاد وزيارات البيوت</div>
+                  <div className="mobile-section-en">Eftekad & Pastoral Care</div>
+                </div>
+                <span className="mobile-section-badge" style={{ background: '#ccfbf1', color: '#0d9488' }}>Care</span>
+              </button>
+
+              {/* Events & Trips */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'events' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('events');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#f3e8ff', color: '#7c3aed' }}>
+                  <Sparkles size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">المناسبات والرحلات</div>
+                  <div className="mobile-section-en">Events & Competitions</div>
+                </div>
+                {customEvents.length > 0 && (
+                  <span className="mobile-section-badge" style={{ background: '#f3e8ff', color: '#7c3aed' }}>{customEvents.length}</span>
+                )}
+              </button>
+
+              {/* Birthdays */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'birthdays' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('birthdays');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#ffe4e6', color: '#e11d48' }}>
+                  <Cake size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">أعياد الميلاد والتنبيهات</div>
+                  <div className="mobile-section-en">Birthdays & Greetings</div>
+                </div>
+                {urgentBirthdayAlerts.length > 0 && (
+                  <span className="mobile-section-badge" style={{ background: '#ffe4e6', color: '#e11d48', fontWeight: 800 }}>{urgentBirthdayAlerts.length} Soon!</span>
+                )}
+              </button>
+
+              {/* Audit Log (if admin or superadmin) */}
+              {(currentUser?.role === 'admin' || isMasterSuperAdmin) && (
+                <button
+                  type="button"
+                  className={`mobile-section-card ${currentView === 'log' ? 'active' : ''}`}
+                  onClick={() => {
+                    setCurrentView('log');
+                    setIsMobileSectionsOpen(false);
+                  }}
+                >
+                  <div className="mobile-section-icon-box" style={{ background: '#f1f5f9', color: '#334155' }}>
+                    <ShieldCheck size={24} />
+                  </div>
+                  <div className="mobile-section-info">
+                    <div className="mobile-section-name">سجل النشاط والأمان</div>
+                    <div className="mobile-section-en">Audit Log & Operations</div>
+                  </div>
+                  <span className="mobile-section-badge" style={{ background: '#f1f5f9', color: '#475569' }}>Log</span>
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
