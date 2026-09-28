@@ -50,6 +50,30 @@ export function normalizeSectionKey(key: string): string {
   return CANONICAL_SECTION_MAP[key] || key;
 }
 
+export const ARRAY_SECTIONS = new Set([
+  'students',
+  'attendance',
+  'darsKtab',
+  'mal3ab',
+  'summerClub',
+  'confessions',
+  'customEvents',
+  'visits',
+  'customPoints',
+  'classHeroes',
+  'auditLogs',
+  'classes',
+  'users',
+]);
+
+export function sanitizeSectionData<T = unknown>(sectionKey: string, rawData: unknown): T {
+  const canonical = normalizeSectionKey(sectionKey);
+  if (ARRAY_SECTIONS.has(canonical)) {
+    return (Array.isArray(rawData) ? rawData : []) as T;
+  }
+  return rawData as T;
+}
+
 export interface CloudDiagnosticInfo {
   status: CloudSyncStatus;
   message: string;
@@ -516,7 +540,7 @@ class FirebaseService {
         if (snapshot.exists()) {
           const val = snapshot.data();
           this.lastSyncTime = Date.now();
-          return (val?.data as T) ?? null;
+          return sanitizeSectionData<T>(canonicalKey, val?.data);
         }
 
         // Fallback to raw key if different
@@ -526,10 +550,10 @@ class FirebaseService {
           if (snapshot.exists()) {
             const val = snapshot.data();
             this.lastSyncTime = Date.now();
-            return (val?.data as T) ?? null;
+            return sanitizeSectionData<T>(sectionKey, val?.data);
           }
         }
-        return null;
+        return sanitizeSectionData<T>(canonicalKey, null);
       }
 
       if (this.backendType === 'rtdb' && this.rtdbInstance) {
@@ -540,14 +564,14 @@ class FirebaseService {
         if (snap.exists()) {
           const val = snap.val();
           this.lastSyncTime = Date.now();
-          return (val?.data as T) ?? null;
+          return sanitizeSectionData<T>(canonicalKey, val?.data);
         }
-        return null;
+        return sanitizeSectionData<T>(canonicalKey, null);
       }
     } catch (err) {
       console.warn(`Failed to fetch cloud section [${classId}/${canonicalKey}]:`, err);
     }
-    return null;
+    return sanitizeSectionData<T>(canonicalKey, null);
   }
 
   /**
@@ -675,7 +699,8 @@ class FirebaseService {
                 }
 
                 this.lastSyncTime = Date.now();
-                callback(docId, dataObj.data, dataObj.updatedByName || dataObj.updatedBy);
+                const safeData = sanitizeSectionData(docId, dataObj.data);
+                callback(docId, safeData, dataObj.updatedByName || dataObj.updatedBy);
               }
             });
           },
@@ -712,7 +737,8 @@ class FirebaseService {
           }
 
           this.lastSyncTime = Date.now();
-          callback(docId, dataObj.data, dataObj.updatedByName || dataObj.updatedBy);
+          const safeData = sanitizeSectionData(docId, dataObj.data);
+          callback(docId, safeData, dataObj.updatedByName || dataObj.updatedBy);
         };
 
         const unsubChanged = rtdb.onChildChanged(sectionsRef, handleData);
@@ -771,7 +797,8 @@ class FirebaseService {
                 return;
               }
               this.lastSyncTime = Date.now();
-              callback(dataObj.data);
+              const safeData = sanitizeSectionData(key, dataObj.data);
+              callback(safeData);
             }
           },
           (error: any) => {
@@ -798,7 +825,8 @@ class FirebaseService {
               return;
             }
             this.lastSyncTime = Date.now();
-            callback(dataObj.data);
+            const safeData = sanitizeSectionData(key, dataObj.data);
+            callback(safeData);
           }
         });
 

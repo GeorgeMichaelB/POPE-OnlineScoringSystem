@@ -9,6 +9,7 @@ import {
   Crown,
   LogOut,
   Cake,
+  ShieldAlert,
 } from 'lucide-react';
 import type {
   Student,
@@ -584,80 +585,113 @@ export const App: React.FC = () => {
     const unsubMessages = syncService.subscribe(async (msg: SyncMessage) => {
       const isFresh = !msg.timestamp || Date.now() - msg.timestamp < 30000;
       switch (msg.type) {
-        case 'STUDENTS_UPDATED':
-          setStudents(msg.data as Student[]);
-          await db.applyRemoteUpdate('pss_students_v3', msg.data);
+        case 'STUDENTS_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as Student[]) : [];
+          setStudents(safeData);
+          await db.applyRemoteUpdate('pss_students_v3', safeData);
           if (isFresh) showSyncToast(`👥 ${msg.senderName} updated students roster`);
           break;
-        case 'ATTENDANCE_UPDATED':
-          setAttendance(msg.data as AttendanceRecord[]);
-          await db.applyRemoteUpdate('pss_attendance_v2', msg.data);
+        }
+        case 'ATTENDANCE_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as AttendanceRecord[]) : [];
+          setAttendance(safeData);
+          await db.applyRemoteUpdate('pss_attendance_v2', safeData);
           if (isFresh) {
             showSyncToast(`✅ ${msg.senderName} updated attendance`);
             sound.playSuccessChime();
           }
           break;
-        case 'DARS_KTAB_UPDATED':
-          setDarsKtab(msg.data as DarsKtabRecord[]);
-          await db.applyRemoteUpdate('pss_dars_ktab_v2', msg.data);
+        }
+        case 'DARS_KTAB_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as DarsKtabRecord[]) : [];
+          setDarsKtab(safeData);
+          await db.applyRemoteUpdate('pss_dars_ktab_v2', safeData);
           if (isFresh) showSyncToast(`📖 ${msg.senderName} updated Dars Ktab`);
           break;
-        case 'MAL3AB_UPDATED':
-          setMal3ab(msg.data as Mal3abRecord[]);
-          await db.applyRemoteUpdate('pss_mal3ab_v2', msg.data);
+        }
+        case 'MAL3AB_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as Mal3abRecord[]) : [];
+          setMal3ab(safeData);
+          await db.applyRemoteUpdate('pss_mal3ab_v2', safeData);
           if (isFresh) showSyncToast(`⚽ ${msg.senderName} updated Mal3ab`);
           break;
-        case 'SUMMER_CLUB_UPDATED':
-          setSummerClub(msg.data as SummerClubRecord[]);
-          await db.applyRemoteUpdate('pss_summer_club_v2', msg.data);
+        }
+        case 'SUMMER_CLUB_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as SummerClubRecord[]) : [];
+          setSummerClub(safeData);
+          await db.applyRemoteUpdate('pss_summer_club_v2', safeData);
           if (isFresh) showSyncToast(`☀️ ${msg.senderName} updated Summer Club`);
           break;
-        case 'SUMMER_CLUB_SETTINGS_UPDATED':
-          setSummerClubSettings(msg.data as SummerClubSettings);
-          await db.applyRemoteUpdate('pss_summer_club_settings_v1', msg.data);
+        }
+        case 'SUMMER_CLUB_SETTINGS_UPDATED': {
+          if (msg.data && typeof msg.data === 'object') {
+            setSummerClubSettings(msg.data as SummerClubSettings);
+            await db.applyRemoteUpdate('pss_summer_club_settings_v1', msg.data);
+          }
           break;
-        case 'CONFESSIONS_UPDATED':
-          setConfessions(msg.data as ConfessionRecord[]);
-          await db.applyRemoteUpdate('pss_confessions_v2', msg.data);
+        }
+        case 'CONFESSIONS_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as ConfessionRecord[]) : [];
+          setConfessions(safeData);
+          await db.applyRemoteUpdate('pss_confessions_v2', safeData);
           if (isFresh) showSyncToast(`✝️ ${msg.senderName} updated confessions`);
           break;
-        case 'CUSTOM_EVENTS_UPDATED':
-          setCustomEvents(msg.data as CustomEvent[]);
-          await db.applyRemoteUpdate('pss_custom_events_v2', msg.data);
+        }
+        case 'CUSTOM_EVENTS_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as CustomEvent[]) : [];
+          setCustomEvents(safeData);
+          await db.applyRemoteUpdate('pss_custom_events_v2', safeData);
           if (isFresh) showSyncToast(`🎉 ${msg.senderName} updated special events`);
           break;
-        case 'VISITS_UPDATED':
-          setVisits(msg.data as VisitRecord[]);
-          await db.applyRemoteUpdate('pss_visits_v2', msg.data);
+        }
+        case 'VISITS_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as VisitRecord[]) : [];
+          setVisits(safeData);
+          await db.applyRemoteUpdate('pss_visits_v2', safeData);
           if (isFresh) showSyncToast(`🏠 ${msg.senderName} recorded a pastoral visit`);
           break;
-        case 'POINT_SETTINGS_UPDATED':
-          setPointSettings(msg.data as PointSettings);
-          await db.applyRemoteUpdate('pss_point_settings_v1', msg.data);
-          if (isFresh) showSyncToast(`⚙️ ${msg.senderName} updated scoring rules`);
+        }
+        case 'POINT_SETTINGS_UPDATED': {
+          if (msg.data && typeof msg.data === 'object') {
+            setPointSettings(msg.data as PointSettings);
+            await db.applyRemoteUpdate('pss_point_settings_v1', msg.data);
+            if (isFresh) showSyncToast(`⚙️ ${msg.senderName} updated scoring rules`);
+          }
           break;
-        case 'CUSTOM_POINTS_UPDATED':
-          setCustomPoints(msg.data as CustomPointEntry[]);
-          await db.applyRemoteUpdate('pss_custom_points_v2', msg.data);
+        }
+        case 'CUSTOM_POINTS_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as CustomPointEntry[]) : [];
+          setCustomPoints(safeData);
+          await db.applyRemoteUpdate('pss_custom_points_v2', safeData);
           if (isFresh) showSyncToast(`⭐ ${msg.senderName} updated bonus points`);
           break;
-        case 'CLASS_HEROES_UPDATED':
-          setClassHeroes(msg.data as ClassHero[]);
-          await db.applyRemoteUpdate('pss_class_heroes_v2', msg.data);
+        }
+        case 'CLASS_HEROES_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as ClassHero[]) : [];
+          setClassHeroes(safeData);
+          await db.applyRemoteUpdate('pss_class_heroes_v2', safeData);
           if (isFresh) showSyncToast(`🏆 ${msg.senderName} updated Class Heroes`);
           break;
-        case 'AUDIT_LOGS_UPDATED':
-          setAuditLogs(msg.data as AuditLogEntry[]);
+        }
+        case 'AUDIT_LOGS_UPDATED': {
+          const safeData = Array.isArray(msg.data) ? (msg.data as AuditLogEntry[]) : [];
+          setAuditLogs(safeData);
           break;
+        }
         case 'TIMER_STATE_UPDATED': {
-          const timerData = msg.data as { running: boolean; startTime: number | null; elapsedSeconds: number };
-          setFridayTimerRunning(timerData.running);
-          if (timerData.startTime !== undefined) setFridayTimerStartTime(timerData.startTime);
-          if (timerData.elapsedSeconds !== undefined) setFridayTimerElapsedSeconds(timerData.elapsedSeconds);
-          if (isFresh) showSyncToast(`⏱️ ${msg.senderName} ${timerData.running ? 'started' : 'stopped'} the Friday timer`);
+          const timerData = msg.data as { running: boolean; startTime: number | null; elapsedSeconds: number } | undefined;
+          if (timerData) {
+            setFridayTimerRunning(Boolean(timerData.running));
+            if (timerData.startTime !== undefined) setFridayTimerStartTime(timerData.startTime);
+            if (timerData.elapsedSeconds !== undefined) setFridayTimerElapsedSeconds(timerData.elapsedSeconds);
+            if (isFresh) showSyncToast(`⏱️ ${msg.senderName} ${timerData.running ? 'started' : 'stopped'} the Friday timer`);
+          }
           break;
         }
         case 'CLASSES_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.saveAllClasses(msg.data as ClassRoom[], false);
+          }
           const classes = await db.getClasses();
           const activeId = db.getActiveClassId();
           const myClass = classes.find(c => c.id === activeId);
@@ -670,6 +704,9 @@ export const App: React.FC = () => {
           break;
         }
         case 'USERS_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.saveAllUsers(msg.data as UserAccount[], false);
+          }
           if (currentClass) {
             const pending = await db.getPendingServantsForClass(currentClass.id);
             setPendingServantsCount(pending.length);
@@ -1365,8 +1402,23 @@ export const App: React.FC = () => {
         />
       );
     } else {
-      // Non-superadmin account: strictly deny access and bounce back
-      setCurrentView('attendance');
+      return (
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#090d16', color: '#f8fafc', flexDirection: 'column', gap: '1rem', padding: '2rem', textAlign: 'center' }}>
+          <ShieldAlert size={48} color="#ef4444" />
+          <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 800 }}>SuperAdmin Portal Access Required</h2>
+          <p style={{ margin: 0, color: '#94a3b8', maxWidth: 420 }}>
+            You must be logged in with a SuperAdmin account to access this executive portal.
+          </p>
+          <button
+            type="button"
+            onClick={() => setCurrentView('attendance')}
+            className="btn btn-primary"
+            style={{ marginTop: '0.5rem' }}
+          >
+            Return to Sunday School
+          </button>
+        </div>
+      );
     }
   }
 
@@ -1559,10 +1611,10 @@ export const App: React.FC = () => {
               <NavDroplist
                 currentView={currentView}
                 onChangeView={setCurrentView}
-                customEventsCount={customEvents.length}
-                studentsCount={students.length}
-                auditLogsCount={auditLogs.length}
-                birthdayAlertCount={urgentBirthdayAlerts.length}
+                customEventsCount={(customEvents || []).length}
+                studentsCount={(students || []).length}
+                auditLogsCount={(auditLogs || []).length}
+                birthdayAlertCount={(urgentBirthdayAlerts || []).length}
                 isAdmin={currentUser?.role === 'admin' || isMasterSuperAdmin}
                 isSuperAdmin={isMasterSuperAdmin}
                 onInstallApp={() => setIsInstallModalOpen(true)}

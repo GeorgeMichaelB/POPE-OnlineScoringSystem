@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldAlert,
   Users,
@@ -93,7 +93,7 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const [currentServantsCount, setCurrentServantsCount] = useState<number>(
     typeof syncServantsCount === 'number' ? syncServantsCount : syncService.getConnectedServantsCount()
   );
-  const masterFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const masterFileInputRef = useRef<HTMLInputElement | null>(null);
   const [masterImportStatus, setMasterImportStatus] = useState<string | null>(null);
 
   const loadData = async () => {
@@ -420,8 +420,9 @@ export const SuperAdminPortal: React.FC<SuperAdminPortalProps> = ({
   const activeClassesCount = classes.filter((c) => c.status !== 'suspended').length;
   const suspendedClassesCount = classes.filter((c) => c.status === 'suspended').length;
 
-  // Security Guard: ONLY @george.dev can access this portal
+  // Security Guard: ONLY SuperAdmin / @george.dev can access this portal
   const isMasterUser = !!currentUser && (
+    currentUser.role === 'superadmin' ||
     currentUser.username.toLowerCase() === '@george.dev' ||
     currentUser.username.toLowerCase() === 'george.dev'
   );
