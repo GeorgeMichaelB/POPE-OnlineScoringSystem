@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Download,
   ChevronRight,
+  BarChart3,
 } from 'lucide-react';
 import type {
   Student,
@@ -60,6 +61,7 @@ import { CustomEventsView } from './components/CustomEventsView';
 import { ScoringView } from './components/ScoringView';
 import { VisitsView } from './components/VisitsView';
 import { StudentListView } from './components/StudentListView';
+import { AnalyticsView } from './components/AnalyticsView';
 import { ClassHeroesLeaderboardView } from './components/ClassHeroesLeaderboardView';
 import { HeroManageModal } from './components/HeroManageModal';
 import { LoginView } from './components/LoginView';
@@ -1873,6 +1875,23 @@ export const App: React.FC = () => {
           />
         )}
 
+        {/* VIEW 9.5: Analytics & Attendance Reports */}
+        {currentView === 'analytics' && (
+          <AnalyticsView
+            students={students}
+            attendance={attendance}
+            darsKtab={darsKtab}
+            mal3ab={mal3ab}
+            summerClub={summerClub}
+            customEvents={customEvents}
+            confessions={confessions}
+            visits={visits}
+            onSelectStudent={(student) => setSelectedStudentForDetail(student)}
+            onStartVisit={startHomeVisitForStudent}
+            className={currentClass?.name || 'Pope Saweros Class'}
+          />
+        )}
+
         {/* VIEW 10: Admin Activity Audit Log (Admin Only) */}
         {currentView === 'log' && currentUser?.role === 'admin' && (
           <AuditLogView
@@ -1936,13 +1955,15 @@ export const App: React.FC = () => {
             type="button"
             onClick={() => setIsMobileSectionsOpen(true)}
             className={`mobile-nav-btn ${
-              ['mal3ab', 'summer_club', 'events', 'visits', 'students', 'birthdays', 'log'].includes(currentView)
+              ['mal3ab', 'summer_club', 'events', 'visits', 'students', 'birthdays', 'analytics', 'log'].includes(currentView)
                 ? 'active active-secondary'
                 : ''
             }`}
             title="All Church Services & Records Hub"
           >
-            {currentView === 'mal3ab' ? (
+            {currentView === 'analytics' ? (
+              <BarChart3 size={19} color="#0284c7" />
+            ) : currentView === 'mal3ab' ? (
               <Flame size={19} color="#16a34a" />
             ) : currentView === 'summer_club' ? (
               <Sun size={19} color="#ea580c" />
@@ -1960,7 +1981,9 @@ export const App: React.FC = () => {
               <LayoutGrid size={19} />
             )}
             <span>
-              {currentView === 'mal3ab'
+              {currentView === 'analytics'
+                ? 'التقارير'
+                : currentView === 'mal3ab'
                 ? 'الملعب'
                 : currentView === 'summer_club'
                 ? 'النادي'
@@ -2292,6 +2315,25 @@ export const App: React.FC = () => {
                 {customEvents.length > 0 && (
                   <span className="mobile-section-badge" style={{ background: '#f3e8ff', color: '#7c3aed' }}>{customEvents.length}</span>
                 )}
+              </button>
+
+              {/* Analytics & Reports */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'analytics' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('analytics');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#e0f2fe', color: '#0284c7' }}>
+                  <BarChart3 size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">التقارير والإحصائيات والغياب</div>
+                  <div className="mobile-section-en">Weekly/Monthly Analytics & Absentees</div>
+                </div>
+                <span className="mobile-section-badge" style={{ background: '#e0f2fe', color: '#0284c7' }}>Reports</span>
               </button>
 
               {/* Birthdays */}

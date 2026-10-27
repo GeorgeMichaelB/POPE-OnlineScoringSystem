@@ -596,3 +596,73 @@ export function getRecentMonthsList(countPast = 5, countFuture = 1): string[] {
 
   return list.reverse(); // Newest first
 }
+
+// --- Week & Date Range Helpers for Analytics ---
+
+export function formatDateIso(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getMondayOfWeek(d: Date = new Date()): Date {
+  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = date.getDay(); // 0 is Sunday, 1 is Monday ... 6 is Saturday
+  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(date.setDate(diff));
+}
+
+export function getWeekRange(ref: Date | string = new Date()): {
+  start: string;
+  end: string;
+  labelEn: string;
+  labelAr: string;
+} {
+  let d: Date;
+  if (typeof ref === 'string') {
+    const parts = ref.split('-').map(Number);
+    d = new Date(parts[0], parts[1] - 1, parts[2] || 1);
+  } else {
+    d = ref;
+  }
+  const monday = getMondayOfWeek(d);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+
+  const start = formatDateIso(monday);
+  const end = formatDateIso(sunday);
+
+  const startPart = monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const endPart = sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const labelEn = `${startPart} – ${endPart}`;
+
+  const arMonths = [
+    'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
+    'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
+  ];
+  const labelAr = `${monday.getDate()} ${arMonths[monday.getMonth()]} – ${sunday.getDate()} ${arMonths[sunday.getMonth()]} ${sunday.getFullYear()}`;
+
+  return { start, end, labelEn, labelAr };
+}
+
+export function shiftWeek(startIso: string, weeksCount: number): {
+  start: string;
+  end: string;
+  labelEn: string;
+  labelAr: string;
+} {
+  const parts = startIso.split('-').map(Number);
+  const d = new Date(parts[0], parts[1] - 1, parts[2]);
+  d.setDate(d.getDate() + weeksCount * 7);
+  return getWeekRange(d);
+}
+
+export function shiftMonth(monthIso: string, deltaMonths: number): string {
+  const [yearStr, monthStr] = monthIso.split('-');
+  const d = new Date(Number(yearStr), Number(monthStr) - 1 + deltaMonths, 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+

@@ -14,7 +14,8 @@ import {
   Sun,
   Cake,
   ShieldAlert,
-  Download
+  Download,
+  BarChart3
 } from 'lucide-react';
 
 export type AppView =
@@ -28,6 +29,7 @@ export type AppView =
   | 'visits'
   | 'students'
   | 'birthdays'
+  | 'analytics'
   | 'log'
   | 'superadmin';
 
@@ -172,6 +174,15 @@ export const NavDroplist: React.FC<NavDroplistProps> = ({
       groupNameEn: 'Pastoral Care & Records',
       groupNameAr: 'الافتقاد والسجلات',
       items: [
+        {
+          id: 'analytics',
+          labelEn: 'Analytics & Attendance Reports',
+          labelAr: 'التقارير والإحصائيات والغياب',
+          badge: 'Reports',
+          badgeColor: '#0284c7',
+          icon: <BarChart3 size={16} color="#0284c7" />,
+          highlight: true,
+        },
         {
           id: 'birthdays',
           labelEn: 'Birthdays & Alerts',
