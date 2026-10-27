@@ -568,6 +568,8 @@ export const App: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('view') === 'heroes') {
         setCurrentView('heroes');
+      } else if (urlParams.get('view') === 'analytics') {
+        setCurrentView('analytics');
       } else if (urlParams.get('view') === 'superadmin') {
         const session = db.getCurrentSession();
         if (session) {
