@@ -18,7 +18,9 @@ import {
   Sparkles,
   Users,
   MessageCircle,
-  Phone
+  Phone,
+  QrCode,
+  Zap,
 } from 'lucide-react';
 import type { UserAccount, ClassRoom } from '../types';
 import { db } from '../services/db';
@@ -28,6 +30,7 @@ interface LoginViewProps {
   onLaunchHeroesScreen: () => void;
   getUserByUsername: (username: string) => Promise<UserAccount | null>;
   onUpdatePassword: (username: string, newPass: string) => Promise<void>;
+  onSwitchToBoyLogin?: () => void;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({
@@ -35,6 +38,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
   onLaunchHeroesScreen,
   getUserByUsername,
   onUpdatePassword,
+  onSwitchToBoyLogin,
 }) => {
   // Mode: 'login' | 'register'
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
@@ -949,6 +953,57 @@ export const LoginView: React.FC<LoginViewProps> = ({
             Multi-Class Church Scoring & Attendance System
           </p>
         </div>
+
+        {/* Quick Switch to Boy Passport Login */}
+        {onSwitchToBoyLogin && (
+          <div style={{ marginBottom: '1.25rem' }}>
+            <button
+              type="button"
+              onClick={onSwitchToBoyLogin}
+              style={{
+                width: '100%',
+                padding: '0.85rem 1rem',
+                borderRadius: '14px',
+                border: '1.5px solid rgba(6, 182, 212, 0.45)',
+                background: 'linear-gradient(135deg, rgba(6, 182, 212, 0.16) 0%, rgba(99, 102, 241, 0.22) 100%)',
+                color: '#38bdf8',
+                fontWeight: 800,
+                fontSize: '0.92rem',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.65rem',
+                boxShadow: '0 4px 18px rgba(6, 182, 212, 0.22)',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <div
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '8px',
+                  background: 'rgba(6, 182, 212, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#38bdf8',
+                }}
+              >
+                <QrCode size={17} />
+              </div>
+              <div style={{ textAlign: 'left', lineHeight: 1.2 }}>
+                <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#f8fafc' }}>
+                  👦 دخول الأولاد بباركود الباسبور
+                </div>
+                <div style={{ fontSize: '0.72rem', color: '#38bdf8', fontWeight: 600 }}>
+                  Scan Passport QR Code • Boy Gamer Portal
+                </div>
+              </div>
+              <Zap size={15} style={{ marginLeft: 'auto', color: '#fbbf24' }} />
+            </button>
+          </div>
+        )}
 
         {/* Tab Switcher: Sign In vs Create Account */}
         <div

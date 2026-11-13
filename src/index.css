@@ -1689,3 +1689,54 @@ html, body {
   }
 }
 
+/* ==========================================================================
+   Boy Portal & Scanner Gamer Animations
+   ========================================================================== */
+@keyframes scanLaser {
+  0% {
+    top: 10%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 88%;
+    opacity: 0.8;
+  }
+}
+
+@keyframes cyberPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes floatBadge {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(2deg);
+  }
+}
+
+@keyframes badgeSparkle {
+  0% {
+    transform: rotate(0deg) scale(0.95);
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
+  }
+  50% {
+    transform: rotate(180deg) scale(1.08);
+    filter: drop-shadow(0 0 16px rgba(245, 158, 11, 0.8));
+  }
+  100% {
+    transform: rotate(360deg) scale(0.95);
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.4));
+  }
+}

@@ -112,7 +112,7 @@ export const CustomEventsView: React.FC<CustomEventsViewProps> = ({
     return matchesSearch;
   });
 
-  const attendeeCount = activeEvent ? activeEvent.attendeeIds.length : 0;
+  const attendeeCount = (activeEvent && Array.isArray(activeEvent.attendeeIds)) ? activeEvent.attendeeIds.length : 0;
   const totalStudents = students.length;
   const attendeePercent = totalStudents > 0 ? Math.round((attendeeCount / totalStudents) * 100) : 0;
 
@@ -442,7 +442,7 @@ export const CustomEventsView: React.FC<CustomEventsViewProps> = ({
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {filteredStudents.map((student) => {
-                const isAttending = activeEvent.attendeeIds.includes(student.id);
+                const isAttending = Boolean(activeEvent && Array.isArray(activeEvent.attendeeIds) && activeEvent.attendeeIds.includes(student.id));
 
                 return (
                   <div

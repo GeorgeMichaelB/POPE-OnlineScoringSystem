@@ -15,7 +15,8 @@ import {
   Cake,
   ShieldAlert,
   Download,
-  BarChart3
+  BarChart3,
+  Award,
 } from 'lucide-react';
 
 export type AppView =
@@ -31,7 +32,8 @@ export type AppView =
   | 'birthdays'
   | 'analytics'
   | 'log'
-  | 'superadmin';
+  | 'superadmin'
+  | 'boys_portal';
 
 export type NavItemId = AppView | 'install_pwa';
 
@@ -167,6 +169,15 @@ export const NavDroplist: React.FC<NavDroplistProps> = ({
           labelAr: 'الرحلات والمناسبات',
           badge: customEventsCount > 0 ? customEventsCount : undefined,
           icon: <Sparkles size={16} color="#7c3aed" />,
+        },
+        {
+          id: 'boys_portal',
+          labelEn: 'Boys Portal & Badges Control',
+          labelAr: 'بوابة المخدومين وإدارة الأوسمة',
+          badge: 'NEW',
+          badgeColor: '#ec4899',
+          icon: <Award size={16} color="#ec4899" />,
+          highlight: true,
         },
       ],
     },

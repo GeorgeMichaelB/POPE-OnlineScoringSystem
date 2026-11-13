@@ -2,11 +2,38 @@
   "class_popesaweros": {
     "ATTENDANCE_UPDATED": {
       "data": [],
-      "timestamp": 1793094493235,
+      "timestamp": 1793211358067,
       "sender": "George Michael (Admin)"
     },
     "AUDIT_LOGS_UPDATED": {
       "data": [
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1793359975546-o3da",
+          "timestamp": "2026-10-30T11:32:55.546Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGIN",
+          "details": "George Michael (Admin) (@@george.michael) logged in to class \"Pope Saweros Class (Grade 4)\".",
+          "category": "auth",
+          "id": "log-1793359940363-2q5p",
+          "timestamp": "2026-10-30T11:32:20.363Z"
+        },
+        {
+          "username": "@george.michael",
+          "servantName": "George Michael (Admin)",
+          "action": "LOGOUT",
+          "details": "George Michael (Admin) (@@george.michael) logged out.",
+          "category": "auth",
+          "id": "log-1793359750799-sjhm",
+          "timestamp": "2026-10-30T11:29:10.799Z"
+        },
         {
           "username": "@george.michael",
           "servantName": "George Michael (Admin)",
@@ -4004,7 +4031,7 @@
           "username": "@george.michael"
         }
       ],
-      "timestamp": 1793094497020,
+      "timestamp": 1793359975551,
       "sender": "George Michael (Admin)"
     },
     "STUDENTS_UPDATED": {
@@ -4626,37 +4653,37 @@
           "createdAt": "2026-09-23T00:00:00Z"
         }
       ],
-      "timestamp": 1793094493234,
+      "timestamp": 1793211358067,
       "sender": "George Michael (Admin)"
     },
     "DARS_KTAB_UPDATED": {
       "data": [],
-      "timestamp": 1793094493235,
+      "timestamp": 1793211358068,
       "sender": "George Michael (Admin)"
     },
     "MAL3AB_UPDATED": {
       "data": [],
-      "timestamp": 1793094493236,
+      "timestamp": 1793211358068,
       "sender": "George Michael (Admin)"
     },
     "SUMMER_CLUB_UPDATED": {
       "data": [],
-      "timestamp": 1793094493236,
+      "timestamp": 1793211358068,
       "sender": "George Michael (Admin)"
     },
     "CONFESSIONS_UPDATED": {
       "data": [],
-      "timestamp": 1793094493237,
+      "timestamp": 1793211358069,
       "sender": "George Michael (Admin)"
     },
     "CUSTOM_EVENTS_UPDATED": {
       "data": [],
-      "timestamp": 1793094493238,
+      "timestamp": 1793211358069,
       "sender": "George Michael (Admin)"
     },
     "VISITS_UPDATED": {
       "data": [],
-      "timestamp": 1793094493238,
+      "timestamp": 1793211358069,
       "sender": "George Michael (Admin)"
     },
     "POINT_SETTINGS_UPDATED": {
@@ -4689,17 +4716,17 @@
         "customEventPoints": 20,
         "customPointsEnabled": true
       },
-      "timestamp": 1793094493239,
+      "timestamp": 1793211358070,
       "sender": "George Michael (Admin)"
     },
     "CUSTOM_POINTS_UPDATED": {
       "data": [],
-      "timestamp": 1793094493239,
+      "timestamp": 1793211358071,
       "sender": "George Michael (Admin)"
     },
     "CLASS_HEROES_UPDATED": {
       "data": [],
-      "timestamp": 1793094493240,
+      "timestamp": 1793211358071,
       "sender": "George Michael (Admin)"
     },
     "SUMMER_CLUB_SETTINGS_UPDATED": {
@@ -4707,7 +4734,7 @@
         "day1Weekday": 2,
         "day2Weekday": 4
       },
-      "timestamp": 1793094493237,
+      "timestamp": 1793211358068,
       "sender": "George Michael (Admin)"
     }
   },
@@ -4724,7 +4751,115 @@
           "status": "active"
         }
       ],
-      "timestamp": 1793094493219,
+      "timestamp": 1793211358060,
+      "sender": "George Michael (Admin)"
+    }
+  },
+  "cls_1790631435632_mpylu": {
+    "STUDENTS_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559482,
+      "sender": "George Michael (Admin)"
+    },
+    "DARS_KTAB_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559484,
+      "sender": "George Michael (Admin)"
+    },
+    "ATTENDANCE_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559483,
+      "sender": "George Michael (Admin)"
+    },
+    "MAL3AB_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559486,
+      "sender": "George Michael (Admin)"
+    },
+    "SUMMER_CLUB_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559488,
+      "sender": "George Michael (Admin)"
+    },
+    "SUMMER_CLUB_SETTINGS_UPDATED": {
+      "data": {
+        "day1Weekday": 2,
+        "day2Weekday": 4
+      },
+      "timestamp": 1793359559489,
+      "sender": "George Michael (Admin)"
+    },
+    "CONFESSIONS_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559490,
+      "sender": "George Michael (Admin)"
+    },
+    "CUSTOM_EVENTS_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559492,
+      "sender": "George Michael (Admin)"
+    },
+    "VISITS_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559493,
+      "sender": "George Michael (Admin)"
+    },
+    "POINT_SETTINGS_UPDATED": {
+      "data": {
+        "fridayClassEnabled": true,
+        "fridayClassPoints": 10,
+        "fridayLateCutoffMinutes": 15,
+        "fridayLatePenaltyPoints": 0,
+        "fridayLateIntervalMinutes": 2,
+        "fridayLateIntervalPoints": 1,
+        "fridayLateDeductionEnabled": true,
+        "fridayLateRequireTouchID": true,
+        "odasEnabled": true,
+        "odasPoints": 15,
+        "darsKtabEnabled": true,
+        "darsKtabPoints": 10,
+        "ashyaEnabled": true,
+        "ashyaPoints": 5,
+        "mal3abEnabled": true,
+        "mal3abPoints": 10,
+        "mal3abMatchEnabled": true,
+        "mal3abMatchPoints": 5,
+        "summerClubEnabled": true,
+        "summerClubPoints": 10,
+        "summerClubActivityEnabled": true,
+        "summerClubActivityPoints": 5,
+        "confessionEnabled": true,
+        "confessionPoints": 20,
+        "customEventsEnabled": true,
+        "customEventPoints": 20,
+        "customPointsEnabled": true
+      },
+      "timestamp": 1793359559494,
+      "sender": "George Michael (Admin)"
+    },
+    "CUSTOM_POINTS_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559495,
+      "sender": "George Michael (Admin)"
+    },
+    "CLASS_HEROES_UPDATED": {
+      "data": [],
+      "timestamp": 1793359559496,
+      "sender": "George Michael (Admin)"
+    },
+    "AUDIT_LOGS_UPDATED": {
+      "data": [
+        {
+          "username": "@george.dev",
+          "servantName": "Platform SuperAdmin",
+          "action": "DAILY_BACKUP_CREATED",
+          "details": "Daily platform backup snapshot created for 2026-10-30. (Retained: 2/3 rolling backups). Size: 164.7 KB",
+          "category": "backups",
+          "id": "log-1793359559500-fyz8",
+          "timestamp": "2026-10-30T11:25:59.500Z"
+        }
+      ],
+      "timestamp": 1793359559502,
       "sender": "George Michael (Admin)"
     }
   }

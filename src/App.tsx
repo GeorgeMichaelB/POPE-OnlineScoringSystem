@@ -20,6 +20,7 @@ import {
   Download,
   ChevronRight,
   BarChart3,
+  Gamepad2,
 } from 'lucide-react';
 import type {
   Student,
@@ -75,6 +76,9 @@ import { NavDroplist, type AppView } from './components/NavDroplist';
 import { InstallPromptModal } from './components/InstallPromptModal';
 import { ServantsManageModal } from './components/ServantsManageModal';
 import { SuperAdminPortal } from './components/SuperAdminPortal';
+import { BoyLoginView } from './components/BoyLoginView';
+import { BoyPortalView } from './components/boy-portal/BoyPortalView';
+import { ServantsBoysPortal } from './components/ServantsBoysPortal';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>('attendance');
@@ -133,6 +137,19 @@ export const App: React.FC = () => {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isMobileSectionsOpen, setIsMobileSectionsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Boys Role & Session State
+  const [activeBoy, setActiveBoy] = useState<Student | null>(null);
+  const [loginMode, setLoginMode] = useState<'servant' | 'boy'>(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.toLowerCase();
+      if (urlParams.get('mode') === 'boy' || urlParams.get('role') === 'boy' || hash === '#boy') {
+        return 'boy';
+      }
+    }
+    return 'servant';
+  });
 
   // Browser Notification state
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
@@ -490,9 +507,13 @@ export const App: React.FC = () => {
       setSummerClubSettings(scCfg);
       setSummerClubDay1Date(getNearestWeekdayDateString(scCfg.day1Weekday));
       setSummerClubDay2Date(getNearestWeekdayDateString(scCfg.day2Weekday));
-      setCustomEvents(evts);
-      if (evts.length > 0 && !selectedEventId) {
-        setSelectedEventId(evts[0].id);
+      const safeCustomEvents = (evts || []).map((e) => ({
+        ...e,
+        attendeeIds: Array.isArray(e?.attendeeIds) ? e.attendeeIds : [],
+      }));
+      setCustomEvents(safeCustomEvents);
+      if (safeCustomEvents.length > 0 && !selectedEventId) {
+        setSelectedEventId(safeCustomEvents[0].id);
       }
       setVisits(vis);
       setPointSettings(ptsCfg);
@@ -504,6 +525,15 @@ export const App: React.FC = () => {
       // Trigger 3-day advance notification if permission is already granted
       const urgent = getUrgentBirthdayAlerts(stu);
       triggerBirthdayNotifications(urgent);
+
+      // Check active boy session
+      const savedBoyId = localStorage.getItem('pss_active_boy_id');
+      if (savedBoyId) {
+        const found = stu.find((s) => s.id === savedBoyId);
+        if (found) {
+          setActiveBoy(found);
+        }
+      }
 
       // Check current session
       const sessionUsername = db.getCurrentSession();
@@ -566,8 +596,14 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
+      const hash = window.location.hash.toLowerCase();
+      if (urlParams.get('mode') === 'boy' || urlParams.get('role') === 'boy' || hash === '#boy') {
+        setLoginMode('boy');
+      }
       if (urlParams.get('view') === 'heroes') {
         setCurrentView('heroes');
+      } else if (urlParams.get('view') === 'boys_portal') {
+        setCurrentView('boys_portal');
       } else if (urlParams.get('view') === 'analytics') {
         setCurrentView('analytics');
       } else if (urlParams.get('view') === 'superadmin') {
@@ -659,7 +695,11 @@ export const App: React.FC = () => {
           break;
         }
         case 'CUSTOM_EVENTS_UPDATED': {
-          const safeData = Array.isArray(msg.data) ? (msg.data as CustomEvent[]) : [];
+          const rawData = Array.isArray(msg.data) ? (msg.data as CustomEvent[]) : [];
+          const safeData = rawData.map((e) => ({
+            ...e,
+            attendeeIds: Array.isArray(e?.attendeeIds) ? e.attendeeIds : [],
+          }));
           setCustomEvents(safeData);
           await db.applyRemoteUpdate('pss_custom_events_v2', safeData);
           if (isFresh) showSyncToast(`🎉 ${msg.senderName} updated special events`);
@@ -1043,13 +1083,17 @@ export const App: React.FC = () => {
   const handleToggleEventAttendance = async (eventId: string, studentId: string) => {
     const updatedEvent = await db.toggleEventAttendance(eventId, studentId);
     if (updatedEvent) {
+      const sanitizedUpdated: CustomEvent = {
+        ...updatedEvent,
+        attendeeIds: Array.isArray(updatedEvent.attendeeIds) ? updatedEvent.attendeeIds : [],
+      };
       setCustomEvents((prev) =>
-        prev.map((e) => (e.id === updatedEvent.id ? updatedEvent : e))
+        prev.map((e) => (e.id === sanitizedUpdated.id ? sanitizedUpdated : e))
       );
       sound.playSuccessChime();
 
       const student = students.find((s) => s.id === studentId);
-      const isPresent = updatedEvent.attendeeIds.includes(studentId);
+      const isPresent = Array.isArray(updatedEvent.attendeeIds) && updatedEvent.attendeeIds.includes(studentId);
       await db.addLogEntry({
         username: currentUser?.username || '@servant',
         servantName: currentUser?.name || currentServantName,
@@ -1386,14 +1430,62 @@ export const App: React.FC = () => {
     );
   }
 
-  // Gate Servant Portal with Authentication (Boys can still view Hall of Champions directly)
+  // Active Boy Gamer Portal (When a boy is logged in via Passport QR)
+  if (activeBoy) {
+    return (
+      <>
+        <BoyPortalView
+          student={activeBoy}
+          allStudents={students}
+          fridayAttendance={attendance}
+          darsKtabAttendance={darsKtab}
+          mal3abAttendance={mal3ab}
+          summerClubAttendance={summerClub}
+          confessions={confessions}
+          customEvents={customEvents}
+          customPoints={customPoints}
+          pointSettings={pointSettings}
+          onLogout={() => {
+            localStorage.removeItem('pss_active_boy_id');
+            setActiveBoy(null);
+            setLoginMode('boy');
+          }}
+          onRefreshData={loadAllData}
+          onInstallApp={() => setIsInstallModalOpen(true)}
+          isAppInstalled={isAppInstalled}
+        />
+        <InstallPromptModal
+          isOpen={isInstallModalOpen}
+          onClose={() => setIsInstallModalOpen(false)}
+          deferredPrompt={deferredPrompt}
+          onInstallSuccess={() => setIsAppInstalled(true)}
+        />
+      </>
+    );
+  }
+
+  // Gate Servant Portal with Authentication (Boys can log in with Passport QR or view Hall of Champions directly)
   if (!currentUser && currentView !== 'heroes') {
+    if (loginMode === 'boy') {
+      return (
+        <BoyLoginView
+          students={students}
+          onBoyLoginSuccess={(student) => {
+            localStorage.setItem('pss_active_boy_id', student.id);
+            setActiveBoy(student);
+          }}
+          onSwitchToServantLogin={() => setLoginMode('servant')}
+        />
+      );
+    }
+
     return (
       <LoginView
         onLoginSuccess={handleLoginSuccess}
         onLaunchHeroesScreen={() => setCurrentView('heroes')}
         getUserByUsername={(u) => db.getUserByUsername(u)}
         onUpdatePassword={handleUpdatePassword}
+        onSwitchToBoyLogin={() => setLoginMode('boy')}
       />
     );
   }
@@ -1586,6 +1678,23 @@ export const App: React.FC = () => {
                     <span>SuperAdmin Portal</span>
                   </button>
                 )}
+
+                {/* Boys Portal Servant Management & Preview */}
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('boys_portal')}
+                  className={`btn btn-sm ${currentView === 'boys_portal' ? 'btn-primary' : 'btn-secondary'}`}
+                  title="Boys Portal Management & 1,000 Badges Control"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <Gamepad2 size={15} color={currentView === 'boys_portal' ? '#ffffff' : '#8b5cf6'} />
+                  <span>بوابة الأولاد</span>
+                </button>
 
                 <button
                   type="button"
@@ -1906,6 +2015,15 @@ export const App: React.FC = () => {
             adminUsername={currentUser.username}
           />
         )}
+
+        {/* VIEW 11: Boys Portal (Servants Management View) */}
+        {currentView === 'boys_portal' && (
+          <ServantsBoysPortal
+            students={students}
+            currentServantName={currentServantName}
+            onRefreshParentData={loadAllData}
+          />
+        )}
       </main>
 
       {/* Mobile Bottom Bar (Hidden on Boys Leaderboard Fullscreen Mode) */}
@@ -1957,13 +2075,15 @@ export const App: React.FC = () => {
             type="button"
             onClick={() => setIsMobileSectionsOpen(true)}
             className={`mobile-nav-btn ${
-              ['mal3ab', 'summer_club', 'events', 'visits', 'students', 'birthdays', 'analytics', 'log'].includes(currentView)
+              ['mal3ab', 'summer_club', 'events', 'visits', 'students', 'birthdays', 'analytics', 'log', 'boys_portal'].includes(currentView)
                 ? 'active active-secondary'
                 : ''
             }`}
             title="All Church Services & Records Hub"
           >
-            {currentView === 'analytics' ? (
+            {currentView === 'boys_portal' ? (
+              <Gamepad2 size={19} color="#8b5cf6" />
+            ) : currentView === 'analytics' ? (
               <BarChart3 size={19} color="#0284c7" />
             ) : currentView === 'mal3ab' ? (
               <Flame size={19} color="#16a34a" />
@@ -1983,7 +2103,9 @@ export const App: React.FC = () => {
               <LayoutGrid size={19} />
             )}
             <span>
-              {currentView === 'analytics'
+              {currentView === 'boys_portal'
+                ? 'بوابة الأولاد'
+                : currentView === 'analytics'
                 ? 'التقارير'
                 : currentView === 'mal3ab'
                 ? 'الملعب'
@@ -2357,6 +2479,25 @@ export const App: React.FC = () => {
                 {urgentBirthdayAlerts.length > 0 && (
                   <span className="mobile-section-badge" style={{ background: '#ffe4e6', color: '#e11d48', fontWeight: 800 }}>{urgentBirthdayAlerts.length} Soon!</span>
                 )}
+              </button>
+
+              {/* Boys Portal & Badges Control */}
+              <button
+                type="button"
+                className={`mobile-section-card ${currentView === 'boys_portal' ? 'active' : ''}`}
+                onClick={() => {
+                  setCurrentView('boys_portal');
+                  setIsMobileSectionsOpen(false);
+                }}
+              >
+                <div className="mobile-section-icon-box" style={{ background: '#ede9fe', color: '#8b5cf6' }}>
+                  <Gamepad2 size={24} />
+                </div>
+                <div className="mobile-section-info">
+                  <div className="mobile-section-name">بوابة الأولاد والمهام والجوائز</div>
+                  <div className="mobile-section-en">Boys Portal & 1,000 Badges Control</div>
+                </div>
+                <span className="mobile-section-badge" style={{ background: '#ede9fe', color: '#8b5cf6' }}>Gamer</span>
               </button>
 
               {/* Audit Log (if admin or superadmin) */}

@@ -70,8 +70,11 @@ export function calculateAttendanceStats(
   const summerClubPercent = totalSummerClubSessions > 0 ? Math.round((summerClubAttended / totalSummerClubSessions) * 100) : 0;
 
   // Custom Events Attended
-  const totalCustomEvents = customEvents.length;
-  const eventsAttended = customEvents.filter((ev) => ev.attendeeIds.includes(studentId)).length;
+  const safeCustomEvents = Array.isArray(customEvents) ? customEvents : [];
+  const totalCustomEvents = safeCustomEvents.length;
+  const eventsAttended = safeCustomEvents.filter(
+    (ev) => Boolean(ev && Array.isArray(ev.attendeeIds) && ev.attendeeIds.includes(studentId))
+  ).length;
   const eventsPercent = totalCustomEvents > 0 ? Math.round((eventsAttended / totalCustomEvents) * 100) : 0;
 
     // Monthly Confession stats
@@ -222,9 +225,12 @@ export function calculateStudentScore(
   const confessionPoints = isConfessionEnabled ? confessionCount * (settings.confessionPoints ?? 20) : 0;
 
   // Custom Events points (only if enabled)
-  const isCustomEventsEnabled = settings.customEventsEnabled !== false;
-  const eventCount = customEvents.filter((e) => e.attendeeIds.includes(studentId)).length;
-  const eventPoints = isCustomEventsEnabled ? eventCount * (settings.customEventPoints || 0) : 0;
+  const isCustomEventsEnabled = settings?.customEventsEnabled !== false;
+  const safeEvents = Array.isArray(customEvents) ? customEvents : [];
+  const eventCount = safeEvents.filter(
+    (e) => Boolean(e && Array.isArray(e.attendeeIds) && e.attendeeIds.includes(studentId))
+  ).length;
+  const eventPoints = isCustomEventsEnabled ? eventCount * (settings?.customEventPoints || 0) : 0;
 
   // Manual Custom Points entered by servant (only if enabled)
   const isCustomPointsEnabled = settings.customPointsEnabled !== false;

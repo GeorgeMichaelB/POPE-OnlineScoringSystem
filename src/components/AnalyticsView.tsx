@@ -168,7 +168,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       ...darsKtab.map((r) => r.date),
       ...mal3ab.map((r) => r.date),
       ...summerClub.map((r) => r.date),
-      ...customEvents.map((r) => r.date),
+      ...(customEvents || []).map((r) => r?.date),
     ].filter(Boolean);
 
     if (allDates.length > 0) {
@@ -249,7 +249,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
     ).sort();
 
     // Custom Events in period
-    const eventsInPeriod = customEvents.filter((e) => isDateInPeriod(e.date));
+    const eventsInPeriod = (customEvents || []).filter((e) => e && e.date && isDateInPeriod(e.date));
 
     // Confession sessions: for month, the selectedMonth counts as 1 monthly session
     const confessionInPeriod = confessions.filter((c) => {
@@ -536,7 +536,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
         if (total > 0) {
           possibleSessionsCount += total;
           sessionDatesByActivity.eventsInPeriod.forEach((ev) => {
-            if (ev.attendeeIds && ev.attendeeIds.includes(student.id)) {
+            if (Array.isArray(ev?.attendeeIds) && ev.attendeeIds.includes(student.id)) {
               attendedCount++;
             } else {
               missedDetails.push({

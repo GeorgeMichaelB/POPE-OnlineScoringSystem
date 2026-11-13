@@ -68,6 +68,13 @@ export const ARRAY_SECTIONS = new Set([
 
 export function sanitizeSectionData<T = unknown>(sectionKey: string, rawData: unknown): T {
   const canonical = normalizeSectionKey(sectionKey);
+  if (canonical === 'customEvents') {
+    const list = Array.isArray(rawData) ? rawData : [];
+    return list.map((ev: any) => ({
+      ...ev,
+      attendeeIds: Array.isArray(ev?.attendeeIds) ? ev.attendeeIds : [],
+    })) as T;
+  }
   if (ARRAY_SECTIONS.has(canonical)) {
     return (Array.isArray(rawData) ? rawData : []) as T;
   }

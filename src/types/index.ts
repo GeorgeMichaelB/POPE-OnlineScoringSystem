@@ -239,5 +239,225 @@ export interface DailyBackupSnapshot {
   payload: string; // Full JSON snapshot of platform
 }
 
+// ==========================================
+// BOYS PORTAL & 1000+ BADGES ECOSYSTEM TYPES
+// ==========================================
+
+export type BadgeTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'legendary';
+
+export type BadgeCategory =
+  | 'mazamer'
+  | 'challenge'
+  | 'quiz'
+  | 'spiritual'
+  | 'attendance'
+  | 'hymns'
+  | 'bible'
+  | 'sports'
+  | 'special';
+
+export interface BadgeDefinition {
+  id: string; // e.g. "badge_001", "mazmour_23_gold"
+  name: string; // Arabic name e.g. "فارس الإنجيل"
+  nameEn: string; // English name
+  description: string;
+  category: BadgeCategory;
+  tier: BadgeTier;
+  icon: string; // Lucide icon identifier
+  imageUrl?: string; // Custom uploaded badge image (base64 or URL)
+  bgGradient: string;
+  borderColor: string;
+  textColor: string;
+  rarityScore: number;
+  tags?: string[];
+}
+
+export interface StudentBadge {
+  id: string;
+  studentId: string;
+  badgeId: string;
+  badgeName: string;
+  badgeTier: BadgeTier;
+  icon: string;
+  imageUrl?: string;
+  color: string;
+  category: string;
+  awardedAt: string; // ISO date
+  reason: string; // e.g. "حفظ مزمور ٢٣ في الأسبوع الأول", "تحدي صلاة باكر"
+  pointsAwarded?: number;
+  count?: number;
+}
+
+export interface BoyPortalSettings {
+  hideScores: boolean; // Hide scores from boys
+  isShopEnabled: boolean; // Enable or disable shop
+  announcementBanner?: string;
+  updatedAt?: string;
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string; // Custom uploaded announcement banner or image
+  targetAudience: 'boys' | 'parents' | 'all';
+  isPinned: boolean;
+  priority: 'normal' | 'urgent' | 'celebration';
+  authorServant: string;
+  createdAt: string;
+  expiresAt?: string;
+}
+
+export interface ShopItem {
+  id: string;
+  title: string;
+  description: string;
+  price: number; // cost in score points
+  stock: number; // remaining stock
+  icon: string; // e.g. 'gift' | 'book' | 'gamepad' | 'award'
+  imageUrl?: string; // Product photo (data URL or web URL)
+  isEnabled: boolean;
+  category?: string;
+  createdAt: string;
+}
+
+export interface ShopOrder {
+  id: string;
+  studentId: string;
+  studentName: string;
+  itemId: string;
+  itemTitle: string;
+  pricePaid: number;
+  status: 'pending' | 'delivered' | 'cancelled';
+  redemptionCode: string; // e.g. "PRIZE-9842"
+  orderedAt: string;
+  deliveredAt?: string;
+}
+
+export interface MazmourDefinition {
+  id: string;
+  number: number; // Psalm number e.g. 23
+  title: string; // e.g. "مزمور ٢٣: الرب راعيّ"
+  reference: string; // e.g. "مزمور ٢٣ (مز ٢٢ أجبية)"
+  textArabic: string;
+  verseCount?: number;
+  week1Score: number; // e.g. 30 pts (Gold badge)
+  week2Score: number; // e.g. 20 pts (Silver badge)
+  afterTimeScore: number; // e.g. 10 pts (Bronze badge)
+  maxDropDays: number; // e.g. 21 days
+  goldBadgeId?: string;
+  silverBadgeId?: string;
+  bronzeBadgeId?: string;
+  isActive: boolean;
+}
+
+export interface MazmourRequest {
+  id: string;
+  studentId: string;
+  studentName: string;
+  mazmourId: string;
+  mazmourNumber: number;
+  mazmourTitle: string;
+  status: 'requested' | 'approved' | 'ready_for_test' | 'completed' | 'dropped';
+  requestedAt: string;
+  approvedAt?: string;
+  completedAt?: string;
+  droppedAt?: string;
+  awardedTier?: 'gold' | 'silver' | 'bronze';
+  awardedScore?: number;
+  awardedBadgeId?: string;
+  servantNotes?: string;
+}
+
+export interface BoyChallenge {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  scoreReward: number;
+  badgeId: string;
+  badgeName: string;
+  badgeIcon: string;
+  badgeTier: BadgeTier;
+  badgeImageUrl?: string;
+  category: 'spiritual' | 'attendance' | 'study' | 'service' | 'sports';
+  dueDate?: string;
+  isActive: boolean;
+  completedStudentIds: string[];
+  pendingStudentIds: string[];
+  createdAt: string;
+}
+
+export type QuestionType =
+  | 'mcq'
+  | 'true_false'
+  | 'fill_blank'
+  | 'order'
+  | 'matching';
+
+export interface QuizMatchingPair {
+  id: string;
+  left: string;
+  right: string;
+}
+
+export interface QuizQuestion {
+  id: string;
+  question: string;
+  type?: QuestionType; // defaults to 'mcq'
+  imageUrl?: string;
+  options?: string[]; // for mcq
+  correctOptionIndex?: number; // for mcq
+  correctBoolean?: boolean; // for true_false
+  blankAnswer?: string; // for fill_blank
+  acceptableAnswers?: string[]; // alternative answers for fill_blank
+  orderItems?: string[]; // correct sequence of items
+  matchingPairs?: QuizMatchingPair[]; // for matching
+  explanation?: string;
+}
+
+export interface BoyQuiz {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl?: string;
+  scoreReward: number;
+  badgeId: string;
+  badgeName: string;
+  badgeIcon: string;
+  badgeTier: BadgeTier;
+  badgeImageUrl?: string;
+  questions: QuizQuestion[];
+  isActive: boolean;
+  completedStudentIds: string[];
+  createdAt: string;
+}
+
+export interface BoyQuestion {
+  id: string;
+  studentId: string;
+  studentName: string;
+  isAnonymous: boolean;
+  questionText: string;
+  category: 'spiritual' | 'bible' | 'personal' | 'confession' | 'general';
+  answerText?: string;
+  answeredBy?: string;
+  answeredAt?: string;
+  createdAt: string;
+  isPublic?: boolean;
+}
+
+export interface BoyNotification {
+  id: string;
+  studentId?: string; // null means broadcast to all boys
+  title: string;
+  message: string;
+  type: 'announcement' | 'mazmour' | 'challenge' | 'quiz' | 'shop' | 'badge';
+  timestamp: string;
+  read: boolean;
+  linkView?: string;
+}
+
+
 
 

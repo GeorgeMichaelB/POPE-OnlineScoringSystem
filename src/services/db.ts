@@ -21,6 +21,17 @@ import type {
   ClassStatus,
   AuditLogEntry,
   DailyBackupSnapshot,
+  BoyPortalSettings,
+  Announcement,
+  ShopItem,
+  ShopOrder,
+  MazmourDefinition,
+  MazmourRequest,
+  BoyChallenge,
+  BoyQuiz,
+  BoyQuestion,
+  StudentBadge,
+  BoyNotification,
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -45,6 +56,18 @@ const STORAGE_KEYS = {
   DAILY_BACKUPS: 'pss_daily_backups_v1',
   LAST_DAILY_BACKUP_DATE: 'pss_last_daily_backup_date',
   SESSION: 'pss_session_v1',
+  // Boys Portal Keys
+  BOY_PORTAL_SETTINGS: 'pss_boy_portal_settings_v1',
+  ANNOUNCEMENTS: 'pss_announcements_v1',
+  SHOP_ITEMS: 'pss_shop_items_v1',
+  SHOP_ORDERS: 'pss_shop_orders_v1',
+  MAZAMER_DB: 'pss_mazamer_db_v1',
+  MAZAMER_REQUESTS: 'pss_mazamer_requests_v1',
+  BOY_CHALLENGES: 'pss_boy_challenges_v1',
+  BOY_QUIZZES: 'pss_boy_quizzes_v1',
+  BOY_QUESTIONS: 'pss_boy_questions_v1',
+  STUDENT_BADGES: 'pss_student_badges_v1',
+  BOY_NOTIFICATIONS: 'pss_boy_notifications_v1',
 };
 
 const BASE_KEY_TO_SYNC_TYPE: Record<string, SyncEventType> = {
@@ -1411,13 +1434,20 @@ class DatabaseService {
   private async setScopedData<T>(baseKey: string, data: T, broadcast = true): Promise<void> {
     if (!this.isBrowser()) return;
     const scopedKey = this.getScopedKey(baseKey);
+    let finalData = data;
+    if (baseKey === STORAGE_KEYS.CUSTOM_EVENTS && Array.isArray(data)) {
+      finalData = (data as any[]).map((e) => ({
+        ...e,
+        attendeeIds: Array.isArray(e?.attendeeIds) ? e.attendeeIds : [],
+      })) as unknown as T;
+    }
     try {
       try {
-        await set(scopedKey, data);
+        await set(scopedKey, finalData);
       } catch {
         // Safe IDB fallback
       }
-      localStorage.setItem(scopedKey, JSON.stringify(data));
+      localStorage.setItem(scopedKey, JSON.stringify(finalData));
 
       // Real-time broadcast to all other servants in the same class
       if (broadcast) {
@@ -1426,7 +1456,7 @@ class DatabaseService {
           syncService.publish({
             classId: this.getActiveClassId(),
             type: syncType,
-            data,
+            data: finalData,
             senderUsername: this.currentServantUsername,
             senderName: this.currentServantName,
           });
@@ -1754,23 +1784,35 @@ class DatabaseService {
   async getCustomEvents(): Promise<CustomEvent[]> {
     if (!this.isBrowser()) return INITIAL_CUSTOM_EVENTS;
     const isDefault = this.getActiveClassId() === DEFAULT_CLASS.id;
-    return await this.getScopedData<CustomEvent[]>(
+    const rawEvents = await this.getScopedData<CustomEvent[]>(
       STORAGE_KEYS.CUSTOM_EVENTS,
       isDefault ? INITIAL_CUSTOM_EVENTS : []
     );
+    return (rawEvents || []).map((e) => ({
+      ...e,
+      attendeeIds: Array.isArray(e?.attendeeIds) ? e.attendeeIds : [],
+    }));
   }
 
   async saveAllCustomEvents(events: CustomEvent[]): Promise<void> {
-    await this.setScopedData(STORAGE_KEYS.CUSTOM_EVENTS, events);
+    const sanitized = (events || []).map((e) => ({
+      ...e,
+      attendeeIds: Array.isArray(e?.attendeeIds) ? e.attendeeIds : [],
+    }));
+    await this.setScopedData(STORAGE_KEYS.CUSTOM_EVENTS, sanitized);
   }
 
   async saveCustomEvent(event: CustomEvent): Promise<void> {
     const events = await this.getCustomEvents();
+    const sanitizedEvent: CustomEvent = {
+      ...event,
+      attendeeIds: Array.isArray(event.attendeeIds) ? event.attendeeIds : [],
+    };
     const index = events.findIndex((e) => e.id === event.id);
     if (index >= 0) {
-      events[index] = event;
+      events[index] = sanitizedEvent;
     } else {
-      events.unshift(event);
+      events.unshift(sanitizedEvent);
     }
     await this.saveAllCustomEvents(events);
   }
@@ -1785,6 +1827,10 @@ class DatabaseService {
     const events = await this.getCustomEvents();
     const event = events.find((e) => e.id === eventId);
     if (!event) return null;
+
+    if (!Array.isArray(event.attendeeIds)) {
+      event.attendeeIds = [];
+    }
 
     if (event.attendeeIds.includes(studentId)) {
       event.attendeeIds = event.attendeeIds.filter((id) => id !== studentId);
@@ -1822,9 +1868,20 @@ class DatabaseService {
     await this.setScopedData(STORAGE_KEYS.CUSTOM_POINTS, entries);
   }
 
-  async addCustomPointEntry(entry: CustomPointEntry): Promise<void> {
+  async addCustomPointEntry(
+    entry: Omit<CustomPointEntry, 'id' | 'createdAt'> & { id?: string; createdAt?: string }
+  ): Promise<void> {
+    const fullEntry: CustomPointEntry = {
+      id: entry.id || `cp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      createdAt: entry.createdAt || new Date().toISOString(),
+      studentId: entry.studentId,
+      date: entry.date,
+      points: entry.points,
+      reason: entry.reason,
+      servantName: entry.servantName,
+    };
     const entries = await this.getCustomPoints();
-    entries.unshift(entry);
+    entries.unshift(fullEntry);
     await this.saveAllCustomPoints(entries);
   }
 
@@ -2745,6 +2802,981 @@ class DatabaseService {
     await this.saveAllAuditLogs(INITIAL_LOGS);
     await this.saveAllClasses(INITIAL_CLASSES);
   }
+
+  // ==========================================
+  // BOYS PORTAL ECOSYSTEM METHODS
+  // ==========================================
+
+  // 1. Settings (Hide Scores, Enable Shop)
+  async getBoyPortalSettings(classId?: string): Promise<BoyPortalSettings> {
+    if (!this.isBrowser()) return DEFAULT_BOY_PORTAL_SETTINGS;
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.BOY_PORTAL_SETTINGS, classId);
+      let stored: BoyPortalSettings | undefined = undefined;
+      try {
+        stored = await get<BoyPortalSettings>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && typeof stored.hideScores === 'boolean') {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      await this.saveBoyPortalSettings(DEFAULT_BOY_PORTAL_SETTINGS, classId, false);
+      return DEFAULT_BOY_PORTAL_SETTINGS;
+    } catch {
+      return DEFAULT_BOY_PORTAL_SETTINGS;
+    }
+  }
+
+  async saveBoyPortalSettings(settings: BoyPortalSettings, classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.BOY_PORTAL_SETTINGS, classId);
+    try {
+      await set(key, settings);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(settings));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'POINT_SETTINGS_UPDATED',
+        data: settings,
+        description: 'Updated Boys Portal configuration (scores / shop visibility)',
+      });
+    }
+  }
+
+  // 2. Announcements
+  async getAnnouncements(classId?: string): Promise<Announcement[]> {
+    if (!this.isBrowser()) return INITIAL_ANNOUNCEMENTS;
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.ANNOUNCEMENTS, classId);
+      let stored: Announcement[] | undefined = undefined;
+      try {
+        stored = await get<Announcement[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored)) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      await this.saveAllAnnouncements(INITIAL_ANNOUNCEMENTS, classId, false);
+      return INITIAL_ANNOUNCEMENTS;
+    } catch {
+      return INITIAL_ANNOUNCEMENTS;
+    }
+  }
+
+  async saveAllAnnouncements(announcements: Announcement[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.ANNOUNCEMENTS, classId);
+    try {
+      await set(key, announcements);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(announcements));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_EVENTS_UPDATED',
+        data: announcements,
+        description: 'Updated Boys announcements',
+      });
+    }
+  }
+
+  async saveAnnouncement(announcement: Announcement, classId?: string): Promise<void> {
+    const list = await this.getAnnouncements(classId);
+    const existingIndex = list.findIndex((a) => a.id === announcement.id);
+    let updated: Announcement[];
+    if (existingIndex >= 0) {
+      updated = [...list];
+      updated[existingIndex] = announcement;
+    } else {
+      updated = [announcement, ...list];
+    }
+    await this.saveAllAnnouncements(updated, classId);
+  }
+
+  async deleteAnnouncement(id: string, classId?: string): Promise<void> {
+    const list = await this.getAnnouncements(classId);
+    const updated = list.filter((a) => a.id !== id);
+    await this.saveAllAnnouncements(updated, classId);
+  }
+
+  // 3. Shop Items & Orders
+  async getShopItems(classId?: string): Promise<ShopItem[]> {
+    if (!this.isBrowser()) return INITIAL_SHOP_ITEMS;
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.SHOP_ITEMS, classId);
+      let stored: ShopItem[] | undefined = undefined;
+      try {
+        stored = await get<ShopItem[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored)) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      await this.saveAllShopItems(INITIAL_SHOP_ITEMS, classId, false);
+      return INITIAL_SHOP_ITEMS;
+    } catch {
+      return INITIAL_SHOP_ITEMS;
+    }
+  }
+
+  async saveAllShopItems(items: ShopItem[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.SHOP_ITEMS, classId);
+    try {
+      await set(key, items);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(items));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_POINTS_UPDATED',
+        data: items,
+        description: 'Updated Shop items inventory',
+      });
+    }
+  }
+
+  async saveShopItem(item: ShopItem, classId?: string): Promise<void> {
+    const list = await this.getShopItems(classId);
+    const idx = list.findIndex((i) => i.id === item.id);
+    let updated: ShopItem[];
+    if (idx >= 0) {
+      updated = [...list];
+      updated[idx] = item;
+    } else {
+      updated = [item, ...list];
+    }
+    await this.saveAllShopItems(updated, classId);
+  }
+
+  async deleteShopItem(id: string, classId?: string): Promise<void> {
+    const list = await this.getShopItems(classId);
+    const updated = list.filter((i) => i.id !== id);
+    await this.saveAllShopItems(updated, classId);
+  }
+
+  async getShopOrders(classId?: string): Promise<ShopOrder[]> {
+    if (!this.isBrowser()) return [];
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.SHOP_ORDERS, classId);
+      let stored: ShopOrder[] | undefined = undefined;
+      try {
+        stored = await get<ShopOrder[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored)) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  async saveAllShopOrders(orders: ShopOrder[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.SHOP_ORDERS, classId);
+    try {
+      await set(key, orders);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(orders));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_POINTS_UPDATED',
+        data: orders,
+        description: 'Updated Shop orders queue',
+      });
+    }
+  }
+
+  async createShopOrder(order: ShopOrder, classId?: string): Promise<void> {
+    const orders = await this.getShopOrders(classId);
+    const updatedOrders = [order, ...orders];
+    await this.saveAllShopOrders(updatedOrders, classId);
+
+    // Deduct stock from shop item if available
+    const items = await this.getShopItems(classId);
+    const itemIdx = items.findIndex((i) => i.id === order.itemId);
+    if (itemIdx >= 0) {
+      const updatedItems = [...items];
+      updatedItems[itemIdx] = {
+        ...updatedItems[itemIdx],
+        stock: Math.max(0, (updatedItems[itemIdx].stock || 0) - 1),
+      };
+      await this.saveAllShopItems(updatedItems, classId);
+    }
+  }
+
+  async updateShopOrderStatus(
+    orderId: string,
+    status: 'pending' | 'delivered' | 'cancelled',
+    classId?: string
+  ): Promise<void> {
+    const orders = await this.getShopOrders(classId);
+    const updated = orders.map((o) =>
+      o.id === orderId
+        ? {
+            ...o,
+            status,
+            deliveredAt: status === 'delivered' ? new Date().toISOString() : o.deliveredAt,
+          }
+        : o
+    );
+    await this.saveAllShopOrders(updated, classId);
+  }
+
+  // 4. Mazamer Database & Requests
+  async getMazamer(classId?: string): Promise<MazmourDefinition[]> {
+    if (!this.isBrowser()) return INITIAL_MAZAMER;
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.MAZAMER_DB, classId);
+      let stored: MazmourDefinition[] | undefined = undefined;
+      try {
+        stored = await get<MazmourDefinition[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      await this.saveAllMazamer(INITIAL_MAZAMER, classId, false);
+      return INITIAL_MAZAMER;
+    } catch {
+      return INITIAL_MAZAMER;
+    }
+  }
+
+  async saveAllMazamer(mazamer: MazmourDefinition[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.MAZAMER_DB, classId);
+    try {
+      await set(key, mazamer);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(mazamer));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_EVENTS_UPDATED',
+        data: mazamer,
+        description: 'Updated Mazamer Database',
+      });
+    }
+  }
+
+  async saveMazmour(mazmour: MazmourDefinition, classId?: string): Promise<void> {
+    const list = await this.getMazamer(classId);
+    const idx = list.findIndex((m) => m.id === mazmour.id);
+    let updated: MazmourDefinition[];
+    if (idx >= 0) {
+      updated = [...list];
+      updated[idx] = mazmour;
+    } else {
+      updated = [...list, mazmour];
+    }
+    await this.saveAllMazamer(updated, classId);
+  }
+
+  async deleteMazmour(id: string, classId?: string): Promise<void> {
+    const list = await this.getMazamer(classId);
+    const updated = list.filter((m) => m.id !== id);
+    await this.saveAllMazamer(updated, classId);
+  }
+
+  async getMazmourRequests(classId?: string): Promise<MazmourRequest[]> {
+    if (!this.isBrowser()) return [];
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.MAZAMER_REQUESTS, classId);
+      let stored: MazmourRequest[] | undefined = undefined;
+      try {
+        stored = await get<MazmourRequest[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored)) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  async saveAllMazmourRequests(requests: MazmourRequest[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.MAZAMER_REQUESTS, classId);
+    try {
+      await set(key, requests);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(requests));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_POINTS_UPDATED',
+        data: requests,
+        description: 'Updated Mazmour Requests',
+      });
+    }
+  }
+
+  async saveMazmourRequest(req: MazmourRequest, classId?: string): Promise<void> {
+    const list = await this.getMazmourRequests(classId);
+    const idx = list.findIndex((r) => r.id === req.id);
+    let updated: MazmourRequest[];
+    if (idx >= 0) {
+      updated = [...list];
+      updated[idx] = req;
+    } else {
+      updated = [req, ...list];
+    }
+    await this.saveAllMazmourRequests(updated, classId);
+  }
+
+  async deleteMazmourRequest(id: string, classId?: string): Promise<void> {
+    const list = await this.getMazmourRequests(classId);
+    const updated = list.filter((r) => r.id !== id);
+    await this.saveAllMazmourRequests(updated, classId);
+  }
+
+  // 5. Boy Challenges
+  async getBoyChallenges(classId?: string): Promise<BoyChallenge[]> {
+    if (!this.isBrowser()) return INITIAL_CHALLENGES;
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.BOY_CHALLENGES, classId);
+      let stored: BoyChallenge[] | undefined = undefined;
+      try {
+        stored = await get<BoyChallenge[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      await this.saveAllBoyChallenges(INITIAL_CHALLENGES, classId, false);
+      return INITIAL_CHALLENGES;
+    } catch {
+      return INITIAL_CHALLENGES;
+    }
+  }
+
+  async saveAllBoyChallenges(challenges: BoyChallenge[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.BOY_CHALLENGES, classId);
+    try {
+      await set(key, challenges);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(challenges));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_EVENTS_UPDATED',
+        data: challenges,
+        description: 'Updated Boy Challenges',
+      });
+    }
+  }
+
+  async saveBoyChallenge(challenge: BoyChallenge, classId?: string): Promise<void> {
+    const list = await this.getBoyChallenges(classId);
+    const idx = list.findIndex((c) => c.id === challenge.id);
+    let updated: BoyChallenge[];
+    if (idx >= 0) {
+      updated = [...list];
+      updated[idx] = challenge;
+    } else {
+      updated = [challenge, ...list];
+    }
+    await this.saveAllBoyChallenges(updated, classId);
+  }
+
+  async deleteBoyChallenge(id: string, classId?: string): Promise<void> {
+    const list = await this.getBoyChallenges(classId);
+    const updated = list.filter((c) => c.id !== id);
+    await this.saveAllBoyChallenges(updated, classId);
+  }
+
+  // 6. Boy Quizzes / Mosab2at
+  async getBoyQuizzes(classId?: string): Promise<BoyQuiz[]> {
+    if (!this.isBrowser()) return INITIAL_QUIZZES;
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.BOY_QUIZZES, classId);
+      let stored: BoyQuiz[] | undefined = undefined;
+      try {
+        stored = await get<BoyQuiz[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored) && stored.length > 0) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      await this.saveAllBoyQuizzes(INITIAL_QUIZZES, classId, false);
+      return INITIAL_QUIZZES;
+    } catch {
+      return INITIAL_QUIZZES;
+    }
+  }
+
+  async saveAllBoyQuizzes(quizzes: BoyQuiz[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.BOY_QUIZZES, classId);
+    try {
+      await set(key, quizzes);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(quizzes));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_EVENTS_UPDATED',
+        data: quizzes,
+        description: 'Updated Boy Quizzes',
+      });
+    }
+  }
+
+  async saveBoyQuiz(quiz: BoyQuiz, classId?: string): Promise<void> {
+    const list = await this.getBoyQuizzes(classId);
+    const idx = list.findIndex((q) => q.id === quiz.id);
+    let updated: BoyQuiz[];
+    if (idx >= 0) {
+      updated = [...list];
+      updated[idx] = quiz;
+    } else {
+      updated = [quiz, ...list];
+    }
+    await this.saveAllBoyQuizzes(updated, classId);
+  }
+
+  async deleteBoyQuiz(id: string, classId?: string): Promise<void> {
+    const list = await this.getBoyQuizzes(classId);
+    const updated = list.filter((q) => q.id !== id);
+    await this.saveAllBoyQuizzes(updated, classId);
+  }
+
+  // 7. Boy Questions (Ask Servant)
+  async getBoyQuestions(classId?: string): Promise<BoyQuestion[]> {
+    if (!this.isBrowser()) return [];
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.BOY_QUESTIONS, classId);
+      let stored: BoyQuestion[] | undefined = undefined;
+      try {
+        stored = await get<BoyQuestion[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored)) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  async saveAllBoyQuestions(questions: BoyQuestion[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.BOY_QUESTIONS, classId);
+    try {
+      await set(key, questions);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(questions));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CUSTOM_EVENTS_UPDATED',
+        data: questions,
+        description: 'Updated Boy Questions',
+      });
+    }
+  }
+
+  async saveBoyQuestion(question: BoyQuestion, classId?: string): Promise<void> {
+    const list = await this.getBoyQuestions(classId);
+    const idx = list.findIndex((q) => q.id === question.id);
+    let updated: BoyQuestion[];
+    if (idx >= 0) {
+      updated = [...list];
+      updated[idx] = question;
+    } else {
+      updated = [question, ...list];
+    }
+    await this.saveAllBoyQuestions(updated, classId);
+  }
+
+  async deleteBoyQuestion(id: string, classId?: string): Promise<void> {
+    const list = await this.getBoyQuestions(classId);
+    const updated = list.filter((q) => q.id !== id);
+    await this.saveAllBoyQuestions(updated, classId);
+  }
+
+  // 8. Student Badges
+  async getStudentBadges(classId?: string): Promise<StudentBadge[]> {
+    if (!this.isBrowser()) return [];
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.STUDENT_BADGES, classId);
+      let stored: StudentBadge[] | undefined = undefined;
+      try {
+        stored = await get<StudentBadge[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      if (stored && Array.isArray(stored)) {
+        return stored;
+      }
+      const local = localStorage.getItem(key);
+      if (local) {
+        return JSON.parse(local);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  async saveAllStudentBadges(badges: StudentBadge[], classId?: string, broadcast = true): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.STUDENT_BADGES, classId);
+    try {
+      await set(key, badges);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(badges));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'CLASS_HEROES_UPDATED',
+        data: badges,
+        description: 'Awarded Student Badge',
+      });
+    }
+  }
+
+  async awardStudentBadge(badge: StudentBadge, classId?: string): Promise<void> {
+    const list = await this.getStudentBadges(classId);
+    const updated = [badge, ...list];
+    await this.saveAllStudentBadges(updated, classId);
+  }
+
+  async deleteStudentBadge(badgeId: string, classId?: string): Promise<void> {
+    const list = await this.getStudentBadges(classId);
+    const updated = list.filter((b) => b.id !== badgeId);
+    await this.saveAllStudentBadges(updated, classId);
+  }
+
+  // 9. Boy Notifications
+  async getBoyNotifications(studentId?: string, classId?: string): Promise<BoyNotification[]> {
+    if (!this.isBrowser()) return [];
+    try {
+      const key = this.getScopedKey(STORAGE_KEYS.BOY_NOTIFICATIONS, classId);
+      let stored: BoyNotification[] | undefined = undefined;
+      try {
+        stored = await get<BoyNotification[]>(key);
+      } catch {
+        // IDB fallback
+      }
+      let allNotifs: BoyNotification[] = [];
+      if (stored && Array.isArray(stored)) {
+        allNotifs = stored;
+      } else {
+        const local = localStorage.getItem(key);
+        if (local) {
+          allNotifs = JSON.parse(local);
+        }
+      }
+
+      if (!studentId) return allNotifs;
+      return allNotifs.filter((n) => !n.studentId || n.studentId === studentId);
+    } catch {
+      return [];
+    }
+  }
+
+  async saveAllBoyNotifications(notifs: BoyNotification[], classId?: string): Promise<void> {
+    if (!this.isBrowser()) return;
+    const key = this.getScopedKey(STORAGE_KEYS.BOY_NOTIFICATIONS, classId);
+    try {
+      await set(key, notifs);
+    } catch {
+      // safe fallback
+    }
+    localStorage.setItem(key, JSON.stringify(notifs));
+  }
+
+  async addBoyNotification(notif: BoyNotification, classId?: string): Promise<void> {
+    const list = await this.getBoyNotifications(undefined, classId);
+    const updated = [notif, ...list];
+    await this.saveAllBoyNotifications(updated, classId);
+  }
+
+  async markBoyNotificationRead(notifId: string, classId?: string): Promise<void> {
+    const list = await this.getBoyNotifications(undefined, classId);
+    const updated = list.map((n) => (n.id === notifId ? { ...n, read: true } : n));
+    await this.saveAllBoyNotifications(updated, classId);
+  }
 }
+
+export const DEFAULT_BOY_PORTAL_SETTINGS: BoyPortalSettings = {
+  hideScores: false,
+  isShopEnabled: true,
+  announcementBanner: 'أهلاً بكم في بوابة مخدومي أسرة البابا ساويرس! 🌟 استعدوا للمسابقات والأوسمة والجوائز!',
+};
+
+export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
+  {
+    id: 'ann-1',
+    title: 'مرحباً بجميع أبطال أسرة البابا ساويرس بنظام الأوسمة الجديد! 🏆',
+    content: 'كل أسبوع هيكون عندنا تحديات ومزامير وكويزات وجوائز بالنقاط! كل مخدوم يقدر يستلم مزاميره، يشترك في التحديات ويجمع أوسمة دهبية وفضية في بروفايله!',
+    targetAudience: 'boys',
+    isPinned: true,
+    priority: 'celebration',
+    authorServant: 'George Michael',
+    createdAt: '2026-10-28T09:00:00Z',
+  },
+  {
+    id: 'ann-2',
+    title: 'تنبيه لأولياء الأمور والمخدومين: مواعيد خدمة الجمعة والقداس',
+    content: 'نذكركم بالحضور المبكر للقداس الإلهي ومدارس الأحد يوم الجمعة، ودرس كتاب السبت وماتش الملعب يوم الخميس.',
+    targetAudience: 'all',
+    isPinned: false,
+    priority: 'normal',
+    authorServant: 'George Michael',
+    createdAt: '2026-10-27T10:00:00Z',
+  },
+];
+
+export const INITIAL_MAZAMER: MazmourDefinition[] = [
+  {
+    id: 'mazmour-1',
+    number: 1,
+    title: 'مزمور ١: طوبى للرجل الذي لم يسلك في مشورة الأشرار',
+    reference: 'مزمور ١ (صلاة باكر بالأجبية)',
+    textArabic: 'طُوبَى لِلرَّجُلِ الَّذِي لَمْ يَسْلُكْ فِي مَشُورَةِ الأَشْرَارِ، وَفِي طَرِيقِ الْخُطَاةِ لَمْ يَقِفْ، وَفِي مَجْلِسِ الْمُسْتَهْزِئِينَ لَمْ يَجْلِسْ. بَلْ فِي نَامُوسِ الرَّبِّ إِرَادَتُهُ، وَفِي نَامُوسِهِ يَلْهَجُ نَهَاراً وَلَيْلاً. فَيَكُونُ كَشَجَرَةٍ مَغْرُوسَةٍ عِنْدَ مَجَارِي الْمِيَاهِ، الَّتِي تُعْطِي ثَمَرَهَا فِي حِينِهِ، وَوَرَقُهَا لاَ يَنْتَثِرُ. وَكُلُّ مَا يَصْنَعُهُ يَنْجَحُ.',
+    verseCount: 6,
+    week1Score: 30,
+    week2Score: 20,
+    afterTimeScore: 10,
+    maxDropDays: 21,
+    goldBadgeId: 'mazmour_1_gold',
+    silverBadgeId: 'mazmour_1_silver',
+    bronzeBadgeId: 'mazmour_1_bronze',
+    isActive: true,
+  },
+  {
+    id: 'mazmour-23',
+    number: 23,
+    title: 'مزمور ٢٣: الرب راعيّ فلا يعوزني شيء',
+    reference: 'مزمور ٢٣ (صلاة الساعة الثالثة بالأجبية)',
+    textArabic: 'اَلرَّبُّ رَاعِيَّ فَلاَ يَعْوُزُنِي شَيْءٌ. فِي مَرَاعٍ خُضْرٍ يُرْبِضُنِي. إِلَى مِيَاهِ الرَّاحَةِ يُورِدُنِي. يَرُدُّ نَفْسِي. يَهْدِينِي إِلَى سُبُلِ الْبِرِّ مِنْ أَجْلِ اسْمِهِ. أَيْضاً إِذَا سِرْتُ فِي وَادِي ظِلِّ الْمَوْتِ لاَ أَخَافُ شَرّاً لأَنَّكَ أَنْتَ مَعِي. عَصَاكَ وَعُكَّازُكَ هُمَا يُعَزِّيَانِني. تُرَتِّبُ قُدَّامِي مَائِدَةً تُجَاهَ مُضَايِقِيَّ. مَسَحْتَ بِالدُّهْنِ رَأْسِي. كَأْسِي رَيَّا. إِنَّمَا خَيْرٌ وَرَحْمَةٌ يَتْبَعَانِني كُلَّ أَيَّامِ حَيَاتِي، وَأَسْكُنُ فِي بَيْتِ الرَّبِّ إِلَى مَدَى الأَيَّامِ.',
+    verseCount: 6,
+    week1Score: 35,
+    week2Score: 25,
+    afterTimeScore: 15,
+    maxDropDays: 21,
+    goldBadgeId: 'mazmour_23_gold',
+    silverBadgeId: 'mazmour_23_silver',
+    bronzeBadgeId: 'mazmour_23_bronze',
+    isActive: true,
+  },
+  {
+    id: 'mazmour-27',
+    number: 27,
+    title: 'مزمور ٢٧: الرب نوري وخلاصي ممن أخاف',
+    reference: 'مزمور ٢٧ (مز ٢٦ بالأجبية)',
+    textArabic: 'اَلرَّبُّ نُورِي وَخَلاَصِي، مِمَّنْ أَخَافُ؟ الرَّبُّ حِصْنُ حَيَاتِي، مِمَّنْ أَرْتَعِبُ؟ عِنْدَمَا اقْتَرَبَ إِلَيَّ الأَشْرَارُ لِيَأْكُلُوا لَحْمِي، مُضَايِقِيَّ وَأَعْدَائِي، عَثَرُوا وَسَقَطُوا. إِنْ نَزَلَ عَلَيَّ جَيْشٌ لاَ يَخَافُ قَلْبِي. إِنْ قَامَتْ عَلَيَّ حَرْبٌ فَفِي ذلِكَ أَنَا مُطْمَئِنٌّ. وَاحِدَةً سَأَلْتُ مِنَ الرَّبِّ وَإِيَّاهَا أَلْتَمِسُ: أَنْ أَسْكُنَ فِي بَيْتِ الرَّبِّ كُلَّ أَيَّامِ حَيَاتِي، لِكَيْ أَنْظُرَ إِلَى جَمَالِ الرَّبِّ، وَأَتَفَرَّسَ فِي هَيْكَلِهِ.',
+    verseCount: 14,
+    week1Score: 40,
+    week2Score: 30,
+    afterTimeScore: 15,
+    maxDropDays: 28,
+    goldBadgeId: 'mazmour_27_gold',
+    silverBadgeId: 'mazmour_27_silver',
+    bronzeBadgeId: 'mazmour_27_bronze',
+    isActive: true,
+  },
+  {
+    id: 'mazmour-51',
+    number: 51,
+    title: 'مزمور ٥١: ارحمني يا الله كعظيم رحمتك (مزمور التوبة)',
+    reference: 'مزمور ٥١ (مز ٥٠ بالأجبية - كل الصلوات)',
+    textArabic: 'ارْحَمْنِي يَا اَللهُ كَعَظِيمِ رَحْمَتِكَ، وَكَمِثْلِ كَثْرَةِ رَأْفَتِكَ امْحُ إِثْمِي. اغْسِلْنِي كَثِيراً مِنْ إِثْمِي، وَمِنْ خَطِيَّتِي طَهِّرْنِي. لأَنِّي عَارِفٌ بِإِثْمِي، وَخَطِيَّتِي أَمَامِي فِي كُلِّ حِينٍ. لَكَ وَحْدَكَ أَخْطَأْتُ، وَالشَّرَّ قُدَّامَكَ صَنَعْتُ. قَلْباً نَقِيّاً اخْلُقْ فِيَّ يَا اَللهُ، وَرُوحاً مُسْتَقِيماً جَدِّدْ فِي دَاخِلِي.',
+    verseCount: 19,
+    week1Score: 50,
+    week2Score: 35,
+    afterTimeScore: 20,
+    maxDropDays: 30,
+    goldBadgeId: 'mazmour_51_gold',
+    silverBadgeId: 'mazmour_51_silver',
+    bronzeBadgeId: 'mazmour_51_bronze',
+    isActive: true,
+  },
+  {
+    id: 'mazmour-91',
+    number: 91,
+    title: 'مزمور ٩١: الساكن في ستر العلي (صلاة النوم)',
+    reference: 'مزمور ٩١ (مز ٩٠ بالأجبية)',
+    textArabic: 'اَلسَّاكِنُ فِي سِتْرِ الْعَلِيِّ، فِي ظِلِّ الْقَدِيرِ يَبِيتُ. أَقُولُ لِلرَّبِّ: مَلْجَإِي وَحِصْنِي، إِلهِي فَأَتَّكِلُ عَلَيْهِ. لأَنَّهُ يُنَجِّيكَ مِنْ فَخِّ الصَّيَّادِ وَمِنْ وَبَإٍ خَطِرٍ. بِخَوَافِيهِ يُظَلِّلُكَ، وَتَحْتَ أَجْنِحَتِهِ تَحْتَمِي. تُرْسٌ وَمِجَنٌّ حَقُّهُ. لاَ تَخْشَى مِنْ خَوْفِ اللَّيْلِ، وَلاَ مِنْ سَهْمٍ يَطِيرُ فِي النَّهَارِ.',
+    verseCount: 16,
+    week1Score: 45,
+    week2Score: 30,
+    afterTimeScore: 15,
+    maxDropDays: 28,
+    goldBadgeId: 'mazmour_91_gold',
+    silverBadgeId: 'mazmour_91_silver',
+    bronzeBadgeId: 'mazmour_91_bronze',
+    isActive: true,
+  },
+  {
+    id: 'mazmour-121',
+    number: 121,
+    title: 'مزمور ١٢١: رفعت عينيّ إلى الجبال (صلاة الغروب)',
+    reference: 'مزمور ١٢١ (مز ١٢٠ بالأجبية)',
+    textArabic: 'رَفَعْتُ عَيْنَيَّ إِلَى الْجِبَالِ، مِنْ حَيْثُ يَأْتِي عَوْنِي. مَعُونَتِي مِنْ عِنْدِ الرَّبِّ، صَانِعِ السَّمَاوَاتِ وَالأَرْضِ. لاَ يَدَعُ رِجْلَكَ تَزِلُّ. لاَ يَنْعَسُ حَافِظُكَ. هُوَذَا لاَ يَنْعَسُ وَلاَ يَنَامُ حَافِظُ إِسْرَائِيلَ. الرَّبُّ حَافِظُكَ. الرَّبُّ ظِلٌّ لَكَ عَنْ يَدِكَ الْيُمْنَى. لاَ تَضْرِبُكَ الشَّمْسُ فِي النَّهَارِ، وَلاَ الْقَمَرُ فِي اللَّيْلِ. الرَّبُّ يَحْفَظُكَ مِنْ كُلِّ شَرٍّ. يَحْفَظُ نَفْسَكَ. الرَّبُّ يَحْفَظُ خُرُوجَكَ وَدُخُولَكَ مِنَ الآنَ وَإِلَى الدَّهْرِ.',
+    verseCount: 8,
+    week1Score: 35,
+    week2Score: 25,
+    afterTimeScore: 10,
+    maxDropDays: 21,
+    goldBadgeId: 'mazmour_121_gold',
+    silverBadgeId: 'mazmour_121_silver',
+    bronzeBadgeId: 'mazmour_121_bronze',
+    isActive: true,
+  },
+  {
+    id: 'mazmour-150',
+    number: 150,
+    title: 'مزمور ١٥٠: سبحوا الله في جميع قديسيه',
+    reference: 'مزمور ١٥٠ (ختام المزامير والتوزيع بالقداس)',
+    textArabic: 'سَبِّحُوا اللهَ فِي جَمِيعِ قِدِّيسِيهِ. سَبِّحُوهُ فِي فَلَكِ قُوَّتِهِ. سَبِّحُوهُ عَلَى مُقْتَدَرَاتِهِ. سَبِّحُوهُ كَكَثْرَةِ عَظَمَتِهِ. سَبِّحُوهُ بِصَوْتِ الصُّورِ. سَبِّحُوهُ بِمِزْمَارٍ وَقِيثَارَةٍ. سَبِّحُوهُ بِدُفٍّ وَرَقْصٍ. سَبِّحُوهُ بِأَوْتَارٍ وَمِزْمَارٍ. سَبِّحُوهُ بِصُنُوجِ التَّصْوِيتِ. سَبِّحُوهُ بِصُنُوجِ الْهُتَافِ. كُلُّ نَسَمَةٍ فَلْتُسَبِّحِ الرَّبَّ. هَلْلُويَا.',
+    verseCount: 6,
+    week1Score: 30,
+    week2Score: 20,
+    afterTimeScore: 10,
+    maxDropDays: 21,
+    goldBadgeId: 'mazmour_150_gold',
+    silverBadgeId: 'mazmour_150_silver',
+    bronzeBadgeId: 'mazmour_150_bronze',
+    isActive: true,
+  },
+];
+
+export const INITIAL_SHOP_ITEMS: ShopItem[] = [
+  {
+    id: 'shop-1',
+    title: 'الكتاب المقدس الفاخر للأطفال والناشئين',
+    description: 'نسخة دار الكتاب المقدس ملونة مع شواهد وخرائط تفسيرية لرحلات العهدين القديم والجديد.',
+    price: 150,
+    stock: 5,
+    icon: 'BookOpen',
+    isEnabled: true,
+    category: 'كتب مقدسة',
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+  {
+    id: 'shop-2',
+    title: 'سلسلة صليب قبطي فضي مميز',
+    description: 'صليب قبطي فاخر منقوش مصنوع خصيصاً لأبطال أسرة البابا ساويرس.',
+    price: 80,
+    stock: 12,
+    icon: 'Cross',
+    isEnabled: true,
+    category: 'إكسسوارات كنسية',
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+  {
+    id: 'shop-3',
+    title: 'كرة قدم احترافية لماتشات الخميس',
+    description: 'كرة قدم أصلية عالية الجودة للمشاركة في مباريات الملعب والنشاط الرياضي.',
+    price: 120,
+    stock: 4,
+    icon: 'Trophy',
+    isEnabled: true,
+    category: 'رياضة وملعب',
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+  {
+    id: 'shop-4',
+    title: 'تيشيرت بطل أسرة البابا ساويرس الخاص',
+    description: 'تيشيرت رياضي قطن فاخر مطبوع عليه شعار الفصل ورقمك الكنسي الخاص.',
+    price: 100,
+    stock: 8,
+    icon: 'Sparkles',
+    isEnabled: true,
+    category: 'ملابس وهدايا',
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+  {
+    id: 'shop-5',
+    title: 'مج حراري كنسي سيراميك فاخر',
+    description: 'مج كنسي حراري يحتفظ بالحرارة مطبوع عليه آية تشجيعية وشعار الفصل.',
+    price: 60,
+    stock: 15,
+    icon: 'Heart',
+    isEnabled: true,
+    category: 'هدايا تذكارية',
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+  {
+    id: 'shop-6',
+    title: 'لعبة لوحية مسيحية (رحلة الإنجيل)',
+    description: 'لعبة مسابقات وتحديات جماعية لقضاء وقت ممتع مع الأسرة والأصدقاء.',
+    price: 110,
+    stock: 3,
+    icon: 'Zap',
+    isEnabled: true,
+    category: 'ألعاب ومسابقات',
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+];
+
+export const INITIAL_CHALLENGES: BoyChallenge[] = [
+  {
+    id: 'chal-1',
+    title: 'بطل التبكير في القداس الإلهي ٣ أسابيع',
+    description: 'احضر القداس قبل رفع بخور باكر أو قراءة الإنجيل لثلاثة أسابيع متتالية وتناول من الأسرار المقدسة.',
+    scoreReward: 50,
+    badgeId: 'badge_0012',
+    badgeName: 'نجم القداس الذهبي',
+    badgeIcon: 'Crown',
+    badgeTier: 'gold',
+    category: 'attendance',
+    isActive: true,
+    completedStudentIds: [],
+    pendingStudentIds: [],
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+  {
+    id: 'chal-2',
+    title: 'صلاة باكر من الأجبية يومياً لمدة أسبوع',
+    description: 'احرص على فتح الأجبية وقراءة صلاة باكر كل صباح قبل الخروج للمدرسة أو الكنيسة.',
+    scoreReward: 35,
+    badgeId: 'badge_0025',
+    badgeName: 'سراج الصلاة المنير',
+    badgeIcon: 'Flame',
+    badgeTier: 'silver',
+    category: 'spiritual',
+    isActive: true,
+    completedStudentIds: [],
+    pendingStudentIds: [],
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+  {
+    id: 'chal-3',
+    title: 'خدمة وتنظيف فناء وفصل الكنيسة مع الخدام',
+    description: 'شارك الخدام بروح البذل والمحبة في ترتيب الكراسي ونظافة مكان التربية الكنسية بعد انتهاء الحصة.',
+    scoreReward: 30,
+    badgeId: 'badge_0045',
+    badgeName: 'خادم المحبة الصادقة',
+    badgeIcon: 'Heart',
+    badgeTier: 'bronze',
+    category: 'service',
+    isActive: true,
+    completedStudentIds: [],
+    pendingStudentIds: [],
+    createdAt: '2026-10-28T00:00:00Z',
+  },
+];
+
+export const INITIAL_QUIZZES: BoyQuiz[] = [
+  {
+    id: 'quiz-1',
+    title: 'مسابقة حياة البابا كيرلس السادس والبابا ساويرس',
+    description: 'اختبر معلوماتك الكنسية عن شفعاء كنيستنا وفصلنا الأحباء!',
+    scoreReward: 40,
+    badgeId: 'badge_0068',
+    badgeName: 'حكيم التاريخ الكنسي',
+    badgeIcon: 'BookOpen',
+    badgeTier: 'gold',
+    isActive: true,
+    completedStudentIds: [],
+    createdAt: '2026-10-28T00:00:00Z',
+    questions: [
+      {
+        id: 'q1',
+        question: 'ما هو اللقب الشهير للبابا ساويرس بطريرك أنطاكية وشفيع فصلنا؟',
+        options: [
+          'تاج السريان ولسان العطر المتكلم باللاهوت',
+          'حبيب الملايين وصانع المعجزات',
+          'ناظر الإله الإنجيلي',
+          'العمود المنير للبرية',
+        ],
+        correctOptionIndex: 0,
+        explanation: 'يلقب القديس البابا ساويرس بتاج السريان ولسان العطر لكثرة كتاباته اللاهوتية العميقة ودفاعه عن الإيمان المستقيم.',
+      },
+      {
+        id: 'q2',
+        question: 'كم عدد مزامير سفر المزامير في العهد القديم؟',
+        options: ['١٥٠ مزموراً بالإضافة لمزمور ١٥١', '١٠٠ مزمور فقط', '٦٦ مزموراً', '٢٠٠ مزمور'],
+        correctOptionIndex: 0,
+        explanation: 'سفر المزامير يحتوي على ١٥٠ مزموراً بالإضافة إلى مزمور ١٥١ القبطي الخاص بداود النبي.',
+      },
+      {
+        id: 'q3',
+        question: 'ما هي صلاة الأجبية التي تحتوي على مزمور "الساكن في ستر العلي"؟',
+        options: ['صلاة النوم', 'صلاة الستار', 'صلاة نصف الليل', 'صلاة الساعة التاسعة'],
+        correctOptionIndex: 0,
+        explanation: 'مزمور ٩١ (السَّاكِنُ فِي سِتْرِ الْعَلِيِّ) هو المزمور الرئيسي في صلاة النوم.',
+      },
+    ],
+  },
+];
 
 export const db = new DatabaseService();
