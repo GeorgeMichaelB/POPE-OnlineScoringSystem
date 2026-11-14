@@ -1,0 +1,608 @@
+/* ===================================================================
+   CLASH ROYALE UI SYSTEM FOR BOYS GAMER PORTAL
+   Inspired by Supercell Clash Royale Aesthetics
+   =================================================================== */
+
+:root {
+  --cr-gold-light: #fef08a;
+  --cr-gold-main: #facc15;
+  --cr-gold-shadow: #b45309;
+  --cr-gold-glow: rgba(250, 204, 21, 0.45);
+
+  --cr-blue-light: #38bdf8;
+  --cr-blue-main: #0284c7;
+  --cr-blue-shadow: #0369a1;
+  --cr-blue-dark: #0f172a;
+
+  --cr-green-light: #4ade80;
+  --cr-green-main: #22c55e;
+  --cr-green-shadow: #15803d;
+
+  --cr-purple-light: #c084fc;
+  --cr-purple-main: #9333ea;
+  --cr-purple-shadow: #6b21a8;
+
+  --cr-wood-dark: #451a03;
+  --cr-wood-main: #78350f;
+  --cr-wood-light: #92400e;
+
+  --cr-stone-dark: #0b1120;
+  --cr-stone-main: #1e293b;
+  --cr-stone-light: #334155;
+}
+
+/* Base Clash Royale Font Styling */
+.cr-portal {
+  font-family: 'Rubik', 'Tajawal', 'Cairo', system-ui, -apple-system, sans-serif;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: radial-gradient(circle at 50% 10%, #1e293b 0%, #0b1120 70%, #030712 100%);
+  color: #f8fafc;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Background animated arena ambient */
+.cr-arena-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(250, 204, 21, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 50% 90%, rgba(147, 51, 234, 0.08) 0%, transparent 50%);
+}
+
+/* Text Shadows */
+.cr-text-shadow {
+  text-shadow: 0 2px 0 #000000, 0 3px 6px rgba(0, 0, 0, 0.7);
+}
+
+.cr-text-shadow-heavy {
+  text-shadow: 
+    -1.5px -1.5px 0 #000,
+     1.5px -1.5px 0 #000,
+    -1.5px  1.5px 0 #000,
+     1.5px  1.5px 0 #000,
+     0 4px 6px rgba(0, 0, 0, 0.9);
+}
+
+.cr-gold-title {
+  color: #fffbeb;
+  background: linear-gradient(180deg, #ffffff 0%, #fef08a 40%, #eab308 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.9));
+  font-weight: 900;
+}
+
+.cr-purple-title {
+  color: #faf5ff;
+  background: linear-gradient(180deg, #ffffff 0%, #e9d5ff 40%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.9));
+  font-weight: 900;
+}
+
+/* 3D Beveled Buttons */
+.cr-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 900;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.15s ease;
+  position: relative;
+  text-decoration: none;
+  border: 2px solid #000000;
+  letter-spacing: 0.02em;
+}
+
+.cr-btn:hover {
+  filter: brightness(1.08);
+}
+
+.cr-btn:active {
+  transform: translateY(4px);
+}
+
+/* Giant Yellow Battle Button */
+.cr-btn-battle {
+  background: linear-gradient(180deg, #fde047 0%, #eab308 50%, #ca8a04 100%);
+  border: 3px solid #0c4a6e;
+  border-radius: 20px;
+  color: #ffffff;
+  padding: 1.15rem 2.2rem;
+  font-size: 1.35rem;
+  font-weight: 900;
+  box-shadow: 
+    inset 0 3px 0 rgba(255, 255, 255, 0.6),
+    0 8px 0 #854d0e,
+    0 16px 24px rgba(0, 0, 0, 0.6);
+  text-shadow: 
+    -1.5px -1.5px 0 #713f12,
+     1.5px -1.5px 0 #713f12,
+    -1.5px  1.5px 0 #713f12,
+     1.5px  1.5px 0 #713f12,
+     0 3px 4px rgba(0, 0, 0, 0.8);
+  position: relative;
+  overflow: hidden;
+}
+
+.cr-btn-battle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%);
+  border-radius: 16px 16px 50% 50%;
+  pointer-events: none;
+}
+
+.cr-btn-battle:active {
+  transform: translateY(6px);
+  box-shadow: 
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    0 2px 0 #854d0e,
+    0 8px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* 3D Yellow Button */
+.cr-btn-yellow {
+  background: linear-gradient(180deg, #fde047 0%, #eab308 60%, #ca8a04 100%);
+  border: 2px solid #713f12;
+  color: #ffffff;
+  box-shadow: 
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    0 5px 0 #854d0e,
+    0 8px 15px rgba(0, 0, 0, 0.4);
+  text-shadow: -1px -1px 0 #713f12, 1px -1px 0 #713f12, -1px 1px 0 #713f12, 1px 1px 0 #713f12;
+}
+.cr-btn-yellow:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #854d0e, 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 3D Blue Button */
+.cr-btn-blue {
+  background: linear-gradient(180deg, #38bdf8 0%, #0284c7 60%, #0369a1 100%);
+  border: 2px solid #082f49;
+  color: #ffffff;
+  box-shadow: 
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    0 5px 0 #075985,
+    0 8px 15px rgba(0, 0, 0, 0.4);
+  text-shadow: -1px -1px 0 #082f49, 1px -1px 0 #082f49, -1px 1px 0 #082f49, 1px 1px 0 #082f49;
+}
+.cr-btn-blue:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #075985, 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 3D Green Button */
+.cr-btn-green {
+  background: linear-gradient(180deg, #4ade80 0%, #16a34a 60%, #15803d 100%);
+  border: 2px solid #14532d;
+  color: #ffffff;
+  box-shadow: 
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    0 5px 0 #15803d,
+    0 8px 15px rgba(0, 0, 0, 0.4);
+  text-shadow: -1px -1px 0 #14532d, 1px -1px 0 #14532d, -1px 1px 0 #14532d, 1px 1px 0 #14532d;
+}
+.cr-btn-green:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #15803d, 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 3D Purple Button */
+.cr-btn-purple {
+  background: linear-gradient(180deg, #c084fc 0%, #9333ea 60%, #7e22ce 100%);
+  border: 2px solid #3b0764;
+  color: #ffffff;
+  box-shadow: 
+    inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    0 5px 0 #6b21a8,
+    0 8px 15px rgba(0, 0, 0, 0.4);
+  text-shadow: -1px -1px 0 #3b0764, 1px -1px 0 #3b0764, -1px 1px 0 #3b0764, 1px 1px 0 #3b0764;
+}
+.cr-btn-purple:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #6b21a8, 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* 3D Red Button */
+.cr-btn-red {
+  background: linear-gradient(180deg, #f87171 0%, #dc2626 60%, #b91c1c 100%);
+  border: 2px solid #450a0a;
+  color: #ffffff;
+  box-shadow: 
+    inset 0 2px 0 rgba(255, 255, 255, 0.4),
+    0 5px 0 #991b1b,
+    0 8px 15px rgba(0, 0, 0, 0.4);
+  text-shadow: -1px -1px 0 #450a0a, 1px -1px 0 #450a0a, -1px 1px 0 #450a0a, 1px 1px 0 #450a0a;
+}
+.cr-btn-red:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #991b1b, 0 4px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Top Resource Badge Pills (Coins, Gems, Trophies, Crowns) */
+.cr-resource-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #334155;
+  border-radius: 999px;
+  padding: 3px 10px 3px 6px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.4);
+  font-weight: 900;
+  font-size: 0.85rem;
+  color: #ffffff;
+  position: relative;
+}
+
+.cr-resource-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+  flex-shrink: 0;
+}
+
+/* Clash Royale Wooden Panel / Stone Frame */
+.cr-wood-frame {
+  background: linear-gradient(180deg, #78350f 0%, #451a03 100%);
+  border: 3px solid #92400e;
+  border-radius: 18px;
+  box-shadow: 
+    inset 0 2px 0 rgba(255, 255, 255, 0.25),
+    0 8px 20px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.cr-stone-panel {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #334155;
+  border-radius: 20px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 10px 25px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+/* Gold Rivet on corners */
+.cr-rivet {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fef08a 0%, #eab308 60%, #854d0e 100%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  position: absolute;
+}
+
+/* Clash Royale Card Component */
+.cr-card {
+  width: 100%;
+  aspect-ratio: 0.72;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.5rem;
+  box-sizing: border-box;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  cursor: pointer;
+  border: 3px solid #000;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.6), 0 10px 18px rgba(0, 0, 0, 0.4);
+}
+
+.cr-card:hover {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 12px 0 rgba(0, 0, 0, 0.6), 0 18px 25px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+/* Card Rarity Frames */
+.cr-card-common {
+  background: linear-gradient(145deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+  border-color: #94a3b8;
+}
+
+.cr-card-rare {
+  background: linear-gradient(145deg, #7c2d12 0%, #ea580c 50%, #9a3412 100%);
+  border-color: #fdba74;
+  box-shadow: 0 6px 0 #7c2d12, 0 10px 20px rgba(234, 88, 12, 0.35);
+}
+
+.cr-card-epic {
+  background: linear-gradient(145deg, #4c1d95 0%, #9333ea 50%, #581c87 100%);
+  border-color: #d8b4fe;
+  box-shadow: 0 6px 0 #4c1d95, 0 10px 20px rgba(147, 51, 234, 0.45);
+}
+
+.cr-card-legendary {
+  background: linear-gradient(135deg, #090d16 0%, #1e1b4b 30%, #311042 60%, #0f172a 100%);
+  border: 3px solid transparent;
+  border-image: linear-gradient(135deg, #fde047, #ec4899, #38bdf8, #a855f7, #fde047) 1;
+  box-shadow: 0 6px 0 #3b0764, 0 10px 25px rgba(236, 72, 153, 0.5);
+  animation: crLegendaryRainbow 6s linear infinite;
+}
+
+@keyframes crLegendaryRainbow {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+/* Elixir Drop Indicator */
+.cr-card-elixir {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 24px;
+  height: 28px;
+  background: radial-gradient(circle at 35% 30%, #f472b6 0%, #db2777 50%, #831843 100%);
+  border: 1.5px solid #ffffff;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.72rem;
+  color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+  z-index: 2;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* Card Level Ribbon */
+.cr-card-level-ribbon {
+  background: linear-gradient(180deg, #1e293b 0%, #020617 100%);
+  border: 1.5px solid #64748b;
+  border-radius: 6px;
+  padding: 1px 6px;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #e2e8f0;
+  align-self: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  z-index: 2;
+}
+
+/* Chest Slots 3D Box */
+.cr-chest-slot {
+  flex: 1;
+  min-width: 70px;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #334155;
+  border-radius: 14px;
+  padding: 0.65rem 0.35rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 
+    inset 0 2px 4px rgba(0, 0, 0, 0.6),
+    0 4px 8px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+
+.cr-chest-slot:hover {
+  transform: translateY(-3px);
+  border-color: #facc15;
+}
+
+.cr-chest-ready {
+  border-color: #22c55e !important;
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 0 10px rgba(34, 197, 94, 0.2);
+  animation: crChestPulse 1.8s infinite ease-in-out;
+}
+
+@keyframes crChestPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(34, 197, 94, 0.4), inset 0 0 10px rgba(34, 197, 94, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.7), inset 0 0 15px rgba(34, 197, 94, 0.35);
+  }
+}
+
+/* Clash Royale 5-Tab Navigation Bar */
+.cr-navbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(180deg, #1e293b 0%, #090d16 100%);
+  border-top: 3px solid #475569;
+  box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  padding: 0 0.5rem 0.5rem 0.5rem;
+  height: 64px;
+  z-index: 150;
+}
+
+.cr-nav-tab {
+  flex: 1;
+  max-width: 90px;
+  height: 54px;
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.15s ease;
+  color: #94a3b8;
+  padding: 0;
+}
+
+.cr-nav-tab:hover {
+  filter: brightness(1.2);
+}
+
+.cr-nav-tab.active {
+  transform: translateY(-12px);
+  color: #ffffff;
+}
+
+.cr-nav-tab.active .cr-nav-icon-box {
+  background: linear-gradient(180deg, #fde047 0%, #eab308 50%, #ca8a04 100%);
+  border: 2.5px solid #ffffff;
+  border-radius: 14px;
+  box-shadow: 
+    0 6px 12px rgba(0, 0, 0, 0.6),
+    0 0 18px rgba(250, 204, 21, 0.6);
+  color: #713f12;
+  transform: scale(1.12);
+}
+
+.cr-nav-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.cr-nav-label {
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-shadow: 0 1px 2px #000000;
+}
+
+/* Badge Counter on Nav Tab */
+.cr-nav-badge {
+  position: absolute;
+  top: -2px;
+  right: 14px;
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  font-size: 0.62rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.8);
+  animation: crBounceBadge 1s infinite alternate ease-in-out;
+}
+
+@keyframes crBounceBadge {
+  0% { transform: scale(1); }
+  100% { transform: scale(1.15); }
+}
+
+/* Trophy Road Progress Bar */
+.cr-trophy-bar-bg {
+  width: 100%;
+  height: 20px;
+  background: #0f172a;
+  border: 2px solid #334155;
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.cr-trophy-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #facc15 100%);
+  border-radius: 999px;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+  transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.cr-trophy-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 999px;
+}
+
+/* Arena Stadium Stage Box */
+.cr-arena-box {
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 60%, #0f172a 100%);
+  border: 3px solid #38bdf8;
+  border-radius: 24px;
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 
+    0 12px 35px rgba(0, 0, 0, 0.7),
+    0 0 30px rgba(56, 189, 248, 0.2);
+}
+
+.cr-arena-box::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(ellipse at 50% 20%, rgba(56, 189, 248, 0.2) 0%, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 100%, 20px 20px, 20px 20px;
+  pointer-events: none;
+}
+
+/* Modal Overlay */
+.cr-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 1rem;
+  animation: crFadeIn 0.2s ease-out;
+}
+
+@keyframes crFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes crPopIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.cr-modal-card {
+  animation: crPopIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

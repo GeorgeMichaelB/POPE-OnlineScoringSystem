@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Student } from '../types';
 import { sound } from '../services/sound';
+import './boy-portal/clashRoyale.css';
 
 interface BoyLoginViewProps {
   students: Student[];
@@ -244,15 +245,11 @@ export const BoyLoginView: React.FC<BoyLoginViewProps> = ({
 
       {/* Main Container */}
       <div
+        className="cr-wood-frame"
         style={{
           maxWidth: '480px',
           width: '100%',
-          background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(56, 189, 248, 0.3)',
-          borderRadius: '24px',
           padding: '2rem 1.75rem',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.15)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -267,15 +264,16 @@ export const BoyLoginView: React.FC<BoyLoginViewProps> = ({
               width: '64px',
               height: '64px',
               borderRadius: '20px',
-              background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 50%, #818cf8 100%)',
+              background: 'linear-gradient(180deg, #fde047 0%, #eab308 50%, #ca8a04 100%)',
+              border: '2px solid #ffffff',
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 25px rgba(56, 189, 248, 0.5)',
+              boxShadow: '0 0 25px rgba(250, 204, 21, 0.5)',
               marginBottom: '0.85rem',
             }}
           >
-            <QrCode size={34} color="#0f172a" strokeWidth={2.2} />
+            <QrCode size={34} color="#713f12" strokeWidth={2.4} />
           </div>
 
           <div
@@ -283,37 +281,34 @@ export const BoyLoginView: React.FC<BoyLoginViewProps> = ({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.4rem',
-              background: 'rgba(56, 189, 248, 0.12)',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
-              padding: '3px 10px',
+              background: 'rgba(250, 204, 21, 0.15)',
+              border: '1.5px solid #facc15',
+              padding: '3px 12px',
               borderRadius: '999px',
-              fontSize: '0.72rem',
-              fontWeight: 800,
-              color: '#38bdf8',
+              fontSize: '0.75rem',
+              fontWeight: 900,
+              color: '#fde047',
               letterSpacing: '0.5px',
               textTransform: 'uppercase',
               marginBottom: '0.5rem',
             }}
           >
-            <Zap size={12} />
-            بوابة المخدومين • BOYS PASSPORT
+            <Zap size={13} />
+            الساحة الملوكية • BOYS ARENA PASS
           </div>
 
           <h1
+            className="cr-gold-title cr-text-shadow-heavy"
             style={{
               margin: '0.2rem 0',
-              fontSize: '1.65rem',
-              fontWeight: 900,
-              background: 'linear-gradient(135deg, #ffffff 0%, #e0f2fe 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              fontSize: '1.8rem',
             }}
           >
-            دخول أبطال أسرة البابا ساويرس
+            دخول ساحة أبطال البابا ساويرس ⚔️
           </h1>
 
-          <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
-            وجّه كاميرا موبايلك على باركود باسبورك الكنسي للدخول فوراً ⚡
+          <p style={{ margin: 0, fontSize: '0.85rem', color: '#fef3c7', fontWeight: 600 }}>
+            وجّه كاميرا موبايلك على باركود باسبورك الكنسي للدخول فوراً 👑
           </p>
         </div>
 
@@ -556,21 +551,15 @@ export const BoyLoginView: React.FC<BoyLoginViewProps> = ({
                 <button
                   type="submit"
                   disabled={!manualCode.trim() || isProcessing}
+                  className="cr-btn cr-btn-yellow"
                   style={{
-                    background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
-                    color: '#0f172a',
-                    fontWeight: 800,
-                    padding: '0.65rem 1.15rem',
-                    borderRadius: '10px',
-                    fontSize: '0.85rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    cursor: manualCode.trim() ? 'pointer' : 'not-allowed',
+                    padding: '0.65rem 1.25rem',
+                    fontSize: '0.9rem',
                     opacity: manualCode.trim() ? 1 : 0.6,
+                    cursor: manualCode.trim() ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  دخول
+                  انطلق للدخول ⚔️
                   <ArrowRight size={15} />
                 </button>
               </div>
@@ -595,24 +584,15 @@ export const BoyLoginView: React.FC<BoyLoginViewProps> = ({
             <button
               type="button"
               onClick={onLaunchHeroesScreen}
+              className="cr-btn cr-btn-blue"
               style={{
                 width: '100%',
-                background: 'rgba(217, 119, 6, 0.12)',
-                border: '1px solid rgba(217, 119, 6, 0.35)',
-                color: '#fbbf24',
-                padding: '0.6rem 1rem',
-                borderRadius: '10px',
-                fontSize: '0.82rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.45rem',
-                cursor: 'pointer',
+                padding: '0.65rem 1rem',
+                fontSize: '0.85rem',
               }}
             >
               <Trophy size={16} color="#fbbf24" />
-              <span>مشاهدة لوحة الشرف وأبطال الفصل مباشرة</span>
+              <span>مشاهدة لوحة الشرف وأبطال الساحة مباشرة 🏆</span>
             </button>
           )}
 
