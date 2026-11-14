@@ -1521,10 +1521,10 @@ export const ScoringView: React.FC<ScoringViewProps> = ({
                   rank === 1
                     ? { bg: '#fef3c7', text: '#b45309', border: '#fde68a' }
                     : rank === 2
-                    ? { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' }
-                    : rank === 3
-                    ? { bg: '#ffedd5', text: '#c2410c', border: '#fed7aa' }
-                    : { bg: 'var(--bg-subtle)', text: 'var(--text-muted)', border: 'transparent' };
+                      ? { bg: '#f1f5f9', text: '#475569', border: '#cbd5e1' }
+                      : rank === 3
+                        ? { bg: '#ffedd5', text: '#c2410c', border: '#fed7aa' }
+                        : { bg: 'var(--bg-subtle)', text: 'var(--text-muted)', border: 'transparent' };
 
                 return (
                   <div
