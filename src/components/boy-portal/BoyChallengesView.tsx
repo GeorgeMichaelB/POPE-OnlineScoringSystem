@@ -75,7 +75,7 @@ export const BoyChallengesView: React.FC<BoyChallengesViewProps> = ({
       </div>
 
       {/* Challenges Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.15rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
         {challenges.map((chal) => {
           const isCompleted = (chal.completedStudentIds || []).includes(student.id);
           const isPending = (chal.pendingStudentIds || []).includes(student.id);

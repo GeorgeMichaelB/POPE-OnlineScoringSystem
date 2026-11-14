@@ -44,6 +44,8 @@ export const BoyMzamerView: React.FC<BoyMzamerViewProps> = ({
 
   // Completed requests
   const completedRequests = studentRequests.filter((r) => r.status === 'completed');
+  // Declined requests
+  const declinedRequests = studentRequests.filter((r) => r.status === 'declined');
 
   // Calculate elapsed days for active request
   let elapsedDays = 0;
@@ -361,13 +363,55 @@ export const BoyMzamerView: React.FC<BoyMzamerViewProps> = ({
         </div>
       ) : null}
 
+      {/* Notice if a previous request was declined */}
+      {!activeRequest && declinedRequests.length > 0 && (() => {
+        const lastDeclined = declinedRequests[declinedRequests.length - 1];
+        return (
+          <div
+            style={{
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.5)',
+              borderRadius: '16px',
+              padding: '1rem 1.25rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '1rem',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <div style={{ color: '#f87171', fontWeight: 800, fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>ℹ️</span> تم الاعتذار عن اعتماد طلبك لمزمور: {lastDeclined.mazmourTitle}
+              </div>
+              <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#cbd5e1' }}>
+                {lastDeclined.servantNotes || 'يمكنك الآن اختيار مزمور آخر من القائمة بالأسفل والبدء في حفظه!'}
+              </p>
+            </div>
+            <span
+              style={{
+                background: 'rgba(239, 68, 68, 0.2)',
+                color: '#fca5a5',
+                border: '1px solid #ef4444',
+                padding: '4px 10px',
+                borderRadius: '8px',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+              }}
+            >
+              متاح لك طلب مزمور جديد الآن 📖
+            </span>
+          </div>
+        );
+      })()}
+
       {/* Psalms Catalog List */}
       <div>
         <h3 style={{ margin: '0 0 1rem', fontSize: '1.15rem', fontWeight: 800, color: '#f8fafc' }}>
           قائمة المزامير المتاحة للحفظ والتسليم ({mazamer.length} مزمور)
         </h3>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
           {mazamer.map((m) => {
             const isCompleted = completedRequests.some((r) => r.mazmourId === m.id);
             const isCurrent = activeRequest?.mazmourId === m.id;

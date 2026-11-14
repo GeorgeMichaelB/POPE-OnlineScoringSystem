@@ -119,8 +119,7 @@ export const BoyAskQuestionView: React.FC<BoyAskQuestionViewProps> = ({
         }}
       >
         <h3 style={{ margin: '0 0 1rem', fontSize: '1.1rem', fontWeight: 800, color: '#f8fafc' }}>
-          اكتب سؤالك لخدام أسرة البابا ساويرس
-        </h3>
+          اكتب سؤال للمستر وهو هيرد عليك         </h3>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {/* Category Picker */}

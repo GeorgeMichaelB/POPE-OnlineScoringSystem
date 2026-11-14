@@ -19,6 +19,7 @@ import {
   ArrowUp,
   ArrowDown,
   X,
+  Trophy,
 } from 'lucide-react';
 import type {
   Student,
@@ -72,6 +73,7 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
   // Async data states
   const [settings, setSettings] = useState<BoyPortalSettings>({
     hideScores: false,
+    hideLeaderboard: false,
     isShopEnabled: true,
   });
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -124,6 +126,14 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
 
   // Recitation Confirmation Modal
   const [recitationModalRequest, setRecitationModalRequest] = useState<MazmourRequest | null>(null);
+
+  // Decline Mazmour Request Modal
+  const [declineModalRequest, setDeclineModalRequest] = useState<MazmourRequest | null>(null);
+  const [declineReason, setDeclineReason] = useState('');
+
+  // Student Badges Management Modal (for removing badges)
+  const [studentBadgeManageModal, setStudentBadgeManageModal] = useState<Student | null>(null);
+  const [deductPointsOnBadgeDelete, setDeductPointsOnBadgeDelete] = useState(true);
 
   // Challenge Modal
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
@@ -230,6 +240,16 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
     const updated: BoyPortalSettings = {
       ...settings,
       isShopEnabled: !settings.isShopEnabled,
+    };
+    setSettings(updated);
+    await db.saveBoyPortalSettings(updated);
+    sound.playSuccessChime();
+  };
+
+  const handleToggleHideLeaderboard = async () => {
+    const updated: BoyPortalSettings = {
+      ...settings,
+      hideLeaderboard: !settings.hideLeaderboard,
     };
     setSettings(updated);
     await db.saveBoyPortalSettings(updated);
@@ -408,6 +428,96 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
     });
 
     sound.playSuccessChime();
+    await loadAll();
+  };
+
+  const handleDeclineMazmourRequest = async (req: MazmourRequest, reason: string) => {
+    const updated: MazmourRequest = {
+      ...req,
+      status: 'declined',
+      droppedAt: new Date().toISOString(),
+      servantNotes: reason.trim()
+        ? `تم رفض الطلب: ${reason.trim()} (بواسطة ${currentServantName})`
+        : `تم رفض الطلب بواسطة ${currentServantName}`,
+    };
+    await db.saveMazmourRequest(updated);
+
+    // Notify boy so they know and can choose another psalm
+    await db.addBoyNotification({
+      id: `notif_${Date.now()}`,
+      studentId: req.studentId,
+      title: `تحديث بشأن طلب استلام ${req.mazmourTitle} ℹ️`,
+      message: reason.trim()
+        ? `تم الاعتذار عن اعتماد طلب المزمور: "${reason.trim()}". يمكنك اختيار مزمور آخر الآن.`
+        : `تم الاعتذار عن اعتماد طلب المزمور بواسطة الخادم. يمكنك اختيار مزمور آخر الآن.`,
+      type: 'mazmour',
+      timestamp: new Date().toISOString(),
+      read: false,
+      linkView: 'mzamer',
+    });
+
+    sound.playAlertChime();
+    setDeclineModalRequest(null);
+    setDeclineReason('');
+    await loadAll();
+  };
+
+  const handleDeleteMazmourRequest = async (reqId: string) => {
+    if (confirm('هل أنت متأكد من حذف هذا الطلب نهائياً من السجل؟')) {
+      await db.deleteMazmourRequest(reqId);
+      sound.playSuccessChime();
+      setDeclineModalRequest(null);
+      setDeclineReason('');
+      await loadAll();
+    }
+  };
+
+  const handleRemoveStudentBadge = async (badge: StudentBadge, deductPoints: boolean = true) => {
+    const pts = badge.pointsAwarded || 0;
+    const confirmMsg = deductPoints && pts > 0
+      ? `هل أنت متأكد من حذف وسام "${badge.badgeName}" وخصم ${pts} نقطة من رصيد المخدوم؟`
+      : `هل أنت متأكد من حذف وسام "${badge.badgeName}" من المخدوم؟`;
+
+    if (!confirm(confirmMsg)) return;
+
+    await db.deleteStudentBadge(badge.id);
+
+    // Deduct points if requested and points were awarded
+    if (deductPoints && pts > 0) {
+      await db.addCustomPointEntry({
+        studentId: badge.studentId,
+        date: new Date().toISOString().split('T')[0],
+        points: -pts,
+        reason: `سحب وسام: ${badge.badgeName}`,
+        servantName: currentServantName,
+      });
+      if (onRefreshParentData) {
+        await onRefreshParentData();
+      }
+    }
+
+    // Add audit log
+    await db.addLogEntry({
+      username: currentServantName,
+      servantName: currentServantName,
+      action: 'BADGE_DELETED',
+      details: `حذف وسام "${badge.badgeName}" من المخدوم ${badge.studentId}${deductPoints && pts > 0 ? ` مع خصم ${pts} نقطة` : ''}`,
+      category: 'scoring',
+    });
+
+    // Notify boy
+    await db.addBoyNotification({
+      id: `notif_${Date.now()}`,
+      studentId: badge.studentId,
+      title: `تحديث الأوسمة الشرفية 🎖️`,
+      message: `تم سحب وسام "${badge.badgeName}" من خزانة أوسمتك بواسطة الخادم.`,
+      type: 'badge',
+      timestamp: new Date().toISOString(),
+      read: false,
+      linkView: 'badges',
+    });
+
+    sound.playAlertChime();
     await loadAll();
   };
 
@@ -872,6 +982,29 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
             <ShoppingBag size={16} color={settings.isShopEnabled ? '#34d399' : '#f87171'} />
             <span style={{ fontSize: '0.78rem', fontWeight: 800, color: settings.isShopEnabled ? '#34d399' : '#f87171' }}>
               {settings.isShopEnabled ? 'المتجر مفعّل 🛍️' : 'المتجر مغلق 🔒'}
+            </span>
+          </div>
+
+          {/* Hide Leaderboard Switch */}
+          <div
+            onClick={handleToggleHideLeaderboard}
+            style={{
+              background: settings.hideLeaderboard ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
+              border: settings.hideLeaderboard ? '1px solid #ef4444' : '1px solid #f59e0b',
+              borderRadius: '12px',
+              padding: '6px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer',
+              userSelect: 'none',
+              transition: 'all 0.15s ease',
+            }}
+            title="إخفاء أو إظهار لوحة ترتيب المتصدرين في بوابة الأولاد"
+          >
+            {settings.hideLeaderboard ? <Lock size={16} color="#f87171" /> : <Trophy size={16} color="#fbbf24" />}
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, color: settings.hideLeaderboard ? '#f87171' : '#fbbf24' }}>
+              {settings.hideLeaderboard ? 'الترتيب مخفي عن الأولاد 🔒' : 'الترتيب معلن للأولاد 🏆'}
             </span>
           </div>
         </div>
@@ -1566,44 +1699,90 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
                         )}
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {req.status === 'requested' && (
-                          <button
-                            type="button"
-                            onClick={() => handleApproveMazmourRequest(req)}
-                            style={{
-                              background: '#0284c7',
-                              color: '#fff',
-                              border: 'none',
-                              padding: '6px 14px',
-                              borderRadius: '8px',
-                              fontSize: '0.82rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            اعتماد وبدء عداد الحفظ 🚀
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleApproveMazmourRequest(req)}
+                              style={{
+                                background: '#0284c7',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '6px 14px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              اعتماد وبدء عداد الحفظ 🚀
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeclineModalRequest(req);
+                                setDeclineReason('');
+                              }}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid #ef4444',
+                                color: '#f87171',
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                              title="الاعتذار عن قبول هذا الطلب"
+                            >
+                              رفض الطلب ✕
+                            </button>
+                          </>
                         )}
 
                         {(req.status === 'approved' || req.status === 'ready_for_test') && (
-                          <button
-                            type="button"
-                            onClick={() => setRecitationModalRequest(req)}
-                            style={{
-                              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                              color: '#fff',
-                              border: 'none',
-                              padding: '6px 14px',
-                              borderRadius: '8px',
-                              fontSize: '0.82rem',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              boxShadow: '0 2px 10px rgba(16, 185, 129, 0.3)',
-                            }}
-                          >
-                            سمّع الآن (Done) ✅
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setRecitationModalRequest(req)}
+                              style={{
+                                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '6px 14px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.3)',
+                              }}
+                            >
+                              سمّع الآن (Done) ✅
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDeclineModalRequest(req);
+                                setDeclineReason('');
+                              }}
+                              style={{
+                                background: 'rgba(239, 68, 68, 0.12)',
+                                border: '1px solid rgba(239, 68, 68, 0.35)',
+                                color: '#f87171',
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                              title="إلغاء أو رفض التسميع"
+                            >
+                              إلغاء / رفض ✕
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -2216,6 +2395,94 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
                   {awardSuccessMsg}
                 </div>
               )}
+
+              {/* Show current badges for the selected student with quick remove */}
+              {awardStudentId && (() => {
+                const currentBadges = studentBadges.filter((b) => b.studentId === awardStudentId);
+                const selectedStudent = students.find((s) => s.id === awardStudentId);
+                return (
+                  <div style={{ marginTop: '0.75rem', background: '#0f172a', borderRadius: '12px', padding: '1rem', border: '1px solid #334155' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#f8fafc' }}>
+                        الأوسمة الممنوحة حالياً لـ ({selectedStudent?.arabicName || selectedStudent?.name}):
+                        <span style={{ color: '#38bdf8', marginRight: '6px' }}>({currentBadges.length} وسام)</span>
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                        يمكنك حذف أي وسام بالضغط على زر الحذف وسحب نقاطه 🗑️
+                      </span>
+                    </div>
+
+                    {currentBadges.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>لا توجد أوسمة ممنوحة لهذا المخدوم بعد.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                        {currentBadges.map((b) => {
+                          const tierStyle = TIER_STYLES[b.badgeTier as keyof typeof TIER_STYLES] || TIER_STYLES.bronze;
+                          return (
+                            <div
+                              key={b.id}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: '#1e293b',
+                                border: `1px solid ${tierStyle.borderColor}60`,
+                                borderRadius: '10px',
+                                padding: '6px 10px',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  width: '26px',
+                                  height: '26px',
+                                  borderRadius: '6px',
+                                  background: tierStyle.bgGradient,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                {renderBadgeIconOrImage(
+                                  { icon: b.icon, imageUrl: b.imageUrl, tier: b.badgeTier } as any,
+                                  14,
+                                  tierStyle.textColor
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#f8fafc' }}>
+                                  {b.badgeName}
+                                </span>
+                                <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
+                                  {b.pointsAwarded ? `+${b.pointsAwarded} نقطة • ` : ''}{b.awardedAt?.split('T')[0]}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                title="حذف الوسام وخصم نقاطه"
+                                onClick={() => handleRemoveStudentBadge(b, true)}
+                                style={{
+                                  background: '#ef444420',
+                                  border: '1px solid #ef4444',
+                                  color: '#ef4444',
+                                  cursor: 'pointer',
+                                  borderRadius: '6px',
+                                  padding: '4px',
+                                  marginRight: '6px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </form>
           </div>
 
@@ -2325,6 +2592,7 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
                   <th style={{ padding: '0.85rem 1rem', color: '#d97706' }}>🥉 برونزي</th>
                   <th style={{ padding: '0.85rem 1rem', color: '#f472b6' }}>💎 أسطوري/ماسي</th>
                   <th style={{ padding: '0.85rem 1rem', fontWeight: 800, color: '#38bdf8' }}>إجمالي الأوسمة</th>
+                  <th style={{ padding: '0.85rem 1rem', textAlign: 'center' }}>إدارة الأوسمة</th>
                 </tr>
               </thead>
               <tbody>
@@ -2369,6 +2637,30 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
                       </td>
                       <td style={{ padding: '0.75rem 1rem', fontWeight: 900, color: '#38bdf8', fontSize: '1rem' }}>
                         {row.badges.length} وسام
+                      </td>
+                      <td style={{ padding: '0.75rem 1rem', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => setStudentBadgeManageModal(row.student)}
+                          disabled={row.badges.length === 0}
+                          style={{
+                            background: row.badges.length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(51, 65, 85, 0.25)',
+                            border: `1px solid ${row.badges.length > 0 ? '#ef4444' : '#475569'}`,
+                            color: row.badges.length > 0 ? '#fca5a5' : '#64748b',
+                            padding: '5px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: row.badges.length > 0 ? 'pointer' : 'not-allowed',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          عرض وحذف ({row.badges.length})
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -3735,6 +4027,351 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
           </div>
         </div>
       )}
+
+      {/* DECLINE MAZMOUR REQUEST MODAL */}
+      {declineModalRequest && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.8)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+          onClick={() => setDeclineModalRequest(null)}
+        >
+          <div
+            style={{
+              background: '#0f172a',
+              border: '2px solid #ef4444',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '520px',
+              padding: '1.5rem',
+              boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+              color: '#f8fafc',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#f87171', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <X size={20} color="#f87171" />
+                رفض أو حذف طلب استلام المزمور
+              </h3>
+              <button
+                type="button"
+                onClick={() => setDeclineModalRequest(null)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ background: '#1e293b', borderRadius: '10px', padding: '0.85rem', marginBottom: '1rem', border: '1px solid #334155' }}>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#f8fafc', marginBottom: '4px' }}>
+                المخدوم: {declineModalRequest.studentName}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#38bdf8' }}>
+                المزمور المطلوب: {declineModalRequest.mazmourTitle} (مزمور {declineModalRequest.mazmourNumber || 1})
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '4px' }}>
+                تاريخ الطلب: {declineModalRequest.requestedAt ? new Date(declineModalRequest.requestedAt).toLocaleDateString('ar-EG') : 'غير محدد'}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#cbd5e1', marginBottom: '0.4rem' }}>
+                سبب الرفض (سيظهر للمخدوم في الإشعار وصفحة المزامير):
+              </label>
+
+              {/* Quick Reasons Chips */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '0.6rem' }}>
+                {[
+                  'طلب بالخطأ من المخدوم',
+                  'لم ينتهِ من حفظ المزمور السابق بعد',
+                  'يرجى مراجعة الخادم المسئول أولاً',
+                  'يرجى اختيار مزمور آخر مناسب لمستواك',
+                ].map((reason) => (
+                  <button
+                    key={reason}
+                    type="button"
+                    onClick={() => setDeclineReason(reason)}
+                    style={{
+                      background: declineReason === reason ? '#ef4444' : '#1e293b',
+                      color: declineReason === reason ? '#fff' : '#cbd5e1',
+                      border: '1px solid #334155',
+                      borderRadius: '14px',
+                      padding: '4px 10px',
+                      fontSize: '0.72rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {reason}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                rows={3}
+                placeholder="اكتب سبب الرفض أو الملاحظة للمخدوم..."
+                value={declineReason}
+                onChange={(e) => setDeclineReason(e.target.value)}
+                style={{
+                  width: '100%',
+                  background: '#1e293b',
+                  border: '1px solid #334155',
+                  padding: '0.6rem',
+                  borderRadius: '8px',
+                  color: '#fff',
+                  fontSize: '0.85rem',
+                }}
+              />
+              <span style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'block', marginTop: '4px' }}>
+                💡 عند الرفض، سيتمكن المخدوم فوراً من اختيار مزمور جديد وحفظه.
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.6rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setDeclineModalRequest(null)}
+                  style={{ background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', padding: '0.55rem 1.1rem', borderRadius: '8px', cursor: 'pointer' }}
+                >
+                  إلغاء
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeclineMazmourRequest(declineModalRequest, declineReason)}
+                  style={{
+                    background: '#dc2626',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '0.55rem 1.3rem',
+                    borderRadius: '8px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  تأكيد رفض الطلب ❌
+                </button>
+              </div>
+
+              <div style={{ borderTop: '1px solid #334155', paddingTop: '0.6rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.72rem', color: '#64748b' }}>أو يمكنك حذف الطلب كلياً بدون حفظ حالة الرفض:</span>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteMazmourRequest(declineModalRequest.id)}
+                  style={{
+                    background: 'transparent',
+                    color: '#f87171',
+                    border: '1px dashed #ef4444',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  حذف السجل نهائياً 🗑️
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* STUDENT BADGES MANAGEMENT MODAL */}
+      {studentBadgeManageModal && (() => {
+        const student = studentBadgeManageModal;
+        const badgesOfStudent = studentBadges.filter((b) => b.studentId === student.id);
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.85)',
+              backdropFilter: 'blur(5px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 9999,
+              padding: '1rem',
+            }}
+            onClick={() => setStudentBadgeManageModal(null)}
+          >
+            <div
+              style={{
+                background: '#0f172a',
+                border: '2px solid #38bdf8',
+                borderRadius: '16px',
+                width: '100%',
+                maxWidth: '620px',
+                maxHeight: '90vh',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.7)',
+                color: '#f8fafc',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  borderBottom: '1px solid #334155',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: '#1e293b',
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 900, color: '#38bdf8' }}>
+                    إدارة أوسمة المخدوم: {student.arabicName || student.name}
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    كود الباسبور: {student.id} • إجمالي الأوسمة: {badgesOfStudent.length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStudentBadgeManageModal(null)}
+                  style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Options Bar */}
+              <div style={{ padding: '0.75rem 1.25rem', background: '#0b1329', borderBottom: '1px solid #1e293b' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                  <input
+                    type="checkbox"
+                    checked={deductPointsOnBadgeDelete}
+                    onChange={(e) => setDeductPointsOnBadgeDelete(e.target.checked)}
+                  />
+                  <span>خصم وسحب النقاط الممنوحة مع الوسام تلقائياً من رصيد المخدوم عند حذفه</span>
+                </label>
+              </div>
+
+              {/* Badges List */}
+              <div style={{ padding: '1rem 1.25rem', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {badgesOfStudent.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                    لا توجد أوسمة ممنوحة لهذا المخدوم حالياً
+                  </div>
+                ) : (
+                  badgesOfStudent.map((badge) => {
+                    const tierStyle = TIER_STYLES[badge.badgeTier as keyof typeof TIER_STYLES] || TIER_STYLES.bronze;
+                    return (
+                      <div
+                        key={badge.id}
+                        style={{
+                          background: '#1e293b',
+                          border: `1px solid ${tierStyle.borderColor}60`,
+                          borderRadius: '12px',
+                          padding: '0.75rem 1rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '1rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                          <div
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '10px',
+                              background: tierStyle.bgGradient,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {renderBadgeIconOrImage(
+                              { icon: badge.icon, imageUrl: badge.imageUrl, tier: badge.badgeTier } as any,
+                              22,
+                              tierStyle.textColor
+                            )}
+                          </div>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '0.9rem', color: '#f8fafc' }}>
+                              {badge.badgeName}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                              <span style={{ color: tierStyle.borderColor, fontWeight: 700 }}>
+                                {tierStyle.labelAr}
+                              </span>
+                              {badge.pointsAwarded ? (
+                                <span style={{ color: '#fbbf24' }}>• +{badge.pointsAwarded} نقطة</span>
+                              ) : null}
+                              {badge.awardedAt ? (
+                                <span>• {new Date(badge.awardedAt).toLocaleDateString('ar-EG')}</span>
+                              ) : null}
+                              {badge.reason ? (
+                                <span style={{ color: '#cbd5e1' }}>• {badge.reason}</span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStudentBadge(badge, deductPointsOnBadgeDelete)}
+                          style={{
+                            background: '#ef444420',
+                            border: '1px solid #ef4444',
+                            color: '#f87171',
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          حذف الوسام
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div style={{ padding: '0.85rem 1.25rem', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'flex-end', background: '#1e293b' }}>
+                <button
+                  type="button"
+                  onClick={() => setStudentBadgeManageModal(null)}
+                  style={{
+                    background: '#334155',
+                    color: '#f8fafc',
+                    border: 'none',
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: '8px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  إغلاق
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* BADGE PICKER MODAL (From 1000 Badges Library) */}
       <BadgePickerModal

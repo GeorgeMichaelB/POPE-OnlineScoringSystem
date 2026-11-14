@@ -538,28 +538,8 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
       <div className="cr-arena-ambient" />
 
       {/* CLASH ROYALE TOP RESOURCE HEADER */}
-      <header
-        style={{
-          background: 'linear-gradient(180deg, #1e293b 0%, #090d16 100%)',
-          borderBottom: '3px solid #334155',
-          padding: '0.65rem 1rem',
-          position: 'sticky',
-          top: 0,
-          zIndex: 140,
-          boxShadow: '0 8px 20px rgba(0,0,0,0.7)',
-        }}
-      >
-        <div
-          style={{
-            maxWidth: '1080px',
-            margin: '0 auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '0.75rem',
-            flexWrap: 'wrap',
-          }}
-        >
+      <header className="cr-top-header">
+        <div className="cr-top-header-inner">
           {/* Left: Player Profile Badge & Arena Badge */}
           <div
             onClick={() => {
@@ -567,69 +547,32 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
               setActiveMainTab('clan');
               setClanSubTab('stats');
             }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', cursor: 'pointer' }}
+            className="cr-header-profile"
             title="عرض ملف البطل وسجل الإحصائيات"
           >
             {/* Level Star Badge */}
-            <div
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '12px',
-                background: 'linear-gradient(180deg, #38bdf8 0%, #0284c7 60%, #0369a1 100%)',
-                border: '2px solid #ffffff',
-                boxShadow: '0 3px 6px rgba(0,0,0,0.6)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 900,
-                color: '#ffffff',
-                fontSize: '0.95rem',
-                textShadow: '0 1px 2px #000',
-                position: 'relative',
-              }}
-            >
+            <div className="cr-level-star">
               <span>{levelInfo.level}</span>
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-5px',
-                  right: '-5px',
-                  fontSize: '0.7rem',
-                }}
-              >
-                ⭐
-              </span>
+              <span className="cr-level-star-icon">⭐</span>
             </div>
 
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span className="cr-text-shadow" style={{ fontSize: '1rem', fontWeight: 900, color: '#f8fafc' }}>
+            <div className="cr-profile-text">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <span className="cr-text-shadow cr-player-name">
                   {student.arabicName || student.name}
                 </span>
-                <span
-                  style={{
-                    background: 'linear-gradient(180deg, #facc15 0%, #ca8a04 100%)',
-                    border: '1.5px solid #ffffff',
-                    color: '#713f12',
-                    fontSize: '0.62rem',
-                    fontWeight: 900,
-                    padding: '1px 6px',
-                    borderRadius: '999px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                  }}
-                >
+                <span className="cr-player-badge-pill">
                   بطل 👑
                 </span>
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#93c5fd', fontWeight: 700 }}>
+              <div className="cr-arena-subtitle">
                 {arenaInfo.currentArena.icon} {arenaInfo.currentArena.nameAr}
               </div>
             </div>
           </div>
 
           {/* Right: Clash Royale Top Resources Bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div className="cr-resource-bar">
             {/* Gold Coins (Points) */}
             <div
               onClick={() => {
@@ -646,7 +589,6 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                   background: 'linear-gradient(180deg, #fde047 0%, #eab308 60%, #ca8a04 100%)',
                   border: '1.5px solid #ffffff',
                   color: '#713f12',
-                  fontSize: '0.75rem',
                 }}
               >
                 🪙
@@ -673,7 +615,6 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                   background: 'linear-gradient(180deg, #fbbf24 0%, #d97706 100%)',
                   border: '1.5px solid #ffffff',
                   color: '#ffffff',
-                  fontSize: '0.75rem',
                 }}
               >
                 🏆
@@ -694,7 +635,6 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                   background: 'linear-gradient(180deg, #ec4899 0%, #db2777 100%)',
                   border: '1.5px solid #ffffff',
                   color: '#ffffff',
-                  fontSize: '0.75rem',
                 }}
               >
                 👑
@@ -711,13 +651,12 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                 sound.playBattleClick();
                 setIsNotifModalOpen(true);
               }}
-              className="cr-btn cr-btn-blue"
-              style={{ padding: '6px 9px', borderRadius: '12px', minWidth: '38px', height: '36px' }}
+              className="cr-btn cr-btn-blue cr-header-icon-btn"
               title="الإشعارات الملكية"
             >
-              <Bell size={18} />
+              <Bell size={17} />
               {unreadNotifsCount > 0 && (
-                <span className="cr-nav-badge" style={{ top: '-6px', right: '-6px' }}>
+                <span className="cr-nav-badge" style={{ top: '-4px', right: '-4px' }}>
                   {unreadNotifsCount}
                 </span>
               )}
@@ -728,12 +667,11 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
               <button
                 type="button"
                 onClick={onInstallApp}
-                className="cr-btn cr-btn-green"
-                style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+                className="cr-btn cr-btn-green cr-header-action-btn"
                 title="تثبيت التطبيق على الموبايل"
               >
                 <Download size={14} />
-                <span className="hide-on-very-small">تثبيت</span>
+                <span className="hide-on-mobile">تثبيت</span>
               </button>
             )}
 
@@ -744,30 +682,18 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                 sound.playBattleClick();
                 onLogout();
               }}
-              className="cr-btn cr-btn-red"
-              style={{ padding: '5px 10px', fontSize: '0.75rem' }}
+              className="cr-btn cr-btn-red cr-header-action-btn"
               title="تسجيل الخروج"
             >
               <LogOut size={14} />
-              <span className="hide-on-very-small">خروج</span>
+              <span className="hide-on-mobile">خروج</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* MAIN CONTAINER */}
-      <main
-        style={{
-          flex: 1,
-          maxWidth: '1080px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '1.25rem 1rem 5.5rem 1rem',
-          boxSizing: 'border-box',
-          position: 'relative',
-          zIndex: 10,
-        }}
-      >
+      <main className="cr-main-content">
         {/* =========================================================
             TAB 1: ⚔️ BATTLE / ARENA (The Signature Clash Royale Home)
            ========================================================= */}
@@ -859,7 +785,7 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                 <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>اضغط على أي صندوق لتفاصيله</span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
+              <div className="cr-chest-slots-grid">
                 {chestSlots.map((chest) => {
                   const isReady = chest.status === 'ready';
                   const isClaimed = chest.status === 'claimed';
@@ -873,11 +799,12 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                       }}
                       className={`cr-chest-slot ${isReady ? 'cr-chest-ready' : ''}`}
                     >
-                      <div style={{ fontSize: '1.8rem', marginBottom: '0.25rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}>
+                      <div className="chest-icon" style={{ fontSize: '1.8rem', marginBottom: '0.25rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}>
                         {chest.icon}
                       </div>
 
                       <div
+                        className="chest-title"
                         style={{
                           fontSize: '0.72rem',
                           fontWeight: 900,
@@ -895,6 +822,7 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                       </div>
 
                       <span
+                        className="chest-status-pill"
                         style={{
                           fontSize: '0.62rem',
                           fontWeight: 900,
@@ -934,15 +862,7 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                 </button>
               </div>
 
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '0.65rem',
-                  maxWidth: '620px',
-                  margin: '0 auto',
-                }}
-              >
+              <div className="cr-deck-preview-grid">
                 {activeDeck.map((badge, idx) => {
                   if (!badge) {
                     return (
@@ -1128,13 +1048,17 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                     قبيلة وفصل البابا ساويرس 4
                   </h2>
                   <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#fde68a' }}>
-                    ترتيبك في القبيلة: #{classRank.rank} من {allStudents.length} بطل 🏆
+                    {settings.hideLeaderboard ? (
+                      'الترتيب العام: 🔒 مخفي مؤقتاً بواسطة الخدام 🛡️'
+                    ) : (
+                      `ترتيبك في القبيلة: #${classRank.rank} من ${allStudents.length} بطل 🏆`
+                    )}
                   </p>
                 </div>
               </div>
 
               {/* Clan Sub-Tabs Buttons */}
-              <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <div className="cr-subtabs-scroll">
                 <button
                   type="button"
                   onClick={() => {
@@ -1144,7 +1068,7 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                   className={`cr-btn ${clanSubTab === 'leaderboard' ? 'cr-btn-yellow' : 'cr-btn-blue'}`}
                   style={{ padding: '6px 12px', fontSize: '0.78rem' }}
                 >
-                  🏆 الترتيب
+                  🏆 الترتيب {settings.hideLeaderboard ? '🔒' : ''}
                 </button>
 
                 <button
@@ -1187,50 +1111,64 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
 
             {/* Sub-View Content */}
             {clanSubTab === 'leaderboard' && (
-              <div className="cr-stone-panel" style={{ padding: '1.25rem' }}>
-                <h3 className="cr-gold-title cr-text-shadow" style={{ margin: '0 0 1rem', fontSize: '1.2rem' }}>
-                  لوحة شرف أبطال القبيلة (Top Champions)
-                </h3>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  {classRank.topStudents.map((stu, i) => {
-                    const isMe = stu.id === student.id;
-                    const crownColor = i === 0 ? '#fde047' : i === 1 ? '#cbd5e1' : i === 2 ? '#d97706' : '#94a3b8';
-
-                    return (
-                      <div
-                        key={stu.id}
-                        style={{
-                          background: isMe ? 'rgba(56, 189, 248, 0.15)' : 'rgba(15, 23, 42, 0.8)',
-                          border: isMe ? '2px solid #38bdf8' : '1px solid #334155',
-                          borderRadius: '14px',
-                          padding: '0.75rem 1rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          boxShadow: isMe ? '0 0 15px rgba(56, 189, 248, 0.3)' : 'none',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                          <span style={{ fontSize: '1.2rem', fontWeight: 900, color: crownColor, minWidth: '28px' }}>
-                            {i === 0 ? '👑 1' : i === 1 ? '🥈 2' : i === 2 ? '🥉 3' : `#${i + 1}`}
-                          </span>
-                          <span style={{ fontWeight: 800, color: isMe ? '#38bdf8' : '#f8fafc', fontSize: '0.95rem' }}>
-                            {stu.name} {isMe ? '(أنت) ⭐' : ''}
-                          </span>
-                        </div>
-
-                        <div className="cr-resource-pill">
-                          <span>🏆</span>
-                          <span style={{ color: '#fbbf24' }}>
-                            {settings.hideScores ? '🔒' : stu.score}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+              settings.hideLeaderboard ? (
+                <div className="cr-stone-panel" style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
+                  <div style={{ fontSize: '3.5rem', marginBottom: '0.75rem' }}>🏆🔒</div>
+                  <h3 className="cr-gold-title cr-text-shadow" style={{ margin: '0 0 0.75rem', fontSize: '1.3rem' }}>
+                    لوحة المتصدرين مغلقة حالياً
+                  </h3>
+                  <p style={{ margin: '0 auto', maxWidth: '440px', color: '#cbd5e1', fontSize: '0.9rem', lineHeight: 1.7 }}>
+                    قام الخدام بإخفاء ترتيب الأبطال مؤقتاً لمزيد من التشويق والتنافس الإيجابي بين الجميع! 🛡️✨
+                    <br />
+                    واصل جمع الكؤوس والأوسمة والمشاركة في التحديات، وسيتم إعلان الترتيب قريباً!
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="cr-stone-panel" style={{ padding: '1.25rem' }}>
+                  <h3 className="cr-gold-title cr-text-shadow" style={{ margin: '0 0 1rem', fontSize: '1.2rem' }}>
+                    لوحة شرف أبطال القبيلة (Top Champions)
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                    {classRank.topStudents.map((stu, i) => {
+                      const isMe = stu.id === student.id;
+                      const crownColor = i === 0 ? '#fde047' : i === 1 ? '#cbd5e1' : i === 2 ? '#d97706' : '#94a3b8';
+
+                      return (
+                        <div
+                          key={stu.id}
+                          style={{
+                            background: isMe ? 'rgba(56, 189, 248, 0.15)' : 'rgba(15, 23, 42, 0.8)',
+                            border: isMe ? '2px solid #38bdf8' : '1px solid #334155',
+                            borderRadius: '14px',
+                            padding: '0.75rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            boxShadow: isMe ? '0 0 15px rgba(56, 189, 248, 0.3)' : 'none',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontSize: '1.2rem', fontWeight: 900, color: crownColor, minWidth: '28px' }}>
+                              {i === 0 ? '👑 1' : i === 1 ? '🥈 2' : i === 2 ? '🥉 3' : `#${i + 1}`}
+                            </span>
+                            <span style={{ fontWeight: 800, color: isMe ? '#38bdf8' : '#f8fafc', fontSize: '0.95rem' }}>
+                              {stu.name} {isMe ? '(أنت) ⭐' : ''}
+                            </span>
+                          </div>
+
+                          <div className="cr-resource-pill">
+                            <span>🏆</span>
+                            <span style={{ color: '#fbbf24' }}>
+                              {settings.hideScores ? '🔒' : stu.score}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )
             )}
 
             {clanSubTab === 'stats' && (
@@ -1238,6 +1176,7 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
                 student={student}
                 scoreBreakdown={scoreBreakdown}
                 hideScores={settings.hideScores}
+                hideLeaderboard={settings.hideLeaderboard}
                 classRank={classRank.rank}
                 totalStudentsCount={allStudents.length}
               />
@@ -1296,7 +1235,7 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
               </div>
 
               {/* Events Sub-Tabs */}
-              <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap' }}>
+              <div className="cr-subtabs-scroll">
                 <button
                   type="button"
                   onClick={() => {

@@ -39,6 +39,7 @@ interface BoyScoreViewProps {
   student: Student;
   scoreBreakdown: ScoreBreakdown;
   hideScores: boolean;
+  hideLeaderboard?: boolean;
   classRank: number;
   totalStudentsCount: number;
 }
@@ -90,6 +91,7 @@ export const BoyScoreView: React.FC<BoyScoreViewProps> = ({
   student,
   scoreBreakdown,
   hideScores,
+  hideLeaderboard,
   classRank,
   totalStudentsCount,
 }) => {
@@ -278,7 +280,11 @@ export const BoyScoreView: React.FC<BoyScoreViewProps> = ({
             >
               <Crown size={16} color="#f59e0b" />
               <span style={{ fontSize: '0.85rem', color: '#f8fafc', fontWeight: 700 }}>
-                ترتيبك بالفصل: <span style={{ color: '#38bdf8', fontWeight: 900 }}>#{classRank}</span> من أصل {totalStudentsCount} بطلاً
+                {hideLeaderboard ? (
+                  <>ترتيبك بالفصل: <span style={{ color: '#94a3b8', fontWeight: 700 }}>🔒 مخفي مؤقتاً بواسطة الخدام</span></>
+                ) : (
+                  <>ترتيبك بالفصل: <span style={{ color: '#38bdf8', fontWeight: 900 }}>#{classRank}</span> من أصل {totalStudentsCount} بطلاً</>
+                )}
               </span>
             </div>
           </div>
@@ -289,7 +295,7 @@ export const BoyScoreView: React.FC<BoyScoreViewProps> = ({
               تفاصيل النقاط حسب الأنشطة والخدمات
             </h3>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.65rem' }}>
               {/* Friday School */}
               <div
                 style={{

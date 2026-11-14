@@ -224,15 +224,7 @@ export const BoyBadgesView: React.FC<BoyBadgesViewProps> = ({
           </div>
 
           {/* 4x2 Cards Grid (The Iconic 8-Card Clash Royale Deck) */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '0.75rem',
-              maxWidth: '650px',
-              margin: '0 auto',
-            }}
-          >
+          <div className="cr-deck-preview-grid">
             {activeDeck.map((badge, idx) => {
               if (!badge) {
                 return (
@@ -338,7 +330,7 @@ export const BoyBadgesView: React.FC<BoyBadgesViewProps> = ({
       {activeTab === 'unlocked' && (
         <div className="cr-stone-panel" style={{ padding: '1.25rem' }}>
           {/* Categories Pill Filters */}
-          <div style={{ display: 'flex', gap: '0.4rem', overflowX: 'auto', marginBottom: '1rem', paddingBottom: '0.4rem' }}>
+          <div className="cr-subtabs-scroll" style={{ marginBottom: '1rem' }}>
             {['all', 'mazamer', 'challenge', 'quiz', 'spiritual', 'attendance'].map((cat) => (
               <button
                 key={cat}
@@ -366,13 +358,7 @@ export const BoyBadgesView: React.FC<BoyBadgesViewProps> = ({
           </div>
 
           {/* Cards Grid */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
-              gap: '0.85rem',
-            }}
-          >
+          <div className="cr-cards-collection-grid">
             {filteredMyBadges.map((badge) => {
               const tierStyle = TIER_STYLES[badge.badgeTier || 'gold'];
               const elixir = getBadgeElixir(badge.badgeTier);
@@ -461,13 +447,7 @@ export const BoyBadgesView: React.FC<BoyBadgesViewProps> = ({
             عينة من ١٠٠٠+ بطاقة تنتظرك لفتحها عند إتمام المزامير والتحديات والمشاركات الكنسية! 🔒
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
-              gap: '0.85rem',
-            }}
-          >
+          <div className="cr-cards-collection-grid">
             {lockedSampleBadges.map((badge) => {
               return (
                 <div

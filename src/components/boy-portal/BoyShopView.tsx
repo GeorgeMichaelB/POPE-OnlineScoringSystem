@@ -218,7 +218,7 @@ export const BoyShopView: React.FC<BoyShopViewProps> = ({
 
       {/* TAB 1: Items Catalog Grid */}
       {activeTab === 'catalog' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1.15rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
           {items.map((item) => {
             const isOutOfStock = (item.stock || 0) <= 0;
             const canAfford = !hideScores && studentScore >= item.price;

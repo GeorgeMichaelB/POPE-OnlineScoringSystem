@@ -290,6 +290,7 @@ export interface StudentBadge {
 
 export interface BoyPortalSettings {
   hideScores: boolean; // Hide scores from boys
+  hideLeaderboard?: boolean; // Hide leaderboard from boys
   isShopEnabled: boolean; // Enable or disable shop
   announcementBanner?: string;
   updatedAt?: string;
@@ -358,7 +359,7 @@ export interface MazmourRequest {
   mazmourId: string;
   mazmourNumber: number;
   mazmourTitle: string;
-  status: 'requested' | 'approved' | 'ready_for_test' | 'completed' | 'dropped';
+  status: 'requested' | 'approved' | 'ready_for_test' | 'completed' | 'dropped' | 'declined';
   requestedAt: string;
   approvedAt?: string;
   completedAt?: string;

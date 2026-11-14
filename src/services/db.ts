@@ -3476,6 +3476,7 @@ class DatabaseService {
 
 export const DEFAULT_BOY_PORTAL_SETTINGS: BoyPortalSettings = {
   hideScores: false,
+  hideLeaderboard: false,
   isShopEnabled: true,
   announcementBanner: 'أهلاً بكم في بوابة مخدومي أسرة البابا ساويرس! 🌟 استعدوا للمسابقات والأوسمة والجوائز!',
 };
