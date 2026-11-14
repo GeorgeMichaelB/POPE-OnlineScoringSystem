@@ -531,7 +531,7 @@ export const BoyLoginView: React.FC<BoyLoginViewProps> = ({
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
-                  placeholder="أو اكتب كود الباسبور (مثال: AWI1012)"
+                  placeholder="أو اكتب كود الباسبور"
                   value={manualCode}
                   onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                   style={{
