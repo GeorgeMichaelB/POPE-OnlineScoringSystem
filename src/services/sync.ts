@@ -21,6 +21,17 @@ export type SyncEventType =
   | 'CLASSES_UPDATED'
   | 'USERS_UPDATED'
   | 'TIMER_STATE_UPDATED'
+  | 'BOY_PORTAL_SETTINGS_UPDATED'
+  | 'ANNOUNCEMENTS_UPDATED'
+  | 'SHOP_ITEMS_UPDATED'
+  | 'SHOP_ORDERS_UPDATED'
+  | 'MAZAMER_DB_UPDATED'
+  | 'MAZAMER_REQUESTS_UPDATED'
+  | 'BOY_CHALLENGES_UPDATED'
+  | 'BOY_QUIZZES_UPDATED'
+  | 'BOY_QUESTIONS_UPDATED'
+  | 'STUDENT_BADGES_UPDATED'
+  | 'BOY_NOTIFICATIONS_UPDATED'
   | 'FULL_SYNC';
 
 export interface SyncMessage<T = unknown> {
@@ -71,6 +82,17 @@ export const SYNC_EVENT_TO_SECTION: Record<SyncEventType, string> = {
   CLASSES_UPDATED: 'classes',
   USERS_UPDATED: 'users',
   TIMER_STATE_UPDATED: 'timer',
+  BOY_PORTAL_SETTINGS_UPDATED: 'boyPortalSettings',
+  ANNOUNCEMENTS_UPDATED: 'announcements',
+  SHOP_ITEMS_UPDATED: 'shopItems',
+  SHOP_ORDERS_UPDATED: 'shopOrders',
+  MAZAMER_DB_UPDATED: 'mazamer',
+  MAZAMER_REQUESTS_UPDATED: 'mazmourRequests',
+  BOY_CHALLENGES_UPDATED: 'challenges',
+  BOY_QUIZZES_UPDATED: 'quizzes',
+  BOY_QUESTIONS_UPDATED: 'boyQuestions',
+  STUDENT_BADGES_UPDATED: 'studentBadges',
+  BOY_NOTIFICATIONS_UPDATED: 'boyNotifications',
   FULL_SYNC: 'fullSync',
 };
 
@@ -107,6 +129,28 @@ export const SECTION_TO_SYNC_EVENT: Record<string, SyncEventType> = {
   pss_users_v3: 'USERS_UPDATED',
   timer: 'TIMER_STATE_UPDATED',
   pss_timer: 'TIMER_STATE_UPDATED',
+  boyPortalSettings: 'BOY_PORTAL_SETTINGS_UPDATED',
+  pss_boy_portal_settings_v1: 'BOY_PORTAL_SETTINGS_UPDATED',
+  announcements: 'ANNOUNCEMENTS_UPDATED',
+  pss_announcements_v1: 'ANNOUNCEMENTS_UPDATED',
+  shopItems: 'SHOP_ITEMS_UPDATED',
+  pss_shop_items_v1: 'SHOP_ITEMS_UPDATED',
+  shopOrders: 'SHOP_ORDERS_UPDATED',
+  pss_shop_orders_v1: 'SHOP_ORDERS_UPDATED',
+  mazamer: 'MAZAMER_DB_UPDATED',
+  pss_mazamer_db_v1: 'MAZAMER_DB_UPDATED',
+  mazmourRequests: 'MAZAMER_REQUESTS_UPDATED',
+  pss_mazamer_requests_v1: 'MAZAMER_REQUESTS_UPDATED',
+  challenges: 'BOY_CHALLENGES_UPDATED',
+  pss_boy_challenges_v1: 'BOY_CHALLENGES_UPDATED',
+  quizzes: 'BOY_QUIZZES_UPDATED',
+  pss_boy_quizzes_v1: 'BOY_QUIZZES_UPDATED',
+  boyQuestions: 'BOY_QUESTIONS_UPDATED',
+  pss_boy_questions_v1: 'BOY_QUESTIONS_UPDATED',
+  studentBadges: 'STUDENT_BADGES_UPDATED',
+  pss_student_badges_v1: 'STUDENT_BADGES_UPDATED',
+  boyNotifications: 'BOY_NOTIFICATIONS_UPDATED',
+  pss_boy_notifications_v1: 'BOY_NOTIFICATIONS_UPDATED',
 };
 
 function getApiUrl(endpoint: string): string {

@@ -20,6 +20,7 @@ import {
   ArrowDown,
   X,
   Trophy,
+  RefreshCw,
 } from 'lucide-react';
 import type {
   Student,
@@ -1320,6 +1321,24 @@ export const ServantsBoysPortal: React.FC<ServantsBoysPortalProps> = ({
               >
                 <Plus size={16} />
                 إضافة تحدي أسبوعي جديد
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('هل تريد مزامنة وتحديث بنك البيانات الافتراضي (المسابقات، المزامير، التحديات، والمتجر) بآخر نسخة من الكود دون التأثير على تقدم المخدومين أو الأوسمة الممنوحة؟')) {
+                    await db.resetBoysPortalToSystemSeeds();
+                    await loadAll();
+                    sound.playSuccessChime();
+                    alert('✅ تم تحديث ومزامنة البيانات المسبقة بنجاح مع الكود الأصلي!');
+                  }
+                }}
+                className="btn btn-secondary"
+                style={{ background: '#312e81', border: '1px solid #818cf8', color: '#c7d2fe', padding: '8px 16px', borderRadius: '10px', fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                title="Force reload pre-setted code seeders into this deployment"
+              >
+                <RefreshCw size={16} />
+                مزامنة البيانات المسبقة من الكود (Sync Seeders) 🔄
               </button>
             </div>
           </div>

@@ -7,7 +7,6 @@ import {
   ShoppingBag,
   Sparkles,
   Layers,
-  ChevronRight,
   Shield,
 } from 'lucide-react';
 import type {
@@ -44,9 +43,7 @@ import { BoyChallengesView } from './BoyChallengesView';
 import { BoyQuizzesView } from './BoyQuizzesView';
 import { BoyBadgesView } from './BoyBadgesView';
 import { BoyNotificationsModal } from './BoyNotificationsModal';
-import { getBoyArena, type ClashChestSlot } from './clashArenas';
-import { renderBadgeIconOrImage } from '../BadgePickerModal';
-import { TIER_STYLES } from '../../services/badgesEngine';
+import { getBoyArena } from './clashArenas';
 import './clashRoyale.css';
 
 export type MainClashTab = 'shop' | 'cards' | 'battle' | 'clan' | 'events';
@@ -121,7 +118,6 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
   const [studentBadges, setStudentBadges] = useState<StudentBadge[]>([]);
   const [notifications, setNotifications] = useState<BoyNotification[]>([]);
   const [isNotifModalOpen, setIsNotifModalOpen] = useState(false);
-  const [selectedChestForModal, setSelectedChestForModal] = useState<ClashChestSlot | null>(null);
   const [isBattleLaunchModalOpen, setIsBattleLaunchModalOpen] = useState(false);
   const [browserPermission, setBrowserPermission] = useState<NotificationPermission>(
     typeof Notification !== 'undefined' ? Notification.permission : 'default'
@@ -259,79 +255,10 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
     return studentBadges.filter((b) => b.studentId === student.id);
   }, [studentBadges, student.id]);
 
-  const activeDeck = useMemo(() => {
-    const list = [...myBadges].slice(0, 8);
-    const slots = [];
-    for (let i = 0; i < 8; i++) {
-      slots.push(list[i] || null);
-    }
-    return slots;
-  }, [myBadges]);
-
   // Active Psalm Request
   const myPsalmRequests = useMemo(() => {
     return mazmourRequests.filter((r) => r.studentId === student.id);
   }, [mazmourRequests, student.id]);
-
-  const activePsalmRequest = useMemo(() => {
-    return myPsalmRequests.find(
-      (r) => r.status === 'requested' || r.status === 'approved' || r.status === 'ready_for_test'
-    );
-  }, [myPsalmRequests]);
-
-  // The 4 Clash Royale Chest Slots
-  const chestSlots: ClashChestSlot[] = useMemo(() => {
-    const hasFriday = scoreBreakdown.fridayCount > 0;
-    const hasDars = scoreBreakdown.darsKtabCount > 0;
-    const hasActivePsalm = Boolean(activePsalmRequest);
-    const crownGoal = 10;
-    const crownProgress = crownsCount % crownGoal;
-
-    return [
-      {
-        id: 'chest_friday',
-        titleAr: 'صندوق القداس والجمعة',
-        type: 'attendance',
-        status: hasFriday ? 'claimed' : 'ready',
-        rewardLabel: '+10 نقاط 🪙 + كؤوس',
-        icon: '🏛️',
-        color: '#facc15',
-        description: 'صندوق ذهبي ينال عند حضور القداس الإلهي وحصة التربية الكنسية يوم الجمعة.',
-      },
-      {
-        id: 'chest_darsktab',
-        titleAr: 'صندوق درس الكتاب السحري',
-        type: 'darsktab',
-        status: hasDars ? 'claimed' : 'ready',
-        rewardLabel: '+10 نقاط 🪙 + إكسير',
-        icon: '📖',
-        color: '#38bdf8',
-        description: 'صندوق سحري ينال عند حضور اجتماع درس الكتاب المقدس يوم السبت بانتظام.',
-      },
-      {
-        id: 'chest_psalm',
-        titleAr: 'صندوق المزامير الملكي',
-        type: 'psalm',
-        status: hasActivePsalm ? 'ready' : 'locked',
-        rewardLabel: 'وسام ذهبي 🎖️ + 30 نقطة',
-        icon: '📜',
-        color: '#a855f7',
-        description: hasActivePsalm
-          ? `لديك مزمور "${activePsalmRequest?.mazmourTitle}" جاهز للمراجعة والتسميع مع الخدام!`
-          : 'اختر مزموراً من مزامير داود النبي واطلب تسميعه لفتح هذا الصندوق الأسطوري!',
-      },
-      {
-        id: 'chest_crown',
-        titleAr: 'صندوق الإكليل الفائق',
-        type: 'crown',
-        status: crownProgress >= 8 ? 'ready' : 'locked',
-        rewardLabel: '+50 نقطة 🪙 + 3 بطاقات',
-        icon: '👑',
-        color: '#ec4899',
-        description: `اجمع ١٠ تيجان من الحضور وحل الكويزات لفتح صندوق الإكليل الأكبر! (${crownProgress}/10 👑)`,
-      },
-    ];
-  }, [scoreBreakdown, activePsalmRequest, crownsCount]);
 
   // Navigation mapper for external/child components calling onNavigateTab
   const handleNavigateAnyTab = (targetTab: string) => {
@@ -776,176 +703,6 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
               </button>
             </div>
 
-            {/* 4 CLASH ROYALE CHEST SLOTS */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                <span className="cr-gold-title cr-text-shadow" style={{ fontSize: '1.1rem', fontWeight: 900 }}>
-                  🎁 صناديق الجوائز الملكية (Chest Slots)
-                </span>
-                <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>اضغط على أي صندوق لتفاصيله</span>
-              </div>
-
-              <div className="cr-chest-slots-grid">
-                {chestSlots.map((chest) => {
-                  const isReady = chest.status === 'ready';
-                  const isClaimed = chest.status === 'claimed';
-
-                  return (
-                    <div
-                      key={chest.id}
-                      onClick={() => {
-                        sound.playChestUnlock();
-                        setSelectedChestForModal(chest);
-                      }}
-                      className={`cr-chest-slot ${isReady ? 'cr-chest-ready' : ''}`}
-                    >
-                      <div className="chest-icon" style={{ fontSize: '1.8rem', marginBottom: '0.25rem', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }}>
-                        {chest.icon}
-                      </div>
-
-                      <div
-                        className="chest-title"
-                        style={{
-                          fontSize: '0.72rem',
-                          fontWeight: 900,
-                          color: '#ffffff',
-                          textAlign: 'center',
-                          lineHeight: 1.2,
-                          marginBottom: '0.35rem',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {chest.titleAr}
-                      </div>
-
-                      <span
-                        className="chest-status-pill"
-                        style={{
-                          fontSize: '0.62rem',
-                          fontWeight: 900,
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                          background: isReady ? '#22c55e' : isClaimed ? '#0284c7' : '#334155',
-                          color: '#ffffff',
-                          textShadow: '0 1px 2px #000',
-                        }}
-                      >
-                        {isReady ? 'جاهز! 🎁' : isClaimed ? 'مكتمل ✅' : 'مغلق 🔒'}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ACTIVE 8-CARD BATTLE DECK PREVIEW */}
-            <div className="cr-stone-panel" style={{ padding: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <span className="cr-gold-title cr-text-shadow" style={{ fontSize: '1.1rem', fontWeight: 900 }}>
-                  🃏 تشكيلتك النشطة الحالية (8-Card Battle Deck)
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    sound.playBattleClick();
-                    setActiveMainTab('cards');
-                  }}
-                  className="cr-btn cr-btn-blue"
-                  style={{ padding: '5px 12px', fontSize: '0.78rem' }}
-                >
-                  <span>تعديل التشكيلة وعرض البطاقات</span>
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-
-              <div className="cr-deck-preview-grid">
-                {activeDeck.map((badge, idx) => {
-                  if (!badge) {
-                    return (
-                      <div
-                        key={`empty_${idx}`}
-                        style={{
-                          aspectRatio: '0.72',
-                          background: 'linear-gradient(180deg, #0f172a 0%, #1e293b 100%)',
-                          border: '2px dashed #475569',
-                          borderRadius: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#64748b',
-                          fontSize: '0.68rem',
-                          fontWeight: 700,
-                        }}
-                      >
-                        فارغ {idx + 1}
-                      </div>
-                    );
-                  }
-
-                  const tierStyle = TIER_STYLES[badge.badgeTier || 'gold'];
-                  const rarityClass =
-                    badge.badgeTier === 'legendary' || badge.badgeTier === 'diamond'
-                      ? 'cr-card-legendary'
-                      : badge.badgeTier === 'platinum' || badge.badgeTier === 'gold'
-                      ? 'cr-card-epic'
-                      : badge.badgeTier === 'silver'
-                      ? 'cr-card-rare'
-                      : 'cr-card-common';
-
-                  return (
-                    <div
-                      key={badge.id}
-                      onClick={() => {
-                        sound.playCardFlip();
-                        setActiveMainTab('cards');
-                      }}
-                      className={`cr-card ${rarityClass}`}
-                    >
-                      <div className="cr-card-elixir">5</div>
-                      <div
-                        style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '10px',
-                          background: tierStyle.bgGradient,
-                          border: `1.5px solid ${tierStyle.borderColor}`,
-                          alignSelf: 'center',
-                          marginTop: '0.5rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {renderBadgeIconOrImage(badge, 22, tierStyle.textColor)}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: '0.68rem',
-                          fontWeight: 900,
-                          color: '#ffffff',
-                          textAlign: 'center',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          margin: '0.2rem 0',
-                        }}
-                      >
-                        {badge.badgeName}
-                      </div>
-                      <div className="cr-card-level-ribbon">
-                        Lv. 10
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
             {/* Urgent Announcements Banner / Ticker */}
             {announcements.length > 0 && (
               <div
@@ -1386,92 +1143,6 @@ export const BoyPortalView: React.FC<BoyPortalViewProps> = ({
           )}
         </button>
       </nav>
-
-      {/* CLASH ROYALE CHEST INSPECT / UNLOCK MODAL */}
-      {selectedChestForModal && (
-        <div className="cr-modal-backdrop" onClick={() => setSelectedChestForModal(null)}>
-          <div
-            className="cr-modal-card cr-wood-frame"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: '380px',
-              width: '92%',
-              padding: '2rem 1.5rem',
-              textAlign: 'center',
-            }}
-          >
-            {/* 3D Chest Visual */}
-            <div
-              style={{
-                fontSize: '4.5rem',
-                filter: 'drop-shadow(0 10px 20px rgba(0,0,0,0.8)) drop-shadow(0 0 25px rgba(250, 204, 21, 0.5))',
-                marginBottom: '1rem',
-                animation: 'crBounceBadge 1.2s infinite alternate ease-in-out',
-              }}
-            >
-              {selectedChestForModal.icon}
-            </div>
-
-            <h3 className="cr-gold-title cr-text-shadow-heavy" style={{ margin: '0 0 0.5rem', fontSize: '1.45rem' }}>
-              {selectedChestForModal.titleAr}
-            </h3>
-
-            <p style={{ margin: '0 0 1rem', fontSize: '0.88rem', color: '#cbd5e1', lineHeight: 1.5 }}>
-              {selectedChestForModal.description}
-            </p>
-
-            {/* Chest Reward Box */}
-            <div
-              style={{
-                background: 'rgba(15, 23, 42, 0.9)',
-                border: '1.5px solid #334155',
-                borderRadius: '14px',
-                padding: '0.85rem',
-                marginBottom: '1.25rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-              }}
-            >
-              <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>المكافأة المحتملة:</span>
-              <span style={{ fontSize: '0.95rem', fontWeight: 900, color: '#fde047' }}>
-                {selectedChestForModal.rewardLabel}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', gap: '0.75rem' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  sound.playSuccessChime();
-                  setSelectedChestForModal(null);
-                  if (selectedChestForModal.type === 'psalm') {
-                    setActiveMainTab('events');
-                    setEventsSubTab('mzamer');
-                  } else if (selectedChestForModal.type === 'crown') {
-                    setActiveMainTab('events');
-                    setEventsSubTab('quizzes');
-                  }
-                }}
-                className="cr-btn cr-btn-green"
-                style={{ flex: 1, padding: '0.75rem', fontSize: '0.95rem' }}
-              >
-                {selectedChestForModal.status === 'ready' ? 'فتح واستلام 🎁' : 'اذهب للمهمة ⚔️'}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedChestForModal(null)}
-                className="cr-btn cr-btn-blue"
-                style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* QUICK BATTLE LAUNCH MODAL */}
       {isBattleLaunchModalOpen && (

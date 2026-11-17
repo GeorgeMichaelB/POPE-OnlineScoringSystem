@@ -774,6 +774,81 @@ export const App: React.FC = () => {
           }
           break;
         }
+        case 'BOY_PORTAL_SETTINGS_UPDATED': {
+          if (msg.data && typeof msg.data === 'object') {
+            await db.applyRemoteUpdate('pss_boy_portal_settings_v1', msg.data);
+          }
+          break;
+        }
+        case 'ANNOUNCEMENTS_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_announcements_v1', msg.data);
+            if (isFresh) showSyncToast(`📢 ${msg.senderName} updated announcements`);
+          }
+          break;
+        }
+        case 'SHOP_ITEMS_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_shop_items_v1', msg.data);
+            if (isFresh) showSyncToast(`🎁 ${msg.senderName} updated rewards store`);
+          }
+          break;
+        }
+        case 'SHOP_ORDERS_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_shop_orders_v1', msg.data);
+            if (isFresh) showSyncToast(`🛍️ ${msg.senderName} updated store orders`);
+          }
+          break;
+        }
+        case 'MAZAMER_DB_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_mazamer_db_v1', msg.data);
+            if (isFresh) showSyncToast(`📜 ${msg.senderName} updated Mazamer`);
+          }
+          break;
+        }
+        case 'MAZAMER_REQUESTS_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_mazamer_requests_v1', msg.data);
+            if (isFresh) showSyncToast(`✨ ${msg.senderName} updated Mazamer requests`);
+          }
+          break;
+        }
+        case 'BOY_CHALLENGES_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_boy_challenges_v1', msg.data);
+            if (isFresh) showSyncToast(`🎯 ${msg.senderName} updated challenges`);
+          }
+          break;
+        }
+        case 'BOY_QUIZZES_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_boy_quizzes_v1', msg.data);
+            if (isFresh) showSyncToast(`❓ ${msg.senderName} updated quizzes`);
+          }
+          break;
+        }
+        case 'BOY_QUESTIONS_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_boy_questions_v1', msg.data);
+            if (isFresh) showSyncToast(`💬 ${msg.senderName} updated questions`);
+          }
+          break;
+        }
+        case 'STUDENT_BADGES_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_student_badges_v1', msg.data);
+            if (isFresh) showSyncToast(`🎖️ ${msg.senderName} updated badges`);
+          }
+          break;
+        }
+        case 'BOY_NOTIFICATIONS_UPDATED': {
+          if (Array.isArray(msg.data)) {
+            await db.applyRemoteUpdate('pss_boy_notifications_v1', msg.data);
+          }
+          break;
+        }
       }
     });
 

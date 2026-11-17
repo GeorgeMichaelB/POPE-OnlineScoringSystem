@@ -14,8 +14,8 @@ export interface ArenaTier {
 export const CLASH_ARENAS: ArenaTier[] = [
   {
     id: 1,
-    nameAr: 'ساحة التدريب الكنسية',
-    nameEn: 'Training Camp',
+    nameAr: 'Home',
+    nameEn: 'Home',
     minTrophies: 0,
     maxTrophies: 150,
     icon: '⚔️',

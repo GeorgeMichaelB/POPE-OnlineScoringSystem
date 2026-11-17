@@ -84,6 +84,17 @@ const BASE_KEY_TO_SYNC_TYPE: Record<string, SyncEventType> = {
   [STORAGE_KEYS.CUSTOM_POINTS]: 'CUSTOM_POINTS_UPDATED',
   [STORAGE_KEYS.CLASS_HEROES]: 'CLASS_HEROES_UPDATED',
   [STORAGE_KEYS.AUDIT_LOGS]: 'AUDIT_LOGS_UPDATED',
+  [STORAGE_KEYS.BOY_PORTAL_SETTINGS]: 'BOY_PORTAL_SETTINGS_UPDATED',
+  [STORAGE_KEYS.ANNOUNCEMENTS]: 'ANNOUNCEMENTS_UPDATED',
+  [STORAGE_KEYS.SHOP_ITEMS]: 'SHOP_ITEMS_UPDATED',
+  [STORAGE_KEYS.SHOP_ORDERS]: 'SHOP_ORDERS_UPDATED',
+  [STORAGE_KEYS.MAZAMER_DB]: 'MAZAMER_DB_UPDATED',
+  [STORAGE_KEYS.MAZAMER_REQUESTS]: 'MAZAMER_REQUESTS_UPDATED',
+  [STORAGE_KEYS.BOY_CHALLENGES]: 'BOY_CHALLENGES_UPDATED',
+  [STORAGE_KEYS.BOY_QUIZZES]: 'BOY_QUIZZES_UPDATED',
+  [STORAGE_KEYS.BOY_QUESTIONS]: 'BOY_QUESTIONS_UPDATED',
+  [STORAGE_KEYS.STUDENT_BADGES]: 'STUDENT_BADGES_UPDATED',
+  [STORAGE_KEYS.BOY_NOTIFICATIONS]: 'BOY_NOTIFICATIONS_UPDATED',
   timer: 'TIMER_STATE_UPDATED',
 };
 
@@ -1238,7 +1249,7 @@ class DatabaseService {
             await this.setScopedData(baseKey, cloudSection, false);
             return cloudSection;
           }
-        } catch {}
+        } catch { }
       }
 
       // Non-default class or empty fallback
@@ -1271,6 +1282,17 @@ class DatabaseService {
       { canonical: 'customPoints', storageKey: STORAGE_KEYS.CUSTOM_POINTS },
       { canonical: 'classHeroes', storageKey: STORAGE_KEYS.CLASS_HEROES },
       { canonical: 'auditLogs', storageKey: STORAGE_KEYS.AUDIT_LOGS },
+      { canonical: 'boyPortalSettings', storageKey: STORAGE_KEYS.BOY_PORTAL_SETTINGS },
+      { canonical: 'announcements', storageKey: STORAGE_KEYS.ANNOUNCEMENTS },
+      { canonical: 'shopItems', storageKey: STORAGE_KEYS.SHOP_ITEMS },
+      { canonical: 'shopOrders', storageKey: STORAGE_KEYS.SHOP_ORDERS },
+      { canonical: 'mazamer', storageKey: STORAGE_KEYS.MAZAMER_DB },
+      { canonical: 'mazmourRequests', storageKey: STORAGE_KEYS.MAZAMER_REQUESTS },
+      { canonical: 'challenges', storageKey: STORAGE_KEYS.BOY_CHALLENGES },
+      { canonical: 'quizzes', storageKey: STORAGE_KEYS.BOY_QUIZZES },
+      { canonical: 'boyQuestions', storageKey: STORAGE_KEYS.BOY_QUESTIONS },
+      { canonical: 'studentBadges', storageKey: STORAGE_KEYS.STUDENT_BADGES },
+      { canonical: 'boyNotifications', storageKey: STORAGE_KEYS.BOY_NOTIFICATIONS },
     ];
 
     let count = 0;
@@ -1319,14 +1341,14 @@ class DatabaseService {
       if (cloudClasses && Array.isArray(cloudClasses) && cloudClasses.length > 0) {
         await this.saveAllClasses(cloudClasses, false);
       }
-    } catch {}
+    } catch { }
 
     try {
       const cloudUsers = await cloudSync.getGlobal<UserAccount[]>('users');
       if (cloudUsers && Array.isArray(cloudUsers) && cloudUsers.length > 0) {
         await this.saveAllUsers(cloudUsers, false);
       }
-    } catch {}
+    } catch { }
 
     return { synced: true, count };
   }
@@ -1354,6 +1376,17 @@ class DatabaseService {
         auditLogs,
         classes,
         users,
+        boyPortalSettings,
+        announcements,
+        shopItems,
+        shopOrders,
+        mazamer,
+        mazmourRequests,
+        challenges,
+        quizzes,
+        boyQuestions,
+        studentBadges,
+        boyNotifications,
       ] = await Promise.all([
         this.getStudents(),
         this.getAttendance(),
@@ -1370,6 +1403,17 @@ class DatabaseService {
         this.getAuditLogs(),
         this.getClasses(),
         this.getUsers(),
+        this.getBoyPortalSettings(classId),
+        this.getAnnouncements(classId),
+        this.getShopItems(classId),
+        this.getShopOrders(classId),
+        this.getMazamer(classId),
+        this.getMazmourRequests(classId),
+        this.getBoyChallenges(classId),
+        this.getBoyQuizzes(classId),
+        this.getBoyQuestions(classId),
+        this.getStudentBadges(classId),
+        this.getBoyNotifications(undefined, classId),
       ]);
 
       const sections: Record<string, unknown> = {
@@ -1386,6 +1430,17 @@ class DatabaseService {
         customPoints,
         classHeroes,
         auditLogs,
+        boyPortalSettings,
+        announcements,
+        shopItems,
+        shopOrders,
+        mazamer,
+        mazmourRequests,
+        challenges,
+        quizzes,
+        boyQuestions,
+        studentBadges,
+        boyNotifications,
         [STORAGE_KEYS.STUDENTS]: students,
         [STORAGE_KEYS.ATTENDANCE]: attendance,
         [STORAGE_KEYS.DARS_KTAB]: darsKtab,
@@ -1399,6 +1454,17 @@ class DatabaseService {
         [STORAGE_KEYS.CUSTOM_POINTS]: customPoints,
         [STORAGE_KEYS.CLASS_HEROES]: classHeroes,
         [STORAGE_KEYS.AUDIT_LOGS]: auditLogs,
+        [STORAGE_KEYS.BOY_PORTAL_SETTINGS]: boyPortalSettings,
+        [STORAGE_KEYS.ANNOUNCEMENTS]: announcements,
+        [STORAGE_KEYS.SHOP_ITEMS]: shopItems,
+        [STORAGE_KEYS.SHOP_ORDERS]: shopOrders,
+        [STORAGE_KEYS.MAZAMER_DB]: mazamer,
+        [STORAGE_KEYS.MAZAMER_REQUESTS]: mazmourRequests,
+        [STORAGE_KEYS.BOY_CHALLENGES]: challenges,
+        [STORAGE_KEYS.BOY_QUIZZES]: quizzes,
+        [STORAGE_KEYS.BOY_QUESTIONS]: boyQuestions,
+        [STORAGE_KEYS.STUDENT_BADGES]: studentBadges,
+        [STORAGE_KEYS.BOY_NOTIFICATIONS]: boyNotifications,
       };
 
       return {
@@ -1426,6 +1492,17 @@ class DatabaseService {
       customPoints: STORAGE_KEYS.CUSTOM_POINTS,
       classHeroes: STORAGE_KEYS.CLASS_HEROES,
       auditLogs: STORAGE_KEYS.AUDIT_LOGS,
+      boyPortalSettings: STORAGE_KEYS.BOY_PORTAL_SETTINGS,
+      announcements: STORAGE_KEYS.ANNOUNCEMENTS,
+      shopItems: STORAGE_KEYS.SHOP_ITEMS,
+      shopOrders: STORAGE_KEYS.SHOP_ORDERS,
+      mazamer: STORAGE_KEYS.MAZAMER_DB,
+      mazmourRequests: STORAGE_KEYS.MAZAMER_REQUESTS,
+      challenges: STORAGE_KEYS.BOY_CHALLENGES,
+      quizzes: STORAGE_KEYS.BOY_QUIZZES,
+      boyQuestions: STORAGE_KEYS.BOY_QUESTIONS,
+      studentBadges: STORAGE_KEYS.STUDENT_BADGES,
+      boyNotifications: STORAGE_KEYS.BOY_NOTIFICATIONS,
     };
     const targetKey = storageKeyMap[baseKey] || baseKey;
     await this.setScopedData(targetKey, data, false);
@@ -2439,7 +2516,7 @@ class DatabaseService {
         const found = users.find((u) => u.username.toLowerCase() === lower);
         if (found && found.role === 'superadmin') return true;
       }
-    } catch {}
+    } catch { }
     return false;
   }
 
@@ -2844,7 +2921,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'POINT_SETTINGS_UPDATED',
+        type: 'BOY_PORTAL_SETTINGS_UPDATED',
         data: settings,
         description: 'Updated Boys Portal configuration (scores / shop visibility)',
       });
@@ -2854,6 +2931,7 @@ class DatabaseService {
   // 2. Announcements
   async getAnnouncements(classId?: string): Promise<Announcement[]> {
     if (!this.isBrowser()) return INITIAL_ANNOUNCEMENTS;
+    await this.ensureSeedDataSynced(classId);
     try {
       const key = this.getScopedKey(STORAGE_KEYS.ANNOUNCEMENTS, classId);
       let stored: Announcement[] | undefined = undefined;
@@ -2888,7 +2966,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_EVENTS_UPDATED',
+        type: 'ANNOUNCEMENTS_UPDATED',
         data: announcements,
         description: 'Updated Boys announcements',
       });
@@ -2917,6 +2995,7 @@ class DatabaseService {
   // 3. Shop Items & Orders
   async getShopItems(classId?: string): Promise<ShopItem[]> {
     if (!this.isBrowser()) return INITIAL_SHOP_ITEMS;
+    await this.ensureSeedDataSynced(classId);
     try {
       const key = this.getScopedKey(STORAGE_KEYS.SHOP_ITEMS, classId);
       let stored: ShopItem[] | undefined = undefined;
@@ -2951,7 +3030,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_POINTS_UPDATED',
+        type: 'SHOP_ITEMS_UPDATED',
         data: items,
         description: 'Updated Shop items inventory',
       });
@@ -3012,7 +3091,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_POINTS_UPDATED',
+        type: 'SHOP_ORDERS_UPDATED',
         data: orders,
         description: 'Updated Shop orders queue',
       });
@@ -3046,10 +3125,10 @@ class DatabaseService {
     const updated = orders.map((o) =>
       o.id === orderId
         ? {
-            ...o,
-            status,
-            deliveredAt: status === 'delivered' ? new Date().toISOString() : o.deliveredAt,
-          }
+          ...o,
+          status,
+          deliveredAt: status === 'delivered' ? new Date().toISOString() : o.deliveredAt,
+        }
         : o
     );
     await this.saveAllShopOrders(updated, classId);
@@ -3058,6 +3137,7 @@ class DatabaseService {
   // 4. Mazamer Database & Requests
   async getMazamer(classId?: string): Promise<MazmourDefinition[]> {
     if (!this.isBrowser()) return INITIAL_MAZAMER;
+    await this.ensureSeedDataSynced(classId);
     try {
       const key = this.getScopedKey(STORAGE_KEYS.MAZAMER_DB, classId);
       let stored: MazmourDefinition[] | undefined = undefined;
@@ -3092,7 +3172,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_EVENTS_UPDATED',
+        type: 'MAZAMER_DB_UPDATED',
         data: mazamer,
         description: 'Updated Mazamer Database',
       });
@@ -3153,7 +3233,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_POINTS_UPDATED',
+        type: 'MAZAMER_REQUESTS_UPDATED',
         data: requests,
         description: 'Updated Mazmour Requests',
       });
@@ -3182,6 +3262,7 @@ class DatabaseService {
   // 5. Boy Challenges
   async getBoyChallenges(classId?: string): Promise<BoyChallenge[]> {
     if (!this.isBrowser()) return INITIAL_CHALLENGES;
+    await this.ensureSeedDataSynced(classId);
     try {
       const key = this.getScopedKey(STORAGE_KEYS.BOY_CHALLENGES, classId);
       let stored: BoyChallenge[] | undefined = undefined;
@@ -3216,7 +3297,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_EVENTS_UPDATED',
+        type: 'BOY_CHALLENGES_UPDATED',
         data: challenges,
         description: 'Updated Boy Challenges',
       });
@@ -3245,6 +3326,7 @@ class DatabaseService {
   // 6. Boy Quizzes / Mosab2at
   async getBoyQuizzes(classId?: string): Promise<BoyQuiz[]> {
     if (!this.isBrowser()) return INITIAL_QUIZZES;
+    await this.ensureSeedDataSynced(classId);
     try {
       const key = this.getScopedKey(STORAGE_KEYS.BOY_QUIZZES, classId);
       let stored: BoyQuiz[] | undefined = undefined;
@@ -3279,7 +3361,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_EVENTS_UPDATED',
+        type: 'BOY_QUIZZES_UPDATED',
         data: quizzes,
         description: 'Updated Boy Quizzes',
       });
@@ -3341,7 +3423,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CUSTOM_EVENTS_UPDATED',
+        type: 'BOY_QUESTIONS_UPDATED',
         data: questions,
         description: 'Updated Boy Questions',
       });
@@ -3403,7 +3485,7 @@ class DatabaseService {
     if (broadcast) {
       syncService.publish({
         classId: classId || this.getActiveClassId(),
-        type: 'CLASS_HEROES_UPDATED',
+        type: 'STUDENT_BADGES_UPDATED',
         data: badges,
         description: 'Awarded Student Badge',
       });
@@ -3450,7 +3532,7 @@ class DatabaseService {
     }
   }
 
-  async saveAllBoyNotifications(notifs: BoyNotification[], classId?: string): Promise<void> {
+  async saveAllBoyNotifications(notifs: BoyNotification[], classId?: string, broadcast = true): Promise<void> {
     if (!this.isBrowser()) return;
     const key = this.getScopedKey(STORAGE_KEYS.BOY_NOTIFICATIONS, classId);
     try {
@@ -3459,6 +3541,14 @@ class DatabaseService {
       // safe fallback
     }
     localStorage.setItem(key, JSON.stringify(notifs));
+    if (broadcast) {
+      syncService.publish({
+        classId: classId || this.getActiveClassId(),
+        type: 'BOY_NOTIFICATIONS_UPDATED',
+        data: notifs,
+        description: 'Updated Boy Notifications',
+      });
+    }
   }
 
   async addBoyNotification(notif: BoyNotification, classId?: string): Promise<void> {
@@ -3472,20 +3562,139 @@ class DatabaseService {
     const updated = list.map((n) => (n.id === notifId ? { ...n, read: true } : n));
     await this.saveAllBoyNotifications(updated, classId);
   }
+
+  /**
+   * Automatically synchronizes pre-setted system seeders (announcements, mazamer, challenges, quizzes, shop)
+   * with the latest codebase updates, ensuring that pushes to Vercel instantly reflect code seed edits
+   * without losing student completions, custom challenges, or servant announcements.
+   */
+  async ensureSeedDataSynced(classId?: string, force = false): Promise<boolean> {
+    if (!this.isBrowser()) return false;
+    const cid = classId || this.getActiveClassId();
+    const versionKey = `pss_seed_ver_${cid}`;
+    const storedVer = localStorage.getItem(versionKey);
+    if (!force && storedVer === CURRENT_SYSTEM_SEED_VERSION) {
+      return false;
+    }
+
+    try {
+      const readKey = async <T>(baseKey: string, fallback: T): Promise<T> => {
+        const key = this.getScopedKey(baseKey, cid);
+        try {
+          const stored = await get<T>(key);
+          if (stored !== undefined && stored !== null && Array.isArray(stored) && stored.length > 0) {
+            return stored;
+          }
+          const local = localStorage.getItem(key);
+          if (local !== null) {
+            const parsed = JSON.parse(local);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed as T;
+          }
+        } catch { }
+        return fallback;
+      };
+
+      // 1. Announcements: update system announcements (matching INITIAL_ANNOUNCEMENTS IDs or 'ann-') and keep custom ones
+      const currentAnnouncements = await readKey<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, []);
+      const customAnnouncements = currentAnnouncements.filter(
+        (a) => !INITIAL_ANNOUNCEMENTS.some((ia) => ia.id === a.id) && !a.id.startsWith('ann-')
+      );
+      const mergedAnnouncements = [...INITIAL_ANNOUNCEMENTS, ...customAnnouncements];
+      await this.saveAllAnnouncements(mergedAnnouncements, cid, false);
+
+      // 2. Mazamer: merge INITIAL_MAZAMER definitions with custom mazamer
+      const currentMazamer = await readKey<MazmourDefinition[]>(STORAGE_KEYS.MAZAMER_DB, []);
+      const customMazamer = currentMazamer.filter(
+        (m) => !INITIAL_MAZAMER.some((im) => im.id === m.id || im.number === m.number)
+      );
+      const mergedMazamer = [...INITIAL_MAZAMER, ...customMazamer];
+      await this.saveAllMazamer(mergedMazamer, cid, false);
+
+      // 3. Shop Items: update INITIAL_SHOP_ITEMS while preserving custom stock/state and custom items
+      const currentShopItems = await readKey<ShopItem[]>(STORAGE_KEYS.SHOP_ITEMS, []);
+      const shopMap = new Map(currentShopItems.map((i) => [i.id, i]));
+      const updatedSystemShop = INITIAL_SHOP_ITEMS.map((initItem) => {
+        const existing = shopMap.get(initItem.id);
+        if (existing) {
+          return {
+            ...initItem,
+            stock: typeof existing.stock === 'number' ? existing.stock : initItem.stock,
+            isEnabled: typeof existing.isEnabled === 'boolean' ? existing.isEnabled : initItem.isEnabled,
+          };
+        }
+        return initItem;
+      });
+      const customShopItems = currentShopItems.filter(
+        (i) => !INITIAL_SHOP_ITEMS.some((si) => si.id === i.id)
+      );
+      await this.saveAllShopItems([...updatedSystemShop, ...customShopItems], cid, false);
+
+      // 4. Boy Challenges: update definitions while preserving completedStudentIds & pendingStudentIds
+      const currentChallenges = await readKey<BoyChallenge[]>(STORAGE_KEYS.BOY_CHALLENGES, []);
+      const chalMap = new Map(currentChallenges.map((c) => [c.id, c]));
+      const updatedSystemChallenges = INITIAL_CHALLENGES.map((initChal) => {
+        const existing = chalMap.get(initChal.id);
+        if (existing) {
+          return {
+            ...initChal,
+            completedStudentIds: Array.isArray(existing.completedStudentIds) ? existing.completedStudentIds : [],
+            pendingStudentIds: Array.isArray(existing.pendingStudentIds) ? existing.pendingStudentIds : [],
+            isActive: typeof existing.isActive === 'boolean' ? existing.isActive : initChal.isActive,
+          };
+        }
+        return initChal;
+      });
+      const customChallenges = currentChallenges.filter(
+        (c) => !INITIAL_CHALLENGES.some((ic) => ic.id === c.id)
+      );
+      await this.saveAllBoyChallenges([...updatedSystemChallenges, ...customChallenges], cid, false);
+
+      // 5. Boy Quizzes: update quiz questions while strictly preserving completedStudentIds
+      const currentQuizzes = await readKey<BoyQuiz[]>(STORAGE_KEYS.BOY_QUIZZES, []);
+      const quizMap = new Map(currentQuizzes.map((q) => [q.id, q]));
+      const updatedSystemQuizzes = INITIAL_QUIZZES.map((initQuiz) => {
+        const existing = quizMap.get(initQuiz.id);
+        if (existing) {
+          return {
+            ...initQuiz,
+            completedStudentIds: Array.isArray(existing.completedStudentIds) ? existing.completedStudentIds : [],
+            isActive: typeof existing.isActive === 'boolean' ? existing.isActive : initQuiz.isActive,
+          };
+        }
+        return initQuiz;
+      });
+      const customQuizzes = currentQuizzes.filter(
+        (q) => !INITIAL_QUIZZES.some((iq) => iq.id === q.id)
+      );
+      await this.saveAllBoyQuizzes([...updatedSystemQuizzes, ...customQuizzes], cid, false);
+
+      localStorage.setItem(versionKey, CURRENT_SYSTEM_SEED_VERSION);
+      return true;
+    } catch (e) {
+      console.error('Failed to sync seed data:', e);
+      return false;
+    }
+  }
+
+  async resetBoysPortalToSystemSeeds(classId?: string): Promise<void> {
+    await this.ensureSeedDataSynced(classId, true);
+  }
 }
+
+export const CURRENT_SYSTEM_SEED_VERSION = 'v2026.11.15.seed_v2';
 
 export const DEFAULT_BOY_PORTAL_SETTINGS: BoyPortalSettings = {
   hideScores: false,
   hideLeaderboard: false,
   isShopEnabled: true,
-  announcementBanner: 'أهلاً بكم في بوابة مخدومي أسرة البابا ساويرس! 🌟 استعدوا للمسابقات والأوسمة والجوائز!',
+  announcementBanner: 'أهلاً بيك في فصل البابا ساويرس! 🌟',
 };
 
 export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'ann-1',
-    title: 'مرحباً بجميع أبطال أسرة البابا ساويرس بنظام الأوسمة الجديد! 🏆',
-    content: 'كل أسبوع هيكون عندنا تحديات ومزامير وكويزات وجوائز بالنقاط! كل مخدوم يقدر يستلم مزاميره، يشترك في التحديات ويجمع أوسمة دهبية وفضية في بروفايله!',
+    title: 'مرحباً بجميع أبطال فصل الانبا ساويرس الانطاكي! 🏆',
+    content: 'كل أسبوع هيكون عندنا تحديات ومزامير وكويزات، تقدر تستلم مزامير تحفظها وتاخد points!',
     targetAudience: 'boys',
     isPinned: true,
     priority: 'celebration',
@@ -3495,7 +3704,7 @@ export const INITIAL_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 'ann-2',
     title: 'تنبيه لأولياء الأمور والمخدومين: مواعيد خدمة الجمعة والقداس',
-    content: 'نذكركم بالحضور المبكر للقداس الإلهي ومدارس الأحد يوم الجمعة، ودرس كتاب السبت وماتش الملعب يوم الخميس.',
+    content: 'نذكركم بالحضور بدري للقداس ومدارس الأحد يوم الجمعة، ودرس كتاب السبت والملعب يوم الخميس.',
     targetAudience: 'all',
     isPinned: false,
     priority: 'normal',
